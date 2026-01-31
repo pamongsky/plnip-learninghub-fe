@@ -1,45 +1,22 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import api from '@/lib/axios';
+import { useEffect, useState } from "react";
+import api from "@/lib/axios";
+import Link from "next/link";
+import { useAuth } from "@/contexts/AuthContext";
+import { motion } from "framer-motion";
 import {
   BookOpenIcon,
   CheckCircleIcon,
   ClockIcon,
   TrophyIcon,
-  BellIcon,
-  UserCircleIcon,
-  ArrowRightIcon,
-} from '@heroicons/react/24/outline';
-
-interface QuickStat {
-  title: string;
-  value: number;
-  icon: string;
-  color: string;
-}
-
-interface Announcement {
-  id: number;
-  title: string;
-  content: string;
-  priority: string;
-  published_at: string;
-  creator: {
-    name: string;
-    department: string;
-  };
-}
+  PlayCircleIcon,
+  AcademicCapIcon,
+  MegaphoneIcon,
+} from "@heroicons/react/24/outline";
+import MoodleLoginButton from "@/components/MoodleLoginButton";
 
 interface DashboardData {
-  user: {
-    name: string;
-    email: string;
-    employee_id: string;
-    department: string;
-    position: string;
-  };
   stats: {
     total_courses: number;
     completed_courses: number;
@@ -48,14 +25,76 @@ interface DashboardData {
     total_learning_hours: number;
     completion_rate: number;
   };
-  quick_stats: QuickStat[];
-  announcements: Announcement[];
+  announcements: Array<{
+    id: number;
+    title: string;
+    priority: string;
+    published_at: string;
+  }>;
+  course_progress: Array<{
+    id: number;
+    title: string;
+    instructor: string;
+    category: string;
+    image?: string;
+    moodle_url?: string;
+  }>;
+}
+
+// Animated counter
+function AnimatedCounter({
+  value,
+  suffix = "",
+}: {
+  value: number;
+  suffix?: string;
+}) {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    const duration = 1500;
+    const steps = 40;
+    const increment = value / steps;
+    let current = 0;
+
+    const timer = setInterval(() => {
+      current += increment;
+      if (current >= value) {
+        setCount(value);
+        clearInterval(timer);
+      } else {
+        setCount(Math.floor(current));
+      }
+    }, duration / steps);
+
+    return () => clearInterval(timer);
+  }, [value]);
+
+  return (
+    <span>
+      {count}
+      {suffix}
+    </span>
+  );
 }
 
 export default function DashboardPage() {
-  const { user, logout } = useAuth();
-  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const { user } = useAuth();
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
+
+  const displayName = user?.name || "User";
+
+  // Get greeting based on time
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Selamat Pagi";
+    if (hour < 15) return "Selamat Siang";
+    if (hour < 18) return "Selamat Sore";
+    return "Selamat Malam";
+  };
 
   useEffect(() => {
     fetchDashboardData();
@@ -63,235 +102,270 @@ export default function DashboardPage() {
 
   const fetchDashboardData = async () => {
     try {
-      const response = await api.get('/dashboard/employee');
+      setLoading(true);
+      const response = await api.get("/dashboard/employee");
       setDashboardData(response.data.data);
     } catch (error) {
-      console.error('Failed to fetch dashboard data:', error);
+      console.error("Failed to fetch dashboard data:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  const getIconComponent = (iconName: string) => {
-    switch (iconName) {
-      case 'book-open':
-        return BookOpenIcon;
-      case 'check-circle':
-        return CheckCircleIcon;
-      case 'clock':
-        return ClockIcon;
-      case 'award':
-        return TrophyIcon;
-      default:
-        return BookOpenIcon;
-    }
-  };
+  const stats = [
+    {
+      label: "Total Kursus",
+      value: dashboardData?.stats?.total_courses || 0,
+      icon: BookOpenIcon,
+      color: "text-blue-600",
+      bgLight: "bg-blue-50",
+    },
+    {
+      label: "Selesai",
+      value: dashboardData?.stats?.completed_courses || 0,
+      icon: CheckCircleIcon,
+      color: "text-emerald-600",
+      bgLight: "bg-emerald-50",
+    },
+    {
+      label: "Jam Belajar",
+      value: dashboardData?.stats?.total_learning_hours || 0,
+      icon: ClockIcon,
+      color: "text-amber-600",
+      bgLight: "bg-amber-50",
+      suffix: "h",
+    },
+    {
+      label: "Sertifikat",
+      value: dashboardData?.stats?.certificates_earned || 0,
+      icon: TrophyIcon,
+      color: "text-purple-600",
+      bgLight: "bg-purple-50",
+    },
+  ];
 
-  const getColorClasses = (color: string) => {
-    switch (color) {
-      case 'blue':
-        return 'bg-blue-50 text-blue-600';
-      case 'green':
-        return 'bg-green-50 text-green-600';
-      case 'yellow':
-        return 'bg-yellow-50 text-yellow-600';
-      case 'purple':
-        return 'bg-purple-50 text-purple-600';
-      default:
-        return 'bg-gray-50 text-gray-600';
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pln-primary mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading dashboard...</p>
-        </div>
-      </div>
-    );
-  }
+  const announcements = dashboardData?.announcements || [];
+  const courseProgress = dashboardData?.course_progress || [];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="w-10 h-10 bg-pln-primary rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/>
-                </svg>
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">PLN IP Learning Hub</h1>
-                <p className="text-sm text-gray-500">Employee Portal</p>
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-4">
-              <button className="p-2 text-gray-400 hover:text-gray-600 relative">
-                <BellIcon className="w-6 h-6" />
-                <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
-              </button>
-              <div className="flex items-center space-x-3">
-                <div className="text-right">
-                  <p className="text-sm font-medium text-gray-900">{user?.name}</p>
-                  <p className="text-xs text-gray-500">{dashboardData?.user.position}</p>
-                </div>
-                <UserCircleIcon className="w-10 h-10 text-gray-400" />
-              </div>
-              <button
-                onClick={logout}
-                className="px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition"
-              >
-                Logout
-              </button>
-            </div>
+    <div className="space-y-6">
+      {/* Greeting Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-gradient-to-br from-pln-primary via-pln-dark to-slate-900 rounded-2xl p-6 text-white relative overflow-hidden"
+      >
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(255,255,255,0.1),transparent_50%)]" />
+        <div className="relative">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-2xl">👋</span>
+            <p className="text-white/80 text-sm">{getGreeting()}</p>
+          </div>
+          <h1 className="text-2xl font-bold mb-2">{displayName}!</h1>
+          <p className="text-white/70 text-sm mb-4">
+            Lanjutkan perjalanan belajarmu dan raih sertifikasi baru
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <MoodleLoginButton className="bg-white/20 hover:bg-white/30 text-white" />
+            <Link
+              href="/dashboard/classes"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-medium transition-all"
+            >
+              <PlayCircleIcon className="w-4 h-4" />
+              Lihat Kelas
+            </Link>
+            <Link
+              href="/dashboard/certificates"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white text-pln-primary rounded-lg text-sm font-medium hover:shadow-lg transition-all"
+            >
+              <TrophyIcon className="w-4 h-4" />
+              Lihat Sertifikat
+            </Link>
           </div>
         </div>
-      </header>
+      </motion.div>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Welcome Section */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900">
-            Welcome back, {dashboardData?.user.name}!
-          </h2>
-          <p className="text-gray-600 mt-1">
-            {dashboardData?.user.department} • {dashboardData?.user.employee_id}
-          </p>
-        </div>
+      {/* Stats Cards */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="grid grid-cols-2 lg:grid-cols-4 gap-4"
+      >
+        {stats.map((stat, index) => (
+          <motion.div
+            key={stat.label}
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.1 + index * 0.05 }}
+            whileHover={{ scale: 1.02 }}
+            className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-100 dark:border-slate-700 hover:shadow-md transition-all"
+          >
+            <div
+              className={`w-10 h-10 ${stat.bgLight} rounded-lg flex items-center justify-center mb-3`}
+            >
+              <stat.icon className={`w-5 h-5 ${stat.color}`} />
+            </div>
+            <p className="text-2xl font-bold text-slate-800 dark:text-white">
+              <AnimatedCounter value={stat.value} suffix={stat.suffix} />
+            </p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              {stat.label}
+            </p>
+          </motion.div>
+        ))}
+      </motion.div>
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {dashboardData?.quick_stats.map((stat, index) => {
-            const IconComponent = getIconComponent(stat.icon);
-            const colorClasses = getColorClasses(stat.color);
+      {/* Main Grid */}
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* Courses In Progress */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="lg:col-span-2"
+        >
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
+            <div className="p-4 border-b border-slate-100 dark:border-slate-700">
+              <h3 className="font-semibold text-slate-800 dark:text-white">
+                Kelas Berlangsung
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Kelas yang sedang Anda ikuti
+              </p>
+            </div>
 
-            return (
-              <div key={index} className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600 mb-1">{stat.title}</p>
-                    <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
-                  </div>
-                  <div className={`p-3 rounded-lg ${colorClasses}`}>
-                    <IconComponent className="w-6 h-6" />
-                  </div>
-                </div>
+            {courseProgress.length === 0 ? (
+              <div className="p-8 text-center">
+                <AcademicCapIcon className="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600 mb-3" />
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  Belum ada kelas yang diikuti
+                </p>
+                <Link
+                  href="/dashboard/classes"
+                  className="inline-block mt-3 text-sm text-pln-primary hover:underline"
+                >
+                  Jelajahi Kelas
+                </Link>
               </div>
-            );
-          })}
-        </div>
-
-        {/* Main Grid */}
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Announcements */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-gray-900">Latest Announcements</h3>
-                <button className="text-sm text-pln-primary hover:text-pln-600 flex items-center">
-                  View all
-                  <ArrowRightIcon className="w-4 h-4 ml-1" />
-                </button>
-              </div>
-
-              {dashboardData?.announcements && dashboardData.announcements.length > 0 ? (
-                <div className="space-y-4">
-                  {dashboardData.announcements.map((announcement) => (
-                    <div
-                      key={announcement.id}
-                      className="border border-gray-200 rounded-lg p-4 hover:border-pln-primary transition cursor-pointer"
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <h4 className="font-medium text-gray-900">{announcement.title}</h4>
-                        <span className={`px-2 py-1 text-xs rounded ${
-                          announcement.priority === 'high' ? 'bg-red-100 text-red-700' :
-                          announcement.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-                          'bg-green-100 text-green-700'
-                        }`}>
-                          {announcement.priority}
-                        </span>
+            ) : (
+              <div className="divide-y divide-slate-100 dark:divide-slate-700">
+                {courseProgress.map((classItem, index) => (
+                  <motion.div
+                    key={classItem.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.3 + index * 0.1 }}
+                    className="p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all group"
+                  >
+                    <div className="flex gap-3">
+                      <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-slate-200 dark:bg-slate-700">
+                        {classItem.image ? (
+                          <img
+                            src={classItem.image}
+                            alt={classItem.title}
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <BookOpenIcon className="w-6 h-6 text-slate-400" />
+                          </div>
+                        )}
                       </div>
-                      <p className="text-sm text-gray-600 mb-3 line-clamp-2">{announcement.content}</p>
-                      <div className="flex items-center text-xs text-gray-500">
-                        <span>{announcement.creator?.name || 'Admin'}</span>
-                        <span className="mx-2">•</span>
-                        <span>{announcement.creator?.department || 'HCIS'}</span>
-                        <span className="mx-2">•</span>
-                        <span>{new Date(announcement.published_at || announcement.created_at).toLocaleDateString()}</span>
+                      <div className="flex-1 min-w-0">
+                        <span className="inline-block px-2 py-0.5 text-[10px] font-medium bg-pln-primary/10 dark:bg-pln-primary/20 text-pln-primary dark:text-pln-light rounded mb-1">
+                          {classItem.category}
+                        </span>
+                        <h4 className="font-medium text-slate-800 dark:text-white text-sm truncate">
+                          {classItem.title}
+                        </h4>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                          Instruktur: {classItem.instructor}
+                        </p>
+                      </div>
+                      {classItem.moodle_url && (
+                        <a
+                          href={classItem.moodle_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="self-center px-3 py-1.5 rounded-lg bg-pln-primary text-white text-xs font-medium hover:bg-pln-dark transition-all flex items-center gap-1"
+                        >
+                          <PlayCircleIcon className="w-4 h-4" />
+                          Masuk
+                        </a>
+                      )}
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </div>
+        </motion.div>
+
+        {/* Right Column */}
+        <div className="space-y-6">
+          {/* Announcements */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden"
+          >
+            <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-700">
+              <h3 className="font-semibold text-slate-800 dark:text-white text-sm">
+                Pengumuman
+              </h3>
+              <Link
+                href="/dashboard/announcements"
+                className="text-[10px] text-pln-primary dark:text-pln-light hover:text-pln-dark font-medium"
+              >
+                Lihat Semua
+              </Link>
+            </div>
+
+            {announcements.length === 0 ? (
+              <div className="p-6 text-center">
+                <MegaphoneIcon className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-600 mb-2" />
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Belum ada pengumuman
+                </p>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100 dark:divide-slate-700">
+                {announcements.slice(0, 3).map((announcement) => (
+                  <Link
+                    key={announcement.id}
+                    href={`/dashboard/announcements`}
+                    className="block p-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all"
+                  >
+                    <div className="flex items-start gap-2">
+                      <div
+                        className={`w-1.5 h-1.5 rounded-full mt-1.5 ${
+                          announcement.priority === "high"
+                            ? "bg-red-500"
+                            : announcement.priority === "medium"
+                              ? "bg-amber-500"
+                              : "bg-blue-500"
+                        }`}
+                      />
+                      <div>
+                        <p className="font-medium text-slate-800 dark:text-white text-xs line-clamp-1">
+                          {announcement.title}
+                        </p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">
+                          {new Date(
+                            announcement.published_at,
+                          ).toLocaleDateString("id-ID")}
+                        </p>
                       </div>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <BellIcon className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                  <p className="text-gray-500">No announcements yet</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Right Sidebar */}
-          <div className="space-y-6">
-            {/* Learning Progress */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Learning Progress</h3>
-              <div className="space-y-4">
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-600">Overall Completion</span>
-                    <span className="text-sm font-medium text-gray-900">
-                      {dashboardData?.stats.completion_rate || 0}%
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-pln-primary h-2 rounded-full transition-all"
-                      style={{ width: `${dashboardData?.stats.completion_rate || 0}%` }}
-                    ></div>
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t border-gray-200">
-                  <div className="text-center py-8">
-                    <BookOpenIcon className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                    <p className="text-sm text-gray-500 mb-3">No active courses yet</p>
-                    <button className="px-4 py-2 bg-pln-primary text-white rounded-lg text-sm hover:bg-pln-600 transition">
-                      Browse Courses
-                    </button>
-                  </div>
-                </div>
+                  </Link>
+                ))}
               </div>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-              <div className="space-y-2">
-                <button className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition flex items-center">
-                  <BookOpenIcon className="w-5 h-5 mr-3 text-gray-400" />
-                  Browse Courses
-                </button>
-                <button className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition flex items-center">
-                  <TrophyIcon className="w-5 h-5 mr-3 text-gray-400" />
-                  My Certificates
-                </button>
-                <button className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition flex items-center">
-                  <UserCircleIcon className="w-5 h-5 mr-3 text-gray-400" />
-                  Edit Profile
-                </button>
-              </div>
-            </div>
-          </div>
+            )}
+          </motion.div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }

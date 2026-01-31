@@ -1,9 +1,15 @@
-'use client';
+"use client";
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import Cookies from 'js-cookie';
-import api from '@/lib/axios';
-import { useRouter } from 'next/navigation';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
+import Cookies from "js-cookie";
+import api from "@/lib/axios";
+import { useRouter } from "next/navigation";
 
 interface User {
   id: number;
@@ -17,14 +23,21 @@ interface User {
   is_active: boolean;
   roles: string[];
   permissions: string[];
+  created_at?: string;
 }
 
 interface AuthContextType {
   user: User | null;
+  setUser: (user: User | null) => void;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  register: (name: string, email: string, password: string, passwordConfirmation: string) => Promise<void>;
+  register: (
+    name: string,
+    email: string,
+    password: string,
+    passwordConfirmation: string,
+  ) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -39,13 +52,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const checkAuth = async () => {
-    const token = Cookies.get('auth_token');
+    const token = Cookies.get("auth_token");
     if (token) {
       try {
-        const response = await api.get('/user');
+        const response = await api.get("/user");
         setUser(response.data.data.user);
       } catch (error) {
-        Cookies.remove('auth_token');
+        Cookies.remove("auth_token");
       }
     }
     setLoading(false);
@@ -53,37 +66,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await api.post('/login', { email, password });
+      const response = await api.post("/login", { email, password });
       const { token, user } = response.data.data;
 
-      Cookies.set('auth_token', token, { expires: 7 }); // 7 days
+      Cookies.set("auth_token", token, { expires: 7 }); // 7 days
       setUser(user);
 
       // Role-based redirect
       const roles = user.roles || [];
 
-      // Check if user is admin or super-admin -> redirect to Filament
-      if (roles.includes('super-admin') || roles.includes('admin')) {
-        window.location.href = 'http://127.0.0.1:8000/admin';
+      if (roles.includes("super-admin")) {
+        router.push("/superadmin");
         return;
       }
 
-      // Employee or instructor -> redirect to Next.js dashboard
-      router.push('/dashboard');
+      if (roles.includes("admin")) {
+        router.push("/admin");
+        return;
+      }
+
+      if (roles.includes("instructor")) {
+        router.push("/instructor");
+        return;
+      }
+
+      router.push("/dashboard");
     } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Login failed');
+      throw new Error(error.response?.data?.message || "Login failed");
     }
   };
 
   const logout = async () => {
     try {
-      await api.post('/logout');
+      await api.post("/logout");
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error("Logout error:", error);
     } finally {
-      Cookies.remove('auth_token');
+      Cookies.remove("auth_token");
       setUser(null);
-      router.push('/login');
+      router.push("/login");
     }
   };
 
@@ -91,10 +112,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     name: string,
     email: string,
     password: string,
-    passwordConfirmation: string
+    passwordConfirmation: string,
   ) => {
     try {
-      const response = await api.post('/register', {
+      const response = await api.post("/register", {
         name,
         email,
         password,
@@ -102,16 +123,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       const { token, user } = response.data.data;
 
-      Cookies.set('auth_token', token, { expires: 7 });
+      Cookies.set("auth_token", token, { expires: 7 });
       setUser(user);
-      router.push('/dashboard');
+      router.push("/dashboard");
     } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Registration failed');
+      throw new Error(error.response?.data?.message || "Registration failed");
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, register }}>
+    <AuthContext.Provider
+      value={{ user, setUser, loading, login, logout, register }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -120,7 +143,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }

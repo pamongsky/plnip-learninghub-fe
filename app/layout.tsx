@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Manrope } from "next/font/google";
 import "./globals.css";
+import { Toaster } from "sonner";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 
 const inter = Inter({ subsets: ["latin"] });
+const manrope = Manrope({ subsets: ["latin"], variable: "--font-instructor" });
 
 export const metadata: Metadata = {
   title: "PLN IP Learning Hub",
@@ -16,10 +19,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
+    <html lang="en" suppressHydrationWarning>
+      <body
+        className={`${inter.className} ${manrope.variable} transition-colors duration-300`}
+        suppressHydrationWarning
+      >
         <AuthProvider>
-          {children}
+          <ThemeProvider>
+            {children}
+            <Toaster richColors position="top-center" />
+          </ThemeProvider>
         </AuthProvider>
       </body>
     </html>
