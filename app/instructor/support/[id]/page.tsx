@@ -35,7 +35,7 @@ interface TicketDetail {
   description: string;
   category: string;
   priority: "low" | "medium" | "high" | "urgent";
-  status: "open" | "in_progress" | "resolved" | "closed";
+  status: "open" | "in_progress" | "resolved" | "closed" | "escalated";
   created_at: string;
   resolved_at?: string;
   assignedAdmin?: {
@@ -108,7 +108,6 @@ export default function InstructorSupportDetailPage() {
             user: {
               id: reply.user?.id || 0,
               name: reply.user?.name || "User",
-              avatar: reply.user?.avatar,
             },
           })),
         };
@@ -178,7 +177,6 @@ export default function InstructorSupportDetailPage() {
         user: {
           id: reply.user?.id || 0,
           name: reply.user?.name || "Anda",
-          avatar: reply.user?.avatar,
         },
       };
 

@@ -4,6 +4,7 @@ import "./globals.css";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import AIChatWidget from "@/components/AIChatWidget";
 
 const inter = Inter({ subsets: ["latin"] });
 const manrope = Manrope({ subsets: ["latin"], variable: "--font-instructor" });
@@ -27,6 +28,7 @@ export default function RootLayout({
         <AuthProvider>
           <ThemeProvider>
             {children}
+            <AIChatWidget />
             <Toaster richColors position="top-center" />
           </ThemeProvider>
         </AuthProvider>

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import axios from "@/lib/axios";
 import {
   UsersIcon,
   MagnifyingGlassIcon,
@@ -12,7 +13,8 @@ import {
   TrashIcon,
   EyeIcon,
   ShieldCheckIcon,
-  ArrowDownTrayIcon,
+  CheckCircleIcon,
+  ExclamationCircleIcon,
 } from "@heroicons/react/24/outline";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +42,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { UserDetailsModal } from "./UserDetailsModal";
+import { UserEditModal } from "./UserEditModal";
+import { UserDeleteModal } from "./UserDeleteModal";
+import { UserOverrideRoleModal } from "./UserOverrideRoleModal";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -54,75 +60,22 @@ const itemVariants = {
   visible: { opacity: 1, y: 0 },
 };
 
-// Mock data - all users from all units
-const users = [
-  {
-    id: 1,
-    name: "Ahmad Fauzi",
-    email: "ahmad.fauzi@plnip.co.id",
-    employeeId: "PLN-2024-001",
-    department: "Pembangkitan",
-    position: "Engineer",
-    role: "user",
-    status: "active",
-    joinedAt: "2024-03-15",
-  },
-  {
-    id: 2,
-    name: "Siti Rahayu",
-    email: "siti.rahayu@plnip.co.id",
-    employeeId: "PLN-2024-002",
-    department: "Transmisi",
-    position: "Supervisor",
-    role: "instructor",
-    status: "active",
-    joinedAt: "2024-02-20",
-  },
-  {
-    id: 3,
-    name: "Admin Pusat",
-    email: "admin.pusat@plnip.co.id",
-    employeeId: "PLN-ADM-001",
-    department: "Pusat",
-    position: "Administrator",
-    role: "admin",
-    status: "active",
-    joinedAt: "2024-01-10",
-  },
-  {
-    id: 4,
-    name: "Dewi Lestari",
-    email: "dewi.lestari@plnip.co.id",
-    employeeId: "PLN-2024-003",
-    department: "Corporate",
-    position: "Manager",
-    role: "admin",
-    status: "active",
-    joinedAt: "2024-01-05",
-  },
-  {
-    id: 5,
-    name: "Rizky Pratama",
-    email: "rizky.pratama@plnip.co.id",
-    employeeId: "PLN-2024-004",
-    department: "Distribusi",
-    position: "Technician",
-    role: "user",
-    status: "inactive",
-    joinedAt: "2024-04-01",
-  },
-  {
-    id: 6,
-    name: "Super Admin",
-    email: "superadmin@plnip.co.id",
-    employeeId: "PLN-SA-001",
-    department: "IT",
-    position: "System Admin",
-    role: "superadmin",
-    status: "active",
-    joinedAt: "2023-01-01",
-  },
-];
+// Types
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  employee_id: string;
+  department: string;
+  position: string;
+  role?: string;
+  effective_role?: string;
+  is_active: boolean;
+  source: 'manual' | 'erp';
+  access_group?: string;
+  role_override?: string;
+  created_at: string;
+}
 
 const roleStats = [
   { role: "superadmin", count: 2, color: "bg-pln-primary" },
@@ -132,14 +85,55 @@ const roleStats = [
 ];
 
 export default function SuperadminUsersPage() {
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [sourceFilter, setSourceFilter] = useState("all");
   const [departmentFilter, setDepartmentFilter] = useState("all");
+  const [syncLoading, setSyncLoading] = useState(false);
+  const [syncMessage, setSyncMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  
+  // Modal states
+  const [detailsModal, setDetailsModal] = useState({ open: false, userId: 0 });
+  const [editModal, setEditModal] = useState({ open: false, userId: 0 });
+  const [deleteModal, setDeleteModal] = useState({ open: false, userId: 0, userName: "" });
+  const [overrideModal, setOverrideModal] = useState({ 
+    open: false, 
+    userId: 0, 
+    userName: "", 
+    currentRole: "", 
+    accessGroup: "" 
+  });
+
+  useEffect(() => {
+    fetchUsers();
+  }, [roleFilter, statusFilter, sourceFilter, departmentFilter, searchQuery]);
+
+  const fetchUsers = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        role: roleFilter,
+        status: statusFilter,
+        source: sourceFilter,
+        department: departmentFilter,
+        search: searchQuery,
+      });
+
+      const response = await axios.get(`/superadmin/users?${params}`);
+      setUsers(response.data.data || []);
+    } catch (error) {
+      console.error("Failed to fetch users:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getRoleBadge = (role: string) => {
     switch (role) {
-      case "superadmin":
+      case "super-admin":
         return (
           <Badge className="bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400">
             Super Admin
@@ -162,39 +156,54 @@ export default function SuperadminUsersPage() {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "active":
-        return (
-          <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
-            Aktif
-          </Badge>
-        );
-      case "inactive":
-        return <Badge variant="secondary">Nonaktif</Badge>;
-      case "pending":
-        return (
-          <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-            Pending
-          </Badge>
-        );
-      default:
-        return <Badge variant="outline">{status}</Badge>;
+  const getSourceBadge = (source: string) => {
+    if (source === "erp") {
+      return (
+        <Badge className="bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400">
+          ERP
+        </Badge>
+      );
     }
+    return (
+      <Badge className="bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
+        Manual
+      </Badge>
+    );
   };
 
-  const filteredUsers = users.filter((user) => {
-    const matchesSearch =
-      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.employeeId.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesRole = roleFilter === "all" || user.role === roleFilter;
-    const matchesStatus =
-      statusFilter === "all" || user.status === statusFilter;
-    const matchesDepartment =
-      departmentFilter === "all" || user.department === departmentFilter;
-    return matchesSearch && matchesRole && matchesStatus && matchesDepartment;
-  });
+  const getStatusBadge = (isActive: boolean) => {
+    if (isActive) {
+      return (
+        <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+          Aktif
+        </Badge>
+      );
+    }
+    return <Badge variant="secondary">Nonaktif</Badge>;
+  };
+
+  const handleERPSync = async () => {
+    setSyncLoading(true);
+    setSyncMessage(null);
+    try {
+      const response = await axios.post('/superadmin/sync-erp');
+      setSyncMessage({
+        type: 'success',
+        text: `✅ Sync berhasil: ${response.data.stats.created} baru, ${response.data.stats.updated} diperbarui`,
+      });
+      // Refresh users list after sync
+      setTimeout(() => fetchUsers(), 1000);
+    } catch (error: any) {
+      setSyncMessage({
+        type: 'error',
+        text: `❌ Sync gagal: ${error.response?.data?.error || error.message}`,
+      });
+    } finally {
+      setSyncLoading(false);
+      // Clear message after 5 seconds
+      setTimeout(() => setSyncMessage(null), 5000);
+    }
+  };
 
   return (
     <motion.div
@@ -217,9 +226,23 @@ export default function SuperadminUsersPage() {
           </p>
         </div>
         <div className="flex gap-3">
-          <Button variant="outline" className="gap-2">
-            <ArrowDownTrayIcon className="h-4 w-4" />
-            Export
+          <Button 
+            onClick={handleERPSync}
+            disabled={syncLoading}
+            variant="outline"
+            className="gap-2"
+          >
+            {syncLoading ? (
+              <>
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-pln-primary" />
+                Sync ERP...
+              </>
+            ) : (
+              <>
+                <ShieldCheckIcon className="h-4 w-4" />
+                Sync ERP
+              </>
+            )}
           </Button>
           <Link href="/superadmin/users/create">
             <Button className="gap-2 bg-gradient-to-r from-pln-primary to-pln-light hover:from-pln-dark hover:to-pln-primary">
@@ -229,6 +252,20 @@ export default function SuperadminUsersPage() {
           </Link>
         </div>
       </motion.div>
+
+      {/* Sync Message */}
+      {syncMessage && (
+        <motion.div
+          variants={itemVariants}
+          className={`p-4 rounded-lg border ${
+            syncMessage.type === 'success'
+              ? 'bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-900/20 dark:border-emerald-800 dark:text-emerald-300'
+              : 'bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300'
+          }`}
+        >
+          {syncMessage.text}
+        </motion.div>
+      )}
 
       {/* Role Stats */}
       <motion.div variants={itemVariants} className="grid gap-4 md:grid-cols-4">
@@ -251,56 +288,86 @@ export default function SuperadminUsersPage() {
       <motion.div variants={itemVariants}>
         <Card className="border-0 shadow-lg">
           <CardContent className="p-6">
-            <div className="flex flex-col gap-4 md:flex-row">
-              <div className="relative flex-1">
-                <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-                <Input
-                  placeholder="Cari nama, email, atau employee ID..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Cari</label>
+                <div className="relative">
+                  <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                  <Input
+                    placeholder="Cari nama, email, atau employee ID..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
               </div>
-              <Select value={roleFilter} onValueChange={setRoleFilter}>
-                <SelectTrigger className="w-full md:w-40">
-                  <SelectValue placeholder="Role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua Role</SelectItem>
-                  <SelectItem value="superadmin">Super Admin</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="instructor">Instructor</SelectItem>
-                  <SelectItem value="user">User</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full md:w-40">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua Status</SelectItem>
-                  <SelectItem value="active">Aktif</SelectItem>
-                  <SelectItem value="inactive">Nonaktif</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select
-                value={departmentFilter}
-                onValueChange={setDepartmentFilter}
-              >
-                <SelectTrigger className="w-full md:w-44">
-                  <SelectValue placeholder="Department" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua Unit</SelectItem>
-                  <SelectItem value="Pusat">Pusat</SelectItem>
-                  <SelectItem value="Pembangkitan">Pembangkitan</SelectItem>
-                  <SelectItem value="Transmisi">Transmisi</SelectItem>
-                  <SelectItem value="Distribusi">Distribusi</SelectItem>
-                  <SelectItem value="Corporate">Corporate</SelectItem>
-                  <SelectItem value="IT">IT</SelectItem>
-                </SelectContent>
-              </Select>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Role</label>
+                  <Select value={roleFilter} onValueChange={setRoleFilter}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Semua Role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Semua Role</SelectItem>
+                      <SelectItem value="super-admin">Super Admin</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="instructor">Instructor</SelectItem>
+                      <SelectItem value="user">User</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Status</label>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Semua Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Semua Status</SelectItem>
+                      <SelectItem value="active">Aktif</SelectItem>
+                      <SelectItem value="inactive">Nonaktif</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Source</label>
+                  <Select value={sourceFilter} onValueChange={setSourceFilter}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Semua Source" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Semua Source</SelectItem>
+                      <SelectItem value="manual">Manual</SelectItem>
+                      <SelectItem value="erp">ERP</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Unit</label>
+                  <Select
+                    value={departmentFilter}
+                    onValueChange={setDepartmentFilter}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Semua Unit" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Semua Unit</SelectItem>
+                      <SelectItem value="Pusat">Pusat</SelectItem>
+                      <SelectItem value="Pembangkitan">Pembangkitan</SelectItem>
+                      <SelectItem value="Transmisi">Transmisi</SelectItem>
+                      <SelectItem value="Distribusi">Distribusi</SelectItem>
+                      <SelectItem value="Corporate">Corporate</SelectItem>
+                      <SelectItem value="IT">IT</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -310,82 +377,153 @@ export default function SuperadminUsersPage() {
       <motion.div variants={itemVariants}>
         <Card className="border-0 shadow-lg">
           <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>User</TableHead>
-                  <TableHead>Employee ID</TableHead>
-                  <TableHead>Department</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Bergabung</TableHead>
-                  <TableHead className="text-right">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredUsers.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-pln-primary to-pln-light text-sm font-semibold text-white">
-                          {user.name
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")
-                            .slice(0, 2)}
-                        </div>
-                        <div>
-                          <p className="font-medium text-slate-900 dark:text-white">
-                            {user.name}
-                          </p>
-                          <p className="text-sm text-slate-500">{user.email}</p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-mono text-sm">
-                      {user.employeeId}
-                    </TableCell>
-                    <TableCell>{user.department}</TableCell>
-                    <TableCell>{getRoleBadge(user.role)}</TableCell>
-                    <TableCell>{getStatusBadge(user.status)}</TableCell>
-                    <TableCell className="text-slate-500">
-                      {user.joinedAt}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <EllipsisHorizontalIcon className="h-5 w-5" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem className="gap-2">
-                            <EyeIcon className="h-4 w-4" />
-                            Lihat Detail
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="gap-2">
-                            <PencilSquareIcon className="h-4 w-4" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="gap-2">
-                            <ShieldCheckIcon className="h-4 w-4" />
-                            Ubah Role
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="gap-2 text-red-600">
-                            <TrashIcon className="h-4 w-4" />
-                            Hapus
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
+            {loading ? (
+              <div className="p-8 text-center">
+                <p className="text-slate-500">Memuat data...</p>
+              </div>
+            ) : users.length === 0 ? (
+              <div className="p-8 text-center">
+                <p className="text-slate-500">Tidak ada user ditemukan</p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>User</TableHead>
+                    <TableHead>Employee ID</TableHead>
+                    <TableHead>Unit</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Source</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Aksi</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {users.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-pln-primary to-pln-light text-sm font-semibold text-white">
+                            {user.name
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")
+                              .slice(0, 2)}
+                          </div>
+                          <div>
+                            <p className="font-medium text-slate-900 dark:text-white">
+                              {user.name}
+                            </p>
+                            <p className="text-sm text-slate-500">{user.email}</p>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-mono text-sm">
+                        {user.employee_id || "-"}
+                      </TableCell>
+                      <TableCell>{user.department || "-"}</TableCell>
+                      <TableCell>{getRoleBadge(user.effective_role || "user")}</TableCell>
+                      <TableCell>{getSourceBadge(user.source)}</TableCell>
+                      <TableCell>{getStatusBadge(user.is_active)}</TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <EllipsisHorizontalIcon className="h-5 w-5" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem 
+                              className="gap-2"
+                              onSelect={() => setDetailsModal({ open: true, userId: user.id })}
+                            >
+                              <EyeIcon className="h-4 w-4" />
+                              Lihat Detail
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              className="gap-2"
+                              onSelect={() => setEditModal({ open: true, userId: user.id })}
+                            >
+                              <PencilSquareIcon className="h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
+                            {user.source === "manual" && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                  className="gap-2 text-red-600"
+                                  onSelect={() => setDeleteModal({ 
+                                    open: true, 
+                                    userId: user.id, 
+                                    userName: user.name 
+                                  })}
+                                >
+                                  <TrashIcon className="h-4 w-4" />
+                                  Hapus
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                            {user.source === "erp" && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                  className="gap-2"
+                                  onSelect={() => setOverrideModal({
+                                    open: true,
+                                    userId: user.id,
+                                    userName: user.name,
+                                    currentRole: user.effective_role || "user",
+                                    accessGroup: user.access_group || "N/A"
+                                  })}
+                                >
+                                  <ShieldCheckIcon className="h-4 w-4" />
+                                  Override Role
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* Modals */}
+      <UserDetailsModal 
+        open={detailsModal.open}
+        onOpenChange={(open) => setDetailsModal({ ...detailsModal, open })}
+        userId={detailsModal.userId}
+      />
+
+      <UserEditModal 
+        open={editModal.open}
+        onOpenChange={(open) => setEditModal({ ...editModal, open })}
+        userId={editModal.userId}
+        onSuccess={fetchUsers}
+      />
+
+      <UserDeleteModal 
+        open={deleteModal.open}
+        onOpenChange={(open) => setDeleteModal({ ...deleteModal, open })}
+        userId={deleteModal.userId}
+        userName={deleteModal.userName}
+        onSuccess={fetchUsers}
+      />
+
+      <UserOverrideRoleModal 
+        open={overrideModal.open}
+        onOpenChange={(open) => setOverrideModal({ ...overrideModal, open })}
+        userId={overrideModal.userId}
+        userName={overrideModal.userName}
+        currentRole={overrideModal.currentRole}
+        accessGroup={overrideModal.accessGroup}
+        onSuccess={fetchUsers}
+      />
     </motion.div>
   );
 }

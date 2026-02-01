@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -12,60 +12,80 @@ import {
   ChatBubbleLeftRightIcon,
   PlayCircleIcon,
 } from "@heroicons/react/24/outline";
+import api from "@/lib/axios";
 
-// Mock data for user's enrolled classes
-const enrolledClasses = [
-  {
-    id: "1",
-    title: "Dasar-Dasar Pembangkit Listrik",
-    description: "Memahami prinsip dasar pembangkitan listrik dan komponen utama pembangkit",
-    instructor: "Dr. Ahmad Wijaya",
-    participants: 32,
-    schedule: "Senin & Rabu, 09:00 - 11:00",
-    startDate: "15 Jan 2026",
-    endDate: "15 Mar 2026",
-    status: "active",
-    progress: 45,
-    moodleUrl: "#",
-  },
-  {
-    id: "2",
-    title: "Keselamatan Kerja (K3) Industri",
-    description: "Standar keselamatan kerja dan prosedur K3 di lingkungan industri ketenagalistrikan",
-    instructor: "Ir. Siti Nurhaliza",
-    participants: 28,
-    schedule: "Selasa & Kamis, 14:00 - 16:00",
-    startDate: "10 Jan 2026",
-    endDate: "10 Mar 2026",
-    status: "active",
-    progress: 60,
-    moodleUrl: "#",
-  },
-  {
-    id: "3",
-    title: "Transformator & Sistem Distribusi",
-    description: "Pemahaman mendalam tentang transformator dan sistem distribusi tenaga listrik",
-    instructor: "Dr. Budi Santoso",
-    participants: 24,
-    schedule: "Jumat, 10:00 - 12:00",
-    startDate: "20 Jan 2026",
-    endDate: "20 Apr 2026",
-    status: "upcoming",
-    progress: 0,
-    moodleUrl: "#",
-  },
-];
+type ClassStatus = "active" | "upcoming" | "completed";
+
+interface EnrolledClass {
+  id: number;
+  title: string;
+  description?: string | null;
+  instructor?: string;
+  participants?: number;
+  startDate?: string | null;
+  endDate?: string | null;
+  status: ClassStatus;
+  progress?: number;
+  moodleUrl?: string | null;
+}
 
 export default function UserClassesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [classes, setClasses] = useState<EnrolledClass[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredClasses = enrolledClasses.filter((cls) => {
-    const matchesSearch = cls.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          cls.instructor.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === "all" || cls.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  useEffect(() => {
+    const fetchMyClasses = async () => {
+      try {
+        setLoading(true);
+        const res = await api.get("/courses/my");
+        const data = res.data?.data || [];
+
+        const normalizeStatus = (start?: string | null, end?: string | null): ClassStatus => {
+          if (!start && !end) return "active";
+          const now = new Date();
+          const startDate = start ? new Date(start) : null;
+          const endDate = end ? new Date(end) : null;
+
+          if (startDate && now < startDate) return "upcoming";
+          if (endDate && now > endDate) return "completed";
+          return "active";
+        };
+
+        const mapped: EnrolledClass[] = data.map((c: any) => ({
+          id: c.id,
+          title: c.title,
+          description: c.description || null,
+          instructor: c.instructor?.name || "Instructor",
+          participants: c.enrollments_count,
+          startDate: c.start_date || null,
+          endDate: c.end_date || null,
+          status: normalizeStatus(c.start_date, c.end_date),
+          moodleUrl: c.moodle_url || null,
+        }));
+
+        setClasses(mapped);
+      } catch (error) {
+        console.error("Failed to load classes:", error);
+        setClasses([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMyClasses();
+  }, []);
+
+  const filteredClasses = useMemo(() => {
+    return classes.filter((cls) => {
+      const matchesSearch =
+        cls.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (cls.instructor || "").toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesStatus = statusFilter === "all" || cls.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [classes, searchQuery, statusFilter]);
 
   const getStatusLabel = (status: string) => {
     switch (status) {
@@ -140,7 +160,13 @@ export default function UserClassesPage() {
         transition={{ delay: 0.2 }}
         className="grid gap-4"
       >
-        {filteredClasses.map((cls, index) => (
+        {loading && (
+          <div className="text-center py-10 text-sm text-slate-500 dark:text-slate-400">
+            Memuat kelas Anda...
+          </div>
+        )}
+
+        {!loading && filteredClasses.map((cls, index) => (
           <motion.div
             key={cls.id}
             initial={{ opacity: 0, y: 20 }}
@@ -165,27 +191,33 @@ export default function UserClassesPage() {
                   <h3 className="font-semibold text-slate-800 dark:text-white group-hover:text-pln-primary dark:group-hover:text-pln-light transition-colors">
                     {cls.title}
                   </h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 line-clamp-1">
-                    {cls.description}
-                  </p>
+                  {cls.description && (
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 line-clamp-1">
+                      {cls.description}
+                    </p>
+                  )}
                   <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">
                     Instruktur: {cls.instructor}
                   </p>
 
                   {/* Meta info */}
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3 text-xs text-slate-500 dark:text-slate-400">
-                    <span className="flex items-center gap-1">
-                      <UserGroupIcon className="w-4 h-4" />
-                      {cls.participants} peserta
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <CalendarIcon className="w-4 h-4" />
-                      {cls.schedule}
-                    </span>
+                    {typeof cls.participants === "number" && (
+                      <span className="flex items-center gap-1">
+                        <UserGroupIcon className="w-4 h-4" />
+                        {cls.participants} peserta
+                      </span>
+                    )}
+                    {(cls.startDate || cls.endDate) && (
+                      <span className="flex items-center gap-1">
+                        <CalendarIcon className="w-4 h-4" />
+                        {cls.startDate || "-"} s/d {cls.endDate || "-"}
+                      </span>
+                    )}
                   </div>
 
-                  {/* Progress bar for active classes */}
-                  {cls.status === "active" && (
+                  {/* Progress bar when available */}
+                  {cls.status === "active" && typeof cls.progress === "number" && (
                     <div className="mt-3">
                       <div className="flex items-center justify-between text-xs mb-1">
                         <span className="text-slate-400">Progress Anda</span>
@@ -210,22 +242,33 @@ export default function UserClassesPage() {
                     <ChatBubbleLeftRightIcon className="w-4 h-4" />
                     Chat Grup
                   </Link>
-                  <a
-                    href={cls.moodleUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 lg:flex-none px-4 py-2 bg-gradient-to-r from-pln-primary to-pln-light hover:shadow-lg hover:shadow-pln-primary/25 text-white text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-2"
-                  >
-                    <PlayCircleIcon className="w-4 h-4" />
-                    Buka Moodle
-                  </a>
+                  {cls.moodleUrl ? (
+                    <a
+                      href={cls.moodleUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 lg:flex-none px-4 py-2 bg-gradient-to-r from-pln-primary to-pln-light hover:shadow-lg hover:shadow-pln-primary/25 text-white text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-2"
+                    >
+                      <PlayCircleIcon className="w-4 h-4" />
+                      Buka Moodle
+                    </a>
+                  ) : (
+                    <button
+                      type="button"
+                      className="flex-1 lg:flex-none px-4 py-2 bg-slate-200/70 dark:bg-slate-700/70 text-slate-500 dark:text-slate-400 text-sm font-medium rounded-lg flex items-center justify-center gap-2 cursor-not-allowed"
+                      disabled
+                    >
+                      <PlayCircleIcon className="w-4 h-4" />
+                      Moodle belum tersedia
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
           </motion.div>
         ))}
 
-        {filteredClasses.length === 0 && (
+        {!loading && filteredClasses.length === 0 && (
           <div className="text-center py-12">
             <AcademicCapIcon className="w-16 h-16 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-slate-800 dark:text-white mb-2">Belum ada kelas</h3>

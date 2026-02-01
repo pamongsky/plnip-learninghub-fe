@@ -100,11 +100,30 @@ export default function DashboardPage() {
     fetchDashboardData();
   }, []);
 
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const response = await api.get("/dashboard/employee");
-      setDashboardData(response.data.data);
+      // Parallel requests for stats and courses
+      const [statsRes, coursesRes] = await Promise.all([
+        api.get("/dashboard/employee"),
+        api.get("/courses/my"),
+      ]);
+
+      setDashboardData({
+        ...statsRes.data.data,
+        course_progress: coursesRes.data.data.map((c: any) => ({
+          id: c.id,
+          title: c.title,
+          instructor: c.instructor?.name || "Instructor",
+          category: c.category_id || "General",
+          image: c.image,
+          moodle_url: c.moodle_url,
+        })),
+      });
     } catch (error) {
       console.error("Failed to fetch dashboard data:", error);
     } finally {
@@ -144,7 +163,23 @@ export default function DashboardPage() {
     },
   ];
 
-  const announcements = dashboardData?.announcements || [];
+  // Filter announcements for today only
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  const todaysAnnouncements = (dashboardData?.announcements || [])
+    .filter((a) => {
+      const pubDate = new Date(a.published_at);
+      return pubDate >= today && pubDate < tomorrow;
+    })
+    .sort((a, b) => {
+      const aTime = new Date(a.published_at).getTime();
+      const bTime = new Date(b.published_at).getTime();
+      return bTime - aTime;
+    });
+
   const courseProgress = dashboardData?.course_progress || [];
 
   return (
@@ -323,16 +358,16 @@ export default function DashboardPage() {
               </Link>
             </div>
 
-            {announcements.length === 0 ? (
+            {todaysAnnouncements.length === 0 ? (
               <div className="p-6 text-center">
                 <MegaphoneIcon className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-600 mb-2" />
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Belum ada pengumuman
+                  Belum ada pengumuman hari ini
                 </p>
               </div>
             ) : (
               <div className="divide-y divide-slate-100 dark:divide-slate-700">
-                {announcements.slice(0, 3).map((announcement) => (
+                {todaysAnnouncements.slice(0, 3).map((announcement) => (
                   <Link
                     key={announcement.id}
                     href={`/dashboard/announcements`}

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
+import api from "@/lib/axios";
 import {
   AcademicCapIcon,
   UserGroupIcon,
@@ -14,8 +15,37 @@ import {
   ClockIcon,
   QuestionMarkCircleIcon,
   ChatBubbleLeftRightIcon,
+  MegaphoneIcon,
 } from "@heroicons/react/24/outline";
 import MoodleLoginButton from "@/components/MoodleLoginButton";
+
+interface InstructorDashboardData {
+  stats: {
+    active_classes: number;
+    total_participants: number;
+    completed_classes: number;
+    average_attendance: number;
+  };
+  announcements: Array<{
+    id: number;
+    title: string;
+    priority: string;
+    published_at: string;
+    creator?: {
+      name: string;
+    };
+  }>;
+  classes: Array<{
+    id: number;
+    title: string;
+    description: string;
+    participants: number;
+    schedule: string;
+    status: "active" | "upcoming" | "completed";
+    progress: number;
+    moodle_url?: string;
+  }>;
+}
 
 // Animated counter
 function AnimatedCounter({ value }: { value: number }) {
@@ -45,6 +75,9 @@ function AnimatedCounter({ value }: { value: number }) {
 
 export default function InstructorDashboardPage() {
   const { user } = useAuth();
+  const [dashboardData, setDashboardData] = useState<InstructorDashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  
   const displayName = user?.name || "Instruktur";
 
   // Get greeting based on time
@@ -56,10 +89,46 @@ export default function InstructorDashboardPage() {
     return "Selamat Malam";
   };
 
-  // Mock stats
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      const res = await api.get("/dashboard/instructor");
+      setDashboardData(res.data.data);
+    } catch (error) {
+      console.error("Failed to fetch instructor dashboard data:", error);
+      // Fallback with empty data
+      setDashboardData({
+        stats: {
+          active_classes: 0,
+          total_participants: 0,
+          completed_classes: 0,
+          average_attendance: 0,
+        },
+        announcements: [],
+        classes: [],
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const stats = [
-    { label: "Kelas Aktif", value: 5, icon: AcademicCapIcon, color: "pln" },
-    { label: "Total Peserta", value: 127, icon: UserGroupIcon, color: "blue" },
+    { 
+      label: "Kelas Aktif", 
+      value: dashboardData?.stats?.active_classes || 0, 
+      icon: AcademicCapIcon, 
+      color: "pln" 
+    },
+    { 
+      label: "Total Peserta", 
+      value: dashboardData?.stats?.total_participants || 0, 
+      icon: UserGroupIcon, 
+      color: "blue" 
+    },
     {
       label: "Pertanyaan Hari Ini",
       value: 8,
@@ -67,49 +136,33 @@ export default function InstructorDashboardPage() {
       color: "amber",
       link: "/instructor/questions",
     },
-    { label: "Kelas Selesai", value: 12, icon: CheckBadgeIcon, color: "green" },
-  ];
-
-  // Mock classes
-  const myClasses = [
-    {
-      id: 1,
-      title: "Dasar-Dasar Pembangkit Listrik",
-      participants: 32,
-      schedule: "Senin & Rabu, 09:00",
-      status: "active",
-    },
-    {
-      id: 2,
-      title: "Keselamatan Kerja (K3)",
-      participants: 28,
-      schedule: "Selasa & Kamis, 14:00",
-      status: "active",
-    },
-    {
-      id: 3,
-      title: "Transformator & Distribusi",
-      participants: 24,
-      schedule: "Jumat, 10:00",
-      status: "upcoming",
+    { 
+      label: "Kelas Selesai", 
+      value: dashboardData?.stats?.completed_classes || 0, 
+      icon: CheckBadgeIcon, 
+      color: "green" 
     },
   ];
 
-  // Mock announcements
-  const announcements = [
-    {
-      id: 1,
-      title: "Update Sistem Penilaian Baru",
-      date: "22 Jan 2026",
-      priority: "high",
-    },
-    {
-      id: 2,
-      title: "Jadwal Libur Nasional",
-      date: "20 Jan 2026",
-      priority: "normal",
-    },
-  ];
+  // Filter today's announcements
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  const todaysAnnouncements = (dashboardData?.announcements || [])
+    .filter((a) => {
+      const pubDate = new Date(a.published_at);
+      return pubDate >= today && pubDate < tomorrow;
+    })
+    .sort((a, b) => {
+      const aTime = new Date(a.published_at).getTime();
+      const bTime = new Date(b.published_at).getTime();
+      return bTime - aTime;
+    })
+    .slice(0, 3);
+
+  const myClasses = (dashboardData?.classes || []).slice(0, 3);
 
   const colorMap: Record<
     string,
@@ -245,54 +298,72 @@ export default function InstructorDashboardPage() {
               </Link>
             </div>
             <div className="divide-y divide-slate-100 dark:divide-slate-700">
-              {myClasses.map((cls, index) => (
-                <motion.div
-                  key={cls.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.3 + index * 0.1 }}
-                  className="p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pln-primary to-pln-light flex items-center justify-center text-white flex-shrink-0">
-                      <AcademicCapIcon className="w-6 h-6" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span
-                          className={`inline-block px-2 py-0.5 text-[10px] font-medium rounded ${
-                            cls.status === "active"
-                              ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400"
-                              : "bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400"
-                          }`}
-                        >
-                          {cls.status === "active" ? "Aktif" : "Akan Datang"}
-                        </span>
+              {loading ? (
+                <div className="p-4 text-center text-slate-500 dark:text-slate-400">
+                  Memuat data kelas...
+                </div>
+              ) : myClasses.length === 0 ? (
+                <div className="p-4 text-center text-slate-500 dark:text-slate-400">
+                  Belum ada kelas
+                </div>
+              ) : (
+                myClasses.map((cls, index) => (
+                  <motion.div
+                    key={cls.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.3 + index * 0.1 }}
+                    className="p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pln-primary to-pln-light flex items-center justify-center text-white flex-shrink-0">
+                        <AcademicCapIcon className="w-6 h-6" />
                       </div>
-                      <h4 className="font-medium text-slate-800 dark:text-white text-sm truncate">
-                        {cls.title}
-                      </h4>
-                      <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 dark:text-slate-400">
-                        <span className="flex items-center gap-1">
-                          <UserGroupIcon className="w-3 h-3" />
-                          {cls.participants} peserta
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <ClockIcon className="w-3 h-3" />
-                          {cls.schedule}
-                        </span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span
+                            className={`inline-block px-2 py-0.5 text-[10px] font-medium rounded ${
+                              cls.status === "active"
+                                ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400"
+                                : cls.status === "upcoming"
+                                ? "bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400"
+                                : "bg-slate-100 dark:bg-slate-500/20 text-slate-700 dark:text-slate-400"
+                            }`}
+                          >
+                            {cls.status === "active"
+                              ? "Aktif"
+                              : cls.status === "upcoming"
+                              ? "Akan Datang"
+                              : "Selesai"}
+                          </span>
+                        </div>
+                        <h4 className="font-medium text-slate-800 dark:text-white text-sm truncate">
+                          {cls.title}
+                        </h4>
+                        <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 dark:text-slate-400">
+                          <span className="flex items-center gap-1">
+                            <UserGroupIcon className="w-3 h-3" />
+                            {cls.participants} peserta
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <ClockIcon className="w-3 h-3" />
+                            {cls.schedule}
+                          </span>
+                        </div>
                       </div>
+                      <a
+                        href={cls.moodle_url || "#"}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3 py-1.5 rounded-lg bg-pln-primary text-white text-xs font-medium hover:bg-pln-dark transition-all flex items-center gap-1"
+                      >
+                        <PlayCircleIcon className="w-4 h-4" />
+                        Masuk
+                      </a>
                     </div>
-                    <Link
-                      href={`/instructor/classes/${cls.id}`}
-                      className="px-3 py-1.5 rounded-lg bg-pln-primary text-white text-xs font-medium hover:bg-pln-dark transition-all flex items-center gap-1"
-                    >
-                      <PlayCircleIcon className="w-4 h-4" />
-                      Masuk
-                    </Link>
-                  </div>
-                </motion.div>
-              ))}
+                  </motion.div>
+                ))
+              )}
             </div>
           </div>
         </motion.div>
@@ -312,11 +383,18 @@ export default function InstructorDashboardPage() {
               </div>
               <div>
                 <p className="text-white/60 text-xs">Rata-rata Kehadiran</p>
-                <p className="text-xl font-bold">87%</p>
+                <p className="text-xl font-bold">
+                  {dashboardData?.stats?.average_attendance || 0}%
+                </p>
               </div>
             </div>
             <div className="h-2 bg-white/20 rounded-full overflow-hidden">
-              <div className="h-full w-[87%] bg-gradient-to-r from-pln-primary to-pln-light rounded-full" />
+              <div
+                className="h-full bg-gradient-to-r from-pln-primary to-pln-light rounded-full"
+                style={{
+                  width: `${dashboardData?.stats?.average_attendance || 0}%`,
+                }}
+              />
             </div>
             <p className="text-xs text-white/60 mt-2">
               Tingkat kehadiran peserta di semua kelas Anda
@@ -332,7 +410,7 @@ export default function InstructorDashboardPage() {
           >
             <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-700">
               <h3 className="font-semibold text-slate-800 dark:text-white text-sm">
-                Pengumuman
+                Pengumuman Hari Ini
               </h3>
               <Link
                 href="/instructor/announcements"
@@ -342,31 +420,41 @@ export default function InstructorDashboardPage() {
               </Link>
             </div>
             <div className="divide-y divide-slate-100 dark:divide-slate-700">
-              {announcements.map((announcement) => (
-                <Link
-                  key={announcement.id}
-                  href="/instructor/announcements"
-                  className="block p-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all"
-                >
-                  <div className="flex items-start gap-2">
-                    <div
-                      className={`w-1.5 h-1.5 rounded-full mt-1.5 ${
-                        announcement.priority === "high"
-                          ? "bg-red-500"
-                          : "bg-blue-500"
-                      }`}
-                    />
-                    <div>
-                      <p className="font-medium text-slate-800 dark:text-white text-xs line-clamp-1">
-                        {announcement.title}
-                      </p>
-                      <p className="text-[10px] text-slate-400 mt-0.5">
-                        {announcement.date}
-                      </p>
+              {loading ? (
+                <div className="p-3 text-center text-xs text-slate-500 dark:text-slate-400">
+                  Memuat...
+                </div>
+              ) : todaysAnnouncements.length === 0 ? (
+                <div className="p-3 text-center text-xs text-slate-500 dark:text-slate-400">
+                  Belum ada pengumuman hari ini
+                </div>
+              ) : (
+                todaysAnnouncements.map((announcement) => (
+                  <Link
+                    key={announcement.id}
+                    href="/instructor/announcements"
+                    className="block p-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all"
+                  >
+                    <div className="flex items-start gap-2">
+                      <div
+                        className={`w-1.5 h-1.5 rounded-full mt-1.5 ${
+                          announcement.priority === "high"
+                            ? "bg-red-500"
+                            : "bg-blue-500"
+                        }`}
+                      />
+                      <div>
+                        <p className="font-medium text-slate-800 dark:text-white text-xs line-clamp-1">
+                          {announcement.title}
+                        </p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">
+                          {announcement.creator?.name}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                ))
+              )}
             </div>
           </motion.div>
         </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { motion } from "framer-motion";
@@ -10,17 +10,40 @@ import {
   AcademicCapIcon,
 } from "@heroicons/react/24/outline";
 import ClassGroupChat from "@/components/chat/ClassGroupChat";
+import api from "@/lib/axios";
+import { useAuth } from "@/contexts/AuthContext";
 
-// Mock class data
-const classData = {
-  id: "1",
-  title: "Dasar-Dasar Pembangkit Listrik",
-  description: "Memahami prinsip dasar pembangkitan listrik dan komponen utama pembangkit",
-  instructor: "Dr. Ahmad Wijaya",
-};
+interface ClassData {
+  id: number;
+  title: string;
+  description?: string | null;
+  instructor?: { name?: string | null } | null;
+}
 
 export default function UserClassChatPage() {
   const params = useParams();
+  const { user } = useAuth();
+  const [classData, setClassData] = useState<ClassData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchClass = async () => {
+      try {
+        setLoading(true);
+        const res = await api.get(`/courses/${params.id}`);
+        setClassData(res.data);
+      } catch (error) {
+        console.error("Failed to load class:", error);
+        setClassData(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (params.id) {
+      fetchClass();
+    }
+  }, [params.id]);
 
   return (
     <div className="space-y-6">
@@ -44,10 +67,12 @@ export default function UserClassChatPage() {
           <div>
             <h1 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
               <ChatBubbleLeftRightIcon className="w-5 h-5" />
-              Chat Grup: {classData.title}
+              {loading ? "Memuat kelas..." : `Chat Grup: ${classData?.title || "Kelas"}`}
             </h1>
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              Diskusi dengan instruktur dan peserta kelas lainnya
+              {classData?.instructor?.name
+                ? `Instruktur: ${classData.instructor.name}`
+                : "Diskusi dengan instruktur dan peserta kelas lainnya"}
             </p>
           </div>
         </div>
@@ -60,11 +85,18 @@ export default function UserClassChatPage() {
         transition={{ delay: 0.1 }}
         className="h-[800px]"
       >
-        <ClassGroupChat
-          classId={parseInt(params.id as string)}
-          currentUserId={2} // Mock user ID
-          isInstructor={false}
-        />
+        {!loading && classData && (
+          <ClassGroupChat
+            classId={parseInt(params.id as string)}
+            currentUserId={user?.id || 0}
+            isInstructor={false}
+          />
+        )}
+        {!loading && !classData && (
+          <div className="flex h-full items-center justify-center text-sm text-slate-500 dark:text-slate-400">
+            Kelas tidak ditemukan.
+          </div>
+        )}
       </motion.div>
     </div>
   );

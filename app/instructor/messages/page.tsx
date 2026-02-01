@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
   ChatBubbleLeftRightIcon,
@@ -134,7 +134,7 @@ export default function InstructorMessagesPage() {
 
       {/* Stats Cards */}
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
-        {stats.map((stat, index) => (
+        {statsCards.map((stat, index) => (
           <motion.div
             key={stat.title}
             initial={{ opacity: 0, y: 20 }}
@@ -154,7 +154,7 @@ export default function InstructorMessagesPage() {
                 </p>
               </div>
               <div className={`rounded-xl bg-gradient-to-br ${stat.color} p-3`}>
-                <stat.icon className="h-6 w-6 text-white" />
+                {React.createElement(stat.icon, { className: "h-6 w-6 text-white" })}
               </div>
             </div>
           </motion.div>

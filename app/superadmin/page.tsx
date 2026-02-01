@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
@@ -301,10 +301,10 @@ export default function SuperadminDashboardPage() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div className={`rounded-xl ${stat.bgColor} p-3`}>
-                    <stat.icon
-                      className={`h-6 w-6 bg-gradient-to-br ${stat.color} bg-clip-text text-transparent`}
-                      style={{ stroke: "url(#gradient)" }}
-                    />
+                    {React.createElement(stat.icon, {
+                      className: `h-6 w-6 bg-gradient-to-br ${stat.color} bg-clip-text text-transparent`,
+                      style: { stroke: "url(#gradient)" }
+                    })}
                   </div>
                   <div
                     className={`flex items-center gap-1 text-sm font-medium ${stat.trend === "up" ? "text-emerald-600" : "text-red-600"}`}

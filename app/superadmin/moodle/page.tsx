@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/table";
 import { Toast } from "@/components/ui/Toast";
 import { useToast } from "@/hooks/useToast";
+import api from "@/lib/axios";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -151,14 +152,41 @@ export default function SuperadminMoodlePage() {
   const [isSyncing, setIsSyncing] = useState(false);
   const { toast, showToast, clearToast } = useToast();
 
-  const handleSync = (type: string) => {
+  const handleSync = async (type: string) => {
     setIsSyncing(true);
     showToast({ type: "info", message: `Memulai ${type}...` });
 
-    setTimeout(() => {
+    try {
+      let endpoint = "";
+      if (type === "Course Sync") {
+        endpoint = "/courses/sync";
+      } else {
+        // Placeholder for other syncs
+        setTimeout(() => {
+          setIsSyncing(false);
+          showToast({
+            type: "success",
+            message: `${type} berhasil (Simulasi)!`,
+          });
+        }, 2000);
+        return;
+      }
+
+      const response = await api.post(endpoint);
+
+      showToast({
+        type: "success",
+        message: response.data.message || `${type} berhasil!`,
+      });
+    } catch (error: any) {
+      console.error("Sync Error:", error);
+      showToast({
+        type: "error",
+        message: error.response?.data?.message || `Gagal melakukan ${type}`,
+      });
+    } finally {
       setIsSyncing(false);
-      showToast({ type: "success", message: `${type} berhasil!` });
-    }, 3000);
+    }
   };
 
   const getStatusBadge = (status: string) => {

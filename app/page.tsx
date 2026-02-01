@@ -502,8 +502,8 @@ export default function LandingPage() {
             />
           </AnimatePresence>
           {/* Overlay ringan agar gambar terlihat jelas */}
-          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/70 via-slate-950/40 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/50 via-slate-950/25 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent" />
           <div className="absolute -top-32 right-0 h-[500px] w-[500px] rounded-full bg-pln-light/20 blur-[150px]" />
           <div className="absolute -bottom-32 left-0 h-[400px] w-[400px] rounded-full bg-pln-primary/20 blur-[120px]" />
         </div>

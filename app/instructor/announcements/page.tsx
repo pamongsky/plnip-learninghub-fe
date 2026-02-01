@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import api from "@/lib/axios";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   MegaphoneIcon,
@@ -18,7 +19,14 @@ import {
   ExclamationTriangleIcon,
   BellAlertIcon,
   CheckCircleIcon,
+  ListBulletIcon,
+  Bars3BottomLeftIcon,
 } from "@heroicons/react/24/outline";
+import {
+  BoldIcon,
+  ItalicIcon,
+  UnderlineIcon,
+} from "@heroicons/react/24/solid";
 
 // Priority configuration dengan 4 level
 const priorityConfig = {
@@ -132,19 +140,20 @@ const myAnnouncements = [
   },
 ];
 
-// Mock classes for target selection
-const myClasses = [
-  { id: "1", name: "Dasar-Dasar Pembangkit Listrik", participants: 32 },
-  { id: "2", name: "Keselamatan Kerja (K3)", participants: 28 },
-  { id: "3", name: "Transformator & Distribusi", participants: 24 },
-];
-
 export default function InstructorAnnouncementsPage() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"all" | "mine">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  
+  // Real classes from API
+  const [myClasses, setMyClasses] = useState<any[]>([]);
+  const [loadingClasses, setLoadingClasses] = useState(false);
+  
+  // Edit & Delete states
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
 
   // Form state
   const [newAnnouncement, setNewAnnouncement] = useState({
@@ -153,6 +162,123 @@ export default function InstructorAnnouncementsPage() {
     targetClass: "",
     priority: "normal" as PriorityType,
   });
+  const [textareaRef, setTextareaRef] = useState<HTMLTextAreaElement | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
+
+  // Simple markdown-like formatter for preview
+  const formatContent = (text: string) => {
+    return text
+      .split('\n')
+      .map((line, i) => {
+        // Heading
+        if (line.startsWith('### ')) {
+          return `<h3 class="text-base font-bold mt-3 mb-2 text-slate-800 dark:text-white">${line.substring(4)}</h3>`;
+        }
+        // Bullet list
+        if (line.trim().startsWith('• ')) {
+          return `<li class="ml-4">${line.trim().substring(2)}</li>`;
+        }
+        // Numbered list
+        if (/^\d+\.\s/.test(line.trim())) {
+          return `<li class="ml-4">${line.trim().replace(/^\d+\.\s/, '')}</li>`;
+        }
+        // Bold and italic
+        let formatted = line
+          .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold">$1</strong>')
+          .replace(/_(.*?)_/g, '<em class="italic">$1</em>');
+        
+        return formatted ? `<p class="mb-2">${formatted}</p>` : '<br/>';
+      })
+      .join('');
+  };
+
+  // Text formatting functions
+  const insertFormatting = (before: string, after: string = "") => {
+    if (!textareaRef) return;
+    
+    const start = textareaRef.selectionStart;
+    const end = textareaRef.selectionEnd;
+    const selectedText = newAnnouncement.content.substring(start, end);
+    const beforeText = newAnnouncement.content.substring(0, start);
+    const afterText = newAnnouncement.content.substring(end);
+    
+    const newContent = beforeText + before + selectedText + after + afterText;
+    setNewAnnouncement({ ...newAnnouncement, content: newContent });
+    
+    // Set cursor position after inserted text
+    setTimeout(() => {
+      if (textareaRef) {
+        const newPos = start + before.length + selectedText.length + after.length;
+        textareaRef.focus();
+        textareaRef.setSelectionRange(newPos, newPos);
+      }
+    }, 0);
+  };
+
+  const insertBulletList = () => {
+    if (!textareaRef) return;
+    const start = textareaRef.selectionStart;
+    const beforeText = newAnnouncement.content.substring(0, start);
+    const afterText = newAnnouncement.content.substring(start);
+    
+    const newLine = beforeText.endsWith('\n') || beforeText === '' ? '' : '\n';
+    const bulletText = `${newLine}• `;
+    
+    setNewAnnouncement({ 
+      ...newAnnouncement, 
+      content: beforeText + bulletText + afterText 
+    });
+    
+    setTimeout(() => {
+      if (textareaRef) {
+        const newPos = start + bulletText.length;
+        textareaRef.focus();
+        textareaRef.setSelectionRange(newPos, newPos);
+      }
+    }, 0);
+  };
+
+  const insertNumberedList = () => {
+    if (!textareaRef) return;
+    const start = textareaRef.selectionStart;
+    const beforeText = newAnnouncement.content.substring(0, start);
+    const afterText = newAnnouncement.content.substring(start);
+    
+    const newLine = beforeText.endsWith('\n') || beforeText === '' ? '' : '\n';
+    const numberedText = `${newLine}1. `;
+    
+    setNewAnnouncement({ 
+      ...newAnnouncement, 
+      content: beforeText + numberedText + afterText 
+    });
+    
+    setTimeout(() => {
+      if (textareaRef) {
+        const newPos = start + numberedText.length;
+        textareaRef.focus();
+        textareaRef.setSelectionRange(newPos, newPos);
+      }
+    }, 0);
+  };
+
+  // Fetch real classes from instructor dashboard
+  useEffect(() => {
+    const fetchClasses = async () => {
+      try {
+        setLoadingClasses(true);
+        const res = await api.get("/dashboard/instructor");
+        const classes = res.data.data.classes || [];
+        setMyClasses(classes);
+      } catch (error) {
+        console.error("Failed to fetch classes:", error);
+        setMyClasses([]);
+      } finally {
+        setLoadingClasses(false);
+      }
+    };
+
+    fetchClasses();
+  }, []);
 
   // Filter announcements
   const filteredAllAnnouncements = allAnnouncements.filter(
@@ -166,10 +292,45 @@ export default function InstructorAnnouncementsPage() {
   );
 
   const handleCreateAnnouncement = () => {
-    // Would send to API
-    console.log("Creating announcement:", newAnnouncement);
+    if (editingId) {
+      // Update existing announcement
+      console.log("Updating announcement:", editingId, newAnnouncement);
+      // Would call API: await api.put(`/announcements/${editingId}`, newAnnouncement);
+      setEditingId(null);
+    } else {
+      // Create new announcement
+      console.log("Creating announcement:", newAnnouncement);
+      // Would call API: await api.post("/announcements", newAnnouncement);
+    }
     setShowCreateModal(false);
     setNewAnnouncement({ title: "", content: "", targetClass: "", priority: "normal" });
+    setShowPreview(false);
+  };
+
+  const handleEditAnnouncement = (announcement: any) => {
+    setEditingId(announcement.id);
+    setNewAnnouncement({
+      title: announcement.title,
+      content: announcement.content,
+      targetClass: announcement.targetClassId || "",
+      priority: announcement.priority,
+    });
+    setShowCreateModal(true);
+    setExpandedId(null);
+  };
+
+  const handleDeleteAnnouncement = (id: string) => {
+    // Would call API: await api.delete(`/announcements/${id}`);
+    console.log("Deleting announcement:", id);
+    setShowDeleteConfirm(null);
+    setExpandedId(null);
+  };
+
+  const handleCancelEdit = () => {
+    setShowCreateModal(false);
+    setEditingId(null);
+    setNewAnnouncement({ title: "", content: "", targetClass: "", priority: "normal" });
+    setShowPreview(false);
   };
 
   const getPriorityConfig = (priority: PriorityType) => {
@@ -390,11 +551,17 @@ export default function InstructorAnnouncementsPage() {
                                 {announcement.content}
                               </p>
                               <div className="mt-4 flex gap-2">
-                                <button className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
+                                <button 
+                                  onClick={() => handleEditAnnouncement(announcement)}
+                                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                                >
                                   <PencilIcon className="w-3 h-3" />
                                   Edit
                                 </button>
-                                <button className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors">
+                                <button 
+                                  onClick={() => setShowDeleteConfirm(announcement.id)}
+                                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+                                >
                                   <TrashIcon className="w-3 h-3" />
                                   Hapus
                                 </button>
@@ -433,13 +600,17 @@ export default function InstructorAnnouncementsPage() {
               className="w-full max-w-lg bg-white dark:bg-slate-800 rounded-2xl shadow-xl overflow-hidden max-h-[90vh] overflow-y-auto"
             >
               {/* Modal Header */}
-              <div className="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800">
+              <div className="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800 z-10">
                 <div>
-                  <h2 className="text-lg font-semibold text-slate-800 dark:text-white">Buat Pengumuman</h2>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Publikasikan informasi untuk peserta pelatihan</p>
+                  <h2 className="text-lg font-semibold text-slate-800 dark:text-white">
+                    {editingId ? "Edit Pengumuman" : "Buat Pengumuman"}
+                  </h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    {editingId ? "Perbarui informasi pengumuman" : "Publikasikan informasi untuk peserta pelatihan"}
+                  </p>
                 </div>
                 <button
-                  onClick={() => setShowCreateModal(false)}
+                  onClick={handleCancelEdit}
                   className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
                 >
                   <XMarkIcon className="w-5 h-5" />
@@ -456,16 +627,26 @@ export default function InstructorAnnouncementsPage() {
                   <select
                     value={newAnnouncement.targetClass}
                     onChange={(e) => setNewAnnouncement({ ...newAnnouncement, targetClass: e.target.value })}
-                    className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pln-primary dark:text-white"
+                    disabled={loadingClasses}
+                    className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pln-primary dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <option value="">Pilih kelas tujuan...</option>
-                    <option value="all">📢 Semua Kelas Saya ({myClasses.reduce((acc, c) => acc + c.participants, 0)} peserta)</option>
+                    <option value="">
+                      {loadingClasses ? "Memuat kelas..." : "Pilih kelas tujuan..."}
+                    </option>
+                    <option value="all">
+                      📢 Semua Kelas Saya ({myClasses.reduce((acc, c) => acc + (c.participants || 0), 0)} peserta)
+                    </option>
                     {myClasses.map((cls) => (
                       <option key={cls.id} value={cls.id}>
-                        {cls.name} ({cls.participants} peserta)
+                        {cls.title} ({cls.participants || 0} peserta)
                       </option>
                     ))}
                   </select>
+                  <p className="text-xs text-slate-400 mt-1">
+                    {newAnnouncement.targetClass === "all" 
+                      ? "Pengumuman akan dikirim ke semua peserta di seluruh kelas Anda" 
+                      : "Pilih kelas spesifik atau semua kelas"}
+                  </p>
                 </div>
 
                 {/* Title */}
@@ -487,14 +668,91 @@ export default function InstructorAnnouncementsPage() {
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
                     Isi Pengumuman <span className="text-red-500">*</span>
                   </label>
-                  <textarea
-                    placeholder="Tulis isi pengumuman dengan jelas dan lengkap..."
-                    value={newAnnouncement.content}
-                    onChange={(e) => setNewAnnouncement({ ...newAnnouncement, content: e.target.value })}
-                    rows={5}
-                    className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pln-primary dark:text-white resize-none"
-                  />
-                  <p className="text-xs text-slate-400 mt-1">Gunakan bahasa yang jelas dan profesional</p>
+                  
+                  {/* Formatting Toolbar */}
+                  <div className="flex items-center gap-1 p-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-t-xl border-b-0">
+                    <button
+                      type="button"
+                      onClick={() => insertFormatting('**', '**')}
+                      className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-600 rounded text-slate-600 dark:text-slate-300 transition-colors"
+                      title="Bold (tebal)"
+                    >
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M6 4v12h4.5c2.5 0 4.5-1.5 4.5-4 0-1.5-.8-2.8-2-3.5.7-.7 1-1.6 1-2.5 0-2-1.5-3-4-3H6zm2.5 2h2c1 0 1.5.5 1.5 1.5s-.5 1.5-1.5 1.5h-2V6zm0 5h2.5c1.2 0 2 .8 2 2s-.8 2-2 2H8.5v-4z"/>
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => insertFormatting('_', '_')}
+                      className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-600 rounded text-slate-600 dark:text-slate-300 transition-colors"
+                      title="Italic (miring)"
+                    >
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 4h4v2h-1.5l-2 8H12v2H8v-2h1.5l2-8H10V4z"/>
+                      </svg>
+                    </button>
+                    <div className="w-px h-4 bg-slate-300 dark:bg-slate-600 mx-1"></div>
+                    <button
+                      type="button"
+                      onClick={insertBulletList}
+                      className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-600 rounded text-slate-600 dark:text-slate-300 transition-colors"
+                      title="Bullet list"
+                    >
+                      <ListBulletIcon className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={insertNumberedList}
+                      className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-600 rounded text-slate-600 dark:text-slate-300 transition-colors"
+                      title="Numbered list"
+                    >
+                      <Bars3BottomLeftIcon className="w-4 h-4" />
+                    </button>
+                    <div className="w-px h-4 bg-slate-300 dark:bg-slate-600 mx-1"></div>
+                    <button
+                      type="button"
+                      onClick={() => insertFormatting('\n### ', '')}
+                      className="px-2 py-1 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-600 rounded text-slate-600 dark:text-slate-300 transition-colors"
+                      title="Heading"
+                    >
+                      H
+                    </button>
+                    <div className="flex-1"></div>
+                    <button
+                      type="button"
+                      onClick={() => setShowPreview(!showPreview)}
+                      className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+                        showPreview 
+                          ? 'bg-pln-primary text-white' 
+                          : 'hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300'
+                      }`}
+                      title="Toggle preview"
+                    >
+                      {showPreview ? '📝 Edit' : '👁️ Preview'}
+                    </button>
+                    <span className="text-xs text-slate-400">
+                      {newAnnouncement.content.length} karakter
+                    </span>
+                  </div>
+
+                  {showPreview ? (
+                    <div 
+                      className="w-full min-h-[200px] px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-b-xl text-sm dark:text-white"
+                      dangerouslySetInnerHTML={{ __html: formatContent(newAnnouncement.content) || '<p class="text-slate-400 italic">Preview akan muncul di sini...</p>' }}
+                    />
+                  ) : (
+                    <textarea
+                      ref={(el) => setTextareaRef(el)}
+                      placeholder="Tulis isi pengumuman dengan jelas dan lengkap...&#10;&#10;Gunakan toolbar untuk:&#10;• Membuat teks tebal&#10;• Membuat bullet list&#10;• Menambahkan heading"
+                      value={newAnnouncement.content}
+                      onChange={(e) => setNewAnnouncement({ ...newAnnouncement, content: e.target.value })}
+                      rows={8}
+                      className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-b-xl rounded-t-none text-sm focus:outline-none focus:ring-2 focus:ring-pln-primary dark:text-white resize-none font-mono"
+                    />
+                  )}
+                  <p className="text-xs text-slate-400 mt-1">
+                    💡 Tips: Gunakan **teks** untuk tebal, _teks_ untuk miring, • untuk bullet
+                  </p>
                 </div>
 
                 {/* Priority - 4 Options */}
@@ -547,9 +805,9 @@ export default function InstructorAnnouncementsPage() {
               </div>
 
               {/* Modal Footer */}
-              <div className="flex justify-end gap-3 p-5 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 sticky bottom-0">
+              <div className="flex justify-end gap-3 p-5 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 sticky bottom-0 z-10">
                 <button
-                  onClick={() => setShowCreateModal(false)}
+                  onClick={handleCancelEdit}
                   className="px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-colors"
                 >
                   Batal
@@ -560,8 +818,55 @@ export default function InstructorAnnouncementsPage() {
                   className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-pln-primary to-pln-light text-white text-sm font-medium rounded-xl hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
                   <PaperAirplaneIcon className="w-4 h-4" />
-                  Publikasikan
+                  {editingId ? "Perbarui" : "Publikasikan"}
                 </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {showDeleteConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+            onClick={() => setShowDeleteConfirm(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-xl overflow-hidden"
+            >
+              <div className="p-6">
+                <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-500/20 flex items-center justify-center mx-auto mb-4">
+                  <TrashIcon className="w-6 h-6 text-red-600 dark:text-red-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-slate-800 dark:text-white text-center mb-2">
+                  Hapus Pengumuman?
+                </h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-6">
+                  Pengumuman yang dihapus tidak dapat dikembalikan. Peserta tidak akan bisa melihat pengumuman ini lagi.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowDeleteConfirm(null)}
+                    className="flex-1 px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-xl transition-colors"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    onClick={() => handleDeleteAnnouncement(showDeleteConfirm)}
+                    className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors"
+                  >
+                    Ya, Hapus
+                  </button>
+                </div>
               </div>
             </motion.div>
           </motion.div>

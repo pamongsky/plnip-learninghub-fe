@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { motion, AnimatePresence } from "framer-motion";
+import { getEcho } from "@/lib/echo";
 import {
   HomeIcon,
   BookOpenIcon,
@@ -77,9 +78,14 @@ export default function DashboardLayout({
   const [isMobile, setIsMobile] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
-
-  // Mock notifications data
-  const notifications = [
+  const [notifications, setNotifications] = useState<Array<{
+    id: number;
+    title: string;
+    message: string;
+    time: string;
+    read: boolean;
+    type: string;
+  }>>([
     {
       id: 1,
       title: "Kursus Baru Tersedia",
@@ -112,11 +118,12 @@ export default function DashboardLayout({
       read: true,
       type: "reminder"
     },
-  ];
+  ]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
   const firstName = user?.name?.split(" ")[0] || "User";
+  const avatarUrl = user?.avatar || null;
 
   // Detect mobile/desktop and handle resize
   useEffect(() => {
@@ -138,6 +145,35 @@ export default function DashboardLayout({
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
+
+  // Subscribe to real-time notifications
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const echo = getEcho();
+    if (!echo) return;
+
+    const channel = echo.private(`users.${user.id}.notifications`);
+    
+    // Listen for new notifications
+    channel.listen('NotificationEvent', (data: any) => {
+      const newNotification = {
+        id: Date.now(),
+        title: data.title || "Notifikasi Baru",
+        message: data.message || "",
+        time: "Baru saja",
+        read: false,
+        type: data.type || "announcement"
+      };
+      
+      // Add new notification to the beginning
+      setNotifications(prev => [newNotification, ...prev]);
+    });
+
+    return () => {
+      echo.leaveChannel(`users.${user.id}.notifications`);
+    };
+  }, [user?.id]);
 
   const isActive = (href: string) => {
     if (href === "/dashboard") {
@@ -191,9 +227,17 @@ export default function DashboardLayout({
           {/* User Quick Info */}
           <div className="p-4">
             <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-700 dark:to-slate-700/50">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pln-primary to-pln-light flex items-center justify-center text-white font-semibold text-sm">
-                {firstName.charAt(0)}
-              </div>
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt={user?.name || "User"}
+                  className="w-10 h-10 rounded-full object-cover border border-white/60 shadow-sm"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pln-primary to-pln-light flex items-center justify-center text-white font-semibold text-sm">
+                  {firstName.charAt(0)}
+                </div>
+              )}
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-slate-800 dark:text-white text-sm truncate">{user?.name}</p>
                 <p className="text-xs text-slate-500 dark:text-slate-400">Learner</p>
@@ -345,10 +389,16 @@ export default function DashboardLayout({
                                 href={
                                   notif.type === "announcement" ? "/dashboard/announcements" :
                                   notif.type === "certificate" ? "/dashboard/certificates" :
-                                  notif.type === "course" ? "/dashboard" :
+                                  notif.type === "course" ? "/dashboard/classes" :
                                   "/dashboard"
                                 }
-                                onClick={() => setNotificationOpen(false)}
+                                onClick={() => {
+                                  setNotificationOpen(false);
+                                  // Mark as read when clicked
+                                  setNotifications(prev => 
+                                    prev.map(n => n.id === notif.id ? { ...n, read: true } : n)
+                                  );
+                                }}
                                 className={`block p-4 border-b border-slate-50 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer transition-colors ${
                                   !notif.read ? "bg-blue-50/50 dark:bg-blue-500/10" : ""
                                 }`}
@@ -415,9 +465,17 @@ export default function DashboardLayout({
                   }}
                   className="flex items-center gap-2 p-1.5 pr-3 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-all"
                 >
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pln-primary to-pln-light flex items-center justify-center text-white font-semibold text-sm">
-                    {firstName.charAt(0)}
-                  </div>
+                  {avatarUrl ? (
+                    <img
+                      src={avatarUrl}
+                      alt={user?.name || "User"}
+                      className="w-8 h-8 rounded-full object-cover border border-white/60 shadow-sm"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pln-primary to-pln-light flex items-center justify-center text-white font-semibold text-sm">
+                      {firstName.charAt(0)}
+                    </div>
+                  )}
                   <span className="text-sm font-medium text-slate-700 dark:text-slate-200 hidden sm:block">
                     {firstName}
                   </span>
@@ -445,9 +503,17 @@ export default function DashboardLayout({
                         {/* User Info */}
                         <div className="p-4 bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-700 dark:to-slate-700/50 border-b border-slate-200 dark:border-slate-700">
                           <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pln-primary to-pln-light flex items-center justify-center text-white font-bold text-lg">
-                              {firstName.charAt(0)}
-                            </div>
+                            {avatarUrl ? (
+                              <img
+                                src={avatarUrl}
+                                alt={user?.name || "User"}
+                                className="w-12 h-12 rounded-full object-cover border border-white/60 shadow-sm"
+                              />
+                            ) : (
+                              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pln-primary to-pln-light flex items-center justify-center text-white font-bold text-lg">
+                                {firstName.charAt(0)}
+                              </div>
+                            )}
                             <div className="flex-1 min-w-0">
                               <p className="font-semibold text-slate-800 dark:text-white truncate">{user?.name}</p>
                               <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{user?.email}</p>

@@ -12,6 +12,7 @@ import {
   ShieldCheckIcon,
   EyeIcon,
   EyeSlashIcon,
+  ArrowLeftIcon,
 } from "@heroicons/react/24/outline";
 
 // Background images for carousel
@@ -202,11 +203,29 @@ export default function LoginPage() {
               <h1 className="text-xl font-bold text-slate-800">PLN IP Learning Hub</h1>
             </div>
 
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold text-slate-800">Welcome Back</h2>
-              <p className="text-slate-500 mt-1 text-sm">
-                Sign in to continue your learning journey
-              </p>
+            <div className="mb-6 space-y-4">
+              <motion.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="flex items-center justify-between"
+              >
+                <Link
+                  href="/"
+                  className="group inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-3 py-1.5 text-xs font-semibold text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:border-pln-primary/40 hover:text-pln-primary"
+                >
+                  <ArrowLeftIcon className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
+                  Ke Home
+                </Link>
+                <span className="text-xs text-slate-400">Portal Login</span>
+              </motion.div>
+
+              <div>
+                <h2 className="text-2xl font-bold text-slate-800">Welcome Back</h2>
+                <p className="text-slate-500 mt-1 text-sm">
+                  Sign in to continue your learning journey
+                </p>
+              </div>
             </div>
 
             {error && (

@@ -37,19 +37,19 @@ export interface Enrollment {
 
 export const coursesApi = {
   getAll: async (page = 1) => {
-    const response = await axios.get(`/api/courses?page=${page}`);
+    const response = await axios.get(`/courses?page=${page}`);
     return response.data;
   },
   sync: async (): Promise<{ message: string }> => {
-    const response = await axios.post("/api/courses/sync");
+    const response = await axios.post("/courses/sync");
     return response.data;
   },
   getOne: async (id: number | string): Promise<Course> => {
-    const response = await axios.get(`/api/courses/${id}`);
+    const response = await axios.get(`/courses/${id}`);
     return response.data;
   },
   update: async (id: number | string, data: any): Promise<Course> => {
-    const response = await axios.put(`/api/courses/${id}`, data);
+    const response = await axios.put(`/courses/${id}`, data);
     return response.data;
   },
   enrollUser: async (
@@ -57,7 +57,7 @@ export const coursesApi = {
     userId: number,
     roleId: number = 5,
   ): Promise<any> => {
-    const response = await axios.post(`/api/courses/${courseId}/enroll`, {
+    const response = await axios.post(`/courses/${courseId}/enroll`, {
       user_id: userId,
       role_id: roleId,
     });
@@ -65,7 +65,7 @@ export const coursesApi = {
   },
   unenrollUser: async (courseId: number | string, userId: number) => {
     const response = await axios.delete(
-      `/api/courses/${courseId}/enroll/${userId}`,
+      `/courses/${courseId}/enroll/${userId}`,
     );
     return response.data;
   },

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
+import { getEcho } from "@/lib/echo";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   HomeIcon,
@@ -68,8 +69,16 @@ export default function InstructorLayout({ children }: { children: React.ReactNo
 
   const firstName = user?.name?.split(" ")[0] || "Instructor";
 
-  // Mock notifications
-  const notifications = [
+  // Real notifications from WebSocket
+  const [notifications, setNotifications] = useState([
+    { id: 1, title: "Kursus Baru Tersedia", message: "Kursus Keselamatan Kerja K3 tela...", time: "5 menit lalu", read: false, type: "course" },
+    { id: 2, title: "Sertifikat Diterbitkan", message: "Sertifikat Dasar Pembangkit Listri...", time: "1 jam lalu", read: false, type: "certificate" },
+    { id: 3, title: "Pengumuman Penting", message: "Townhall Meeting Q1 2026 akan dilak...", time: "2 jam lalu", read: true, type: "announcement" },
+    { id: 4, title: "Reminder", message: "Selesaikan kursus sebelum deadline", time: "1 hari lalu", read: true, type: "reminder" },
+  ]);
+
+  // Mock notifications - will be replaced by real notifications from WebSocket
+  const mockNotifications = [
     { id: 1, title: "Kursus Baru Tersedia", message: "Kursus Keselamatan Kerja K3 tela...", time: "5 menit lalu", read: false, type: "course" },
     { id: 2, title: "Sertifikat Diterbitkan", message: "Sertifikat Dasar Pembangkit Listri...", time: "1 jam lalu", read: false, type: "certificate" },
     { id: 3, title: "Pengumuman Penting", message: "Townhall Meeting Q1 2026 akan dilak...", time: "2 jam lalu", read: true, type: "announcement" },
@@ -93,6 +102,35 @@ export default function InstructorLayout({ children }: { children: React.ReactNo
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
+
+  // Real-time notifications via WebSocket
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const echo = getEcho();
+    if (!echo) return;
+
+    const channel = echo.private(`users.${user.id}.notifications`);
+    
+    // Listen for new notifications
+    channel.listen('NotificationEvent', (data: any) => {
+      const newNotification = {
+        id: Date.now(),
+        title: data.title || "Notifikasi Baru",
+        message: data.message || "",
+        time: "Baru saja",
+        read: false,
+        type: data.type || "announcement"
+      };
+      
+      // Add new notification to the beginning
+      setNotifications(prev => [newNotification, ...prev]);
+    });
+
+    return () => {
+      echo.leaveChannel(`users.${user.id}.notifications`);
+    };
+  }, [user?.id]);
 
   const isActive = (href: string) => {
     if (href === "/instructor") {
@@ -151,9 +189,14 @@ export default function InstructorLayout({ children }: { children: React.ReactNo
           {/* User Quick Info */}
           <div className="p-4">
             <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-700 dark:to-slate-700/50">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pln-primary to-pln-light flex items-center justify-center text-white font-semibold text-sm">
-                {firstName.charAt(0)}
-              </div>
+              <img
+                src={
+                  user?.avatar ||
+                  "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face"
+                }
+                alt={user?.name}
+                className="w-10 h-10 rounded-full object-cover"
+              />
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-slate-800 dark:text-white text-sm truncate">{user?.name}</p>
                 <p className="text-xs text-slate-500 dark:text-slate-400">Instructor</p>
@@ -359,9 +402,14 @@ export default function InstructorLayout({ children }: { children: React.ReactNo
                   }}
                   className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
                 >
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pln-primary to-pln-light flex items-center justify-center text-white font-semibold text-xs">
-                    {firstName.charAt(0)}
-                  </div>
+                  <img
+                    src={
+                      user?.avatar ||
+                      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=32&h=32&fit=crop&crop=face"
+                    }
+                    alt={user?.name}
+                    className="w-8 h-8 rounded-full object-cover"
+                  />
                 </button>
 
                 <AnimatePresence>

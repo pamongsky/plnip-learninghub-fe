@@ -92,7 +92,7 @@ export default function CourseDetailPage() {
       // Mocking or using existing endpoint
       const fetchUsers = async () => {
         try {
-          const res = await axios.get("/api/users"); // Ensure this endpoint exists or use similar
+          const res = await axios.get("/users"); // Ensure this endpoint exists or use similar
           // Filter locally for now or backend search
           setUsers(res.data.data || res.data);
         } catch (e) {
@@ -260,7 +260,7 @@ export default function CourseDetailPage() {
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline">
-                            {student.pivot?.moodle_role_id === 5
+                            {Number(student.pivot?.moodle_role_id) === 5
                               ? "Student"
                               : "Teacher"}
                           </Badge>
