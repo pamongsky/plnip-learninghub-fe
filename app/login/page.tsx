@@ -96,7 +96,7 @@ export default function LoginPage() {
 
       {/* Overlay */}
       <div className="absolute inset-0 bg-gradient-to-br from-pln-primary/70 via-pln-dark/50 to-slate-900/60" />
-      
+
       {/* Decorative Elements */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,rgba(255,255,255,0.1),transparent_40%)]" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_70%,rgba(0,156,222,0.2),transparent_40%)]" />
@@ -108,8 +108,12 @@ export default function LoginPage() {
             key={i}
             className="absolute w-2 h-2 bg-white/20 rounded-full"
             initial={{
-              x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1000),
-              y: Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 800),
+              x:
+                Math.random() *
+                (typeof window !== "undefined" ? window.innerWidth : 1000),
+              y:
+                Math.random() *
+                (typeof window !== "undefined" ? window.innerHeight : 800),
             }}
             animate={{
               y: [null, -100],
@@ -143,7 +147,8 @@ export default function LoginPage() {
               <AcademicCapIcon className="w-10 h-10 text-white" />
             </motion.div>
             <h1 className="text-4xl font-bold leading-tight">
-              PLN IP<br />
+              PLN IP
+              <br />
               <span className="text-pln-light">Learning Hub</span>
             </h1>
             <p className="text-lg text-white/70">
@@ -200,7 +205,9 @@ export default function LoginPage() {
               <div className="w-14 h-14 bg-gradient-to-br from-pln-primary to-pln-light rounded-2xl flex items-center justify-center mx-auto mb-3">
                 <AcademicCapIcon className="w-8 h-8 text-white" />
               </div>
-              <h1 className="text-xl font-bold text-slate-800">PLN IP Learning Hub</h1>
+              <h1 className="text-xl font-bold text-slate-800">
+                PLN IP Learning Hub
+              </h1>
             </div>
 
             <div className="mb-6 space-y-4">
@@ -221,7 +228,9 @@ export default function LoginPage() {
               </motion.div>
 
               <div>
-                <h2 className="text-2xl font-bold text-slate-800">Welcome Back</h2>
+                <h2 className="text-2xl font-bold text-slate-800">
+                  Welcome Back
+                </h2>
                 <p className="text-slate-500 mt-1 text-sm">
                   Sign in to continue your learning journey
                 </p>
@@ -311,9 +320,24 @@ export default function LoginPage() {
               >
                 {submitting ? (
                   <span className="flex items-center justify-center gap-2">
-                    <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    <svg
+                      className="animate-spin w-5 h-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
                     </svg>
                     Signing in...
                   </span>
@@ -338,7 +362,10 @@ export default function LoginPage() {
             <div className="mt-6 pt-4 border-t border-slate-100">
               <p className="text-xs text-slate-400 text-center">
                 For support, contact HCIS at{" "}
-                <a href="mailto:hcis@plnip.co.id" className="text-pln-primary hover:underline">
+                <a
+                  href="mailto:hcis@plnip.co.id"
+                  className="text-pln-primary hover:underline"
+                >
                   hcis@plnip.co.id
                 </a>
               </p>

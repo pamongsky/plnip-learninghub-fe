@@ -29,35 +29,39 @@ const navItems = [
     name: "Dashboard",
     href: "/instructor",
     icon: HomeIcon,
-    description: "Ringkasan kelas"
+    description: "Ringkasan kelas",
   },
   {
     name: "Kelas Saya",
     href: "/instructor/classes",
     icon: AcademicCapIcon,
-    description: "Kelola kelas"
+    description: "Kelola kelas",
   },
   {
     name: "Pengumuman",
     href: "/instructor/announcements",
     icon: MegaphoneIcon,
-    description: "Info & pengumuman"
+    description: "Info & pengumuman",
   },
   {
     name: "Bantuan",
     href: "/instructor/support",
     icon: LifebuoyIcon,
-    description: "Lapor kendala"
+    description: "Lapor kendala",
   },
   {
     name: "Profil Saya",
     href: "/instructor/profile",
     icon: UserCircleIcon,
-    description: "Kelola profil"
+    description: "Kelola profil",
   },
 ];
 
-export default function InstructorLayout({ children }: { children: React.ReactNode }) {
+export default function InstructorLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuth();
@@ -71,18 +75,74 @@ export default function InstructorLayout({ children }: { children: React.ReactNo
 
   // Real notifications from WebSocket
   const [notifications, setNotifications] = useState([
-    { id: 1, title: "Kursus Baru Tersedia", message: "Kursus Keselamatan Kerja K3 tela...", time: "5 menit lalu", read: false, type: "course" },
-    { id: 2, title: "Sertifikat Diterbitkan", message: "Sertifikat Dasar Pembangkit Listri...", time: "1 jam lalu", read: false, type: "certificate" },
-    { id: 3, title: "Pengumuman Penting", message: "Townhall Meeting Q1 2026 akan dilak...", time: "2 jam lalu", read: true, type: "announcement" },
-    { id: 4, title: "Reminder", message: "Selesaikan kursus sebelum deadline", time: "1 hari lalu", read: true, type: "reminder" },
+    {
+      id: 1,
+      title: "Kursus Baru Tersedia",
+      message: "Kursus Keselamatan Kerja K3 tela...",
+      time: "5 menit lalu",
+      read: false,
+      type: "course",
+    },
+    {
+      id: 2,
+      title: "Sertifikat Diterbitkan",
+      message: "Sertifikat Dasar Pembangkit Listri...",
+      time: "1 jam lalu",
+      read: false,
+      type: "certificate",
+    },
+    {
+      id: 3,
+      title: "Pengumuman Penting",
+      message: "Townhall Meeting Q1 2026 akan dilak...",
+      time: "2 jam lalu",
+      read: true,
+      type: "announcement",
+    },
+    {
+      id: 4,
+      title: "Reminder",
+      message: "Selesaikan kursus sebelum deadline",
+      time: "1 hari lalu",
+      read: true,
+      type: "reminder",
+    },
   ]);
 
   // Mock notifications - will be replaced by real notifications from WebSocket
   const mockNotifications = [
-    { id: 1, title: "Kursus Baru Tersedia", message: "Kursus Keselamatan Kerja K3 tela...", time: "5 menit lalu", read: false, type: "course" },
-    { id: 2, title: "Sertifikat Diterbitkan", message: "Sertifikat Dasar Pembangkit Listri...", time: "1 jam lalu", read: false, type: "certificate" },
-    { id: 3, title: "Pengumuman Penting", message: "Townhall Meeting Q1 2026 akan dilak...", time: "2 jam lalu", read: true, type: "announcement" },
-    { id: 4, title: "Reminder", message: "Selesaikan kursus sebelum deadline", time: "1 hari lalu", read: true, type: "reminder" },
+    {
+      id: 1,
+      title: "Kursus Baru Tersedia",
+      message: "Kursus Keselamatan Kerja K3 tela...",
+      time: "5 menit lalu",
+      read: false,
+      type: "course",
+    },
+    {
+      id: 2,
+      title: "Sertifikat Diterbitkan",
+      message: "Sertifikat Dasar Pembangkit Listri...",
+      time: "1 jam lalu",
+      read: false,
+      type: "certificate",
+    },
+    {
+      id: 3,
+      title: "Pengumuman Penting",
+      message: "Townhall Meeting Q1 2026 akan dilak...",
+      time: "2 jam lalu",
+      read: true,
+      type: "announcement",
+    },
+    {
+      id: 4,
+      title: "Reminder",
+      message: "Selesaikan kursus sebelum deadline",
+      time: "1 hari lalu",
+      read: true,
+      type: "reminder",
+    },
   ];
 
   const unreadCount = notifications.filter((n) => !n.read).length;
@@ -111,20 +171,20 @@ export default function InstructorLayout({ children }: { children: React.ReactNo
     if (!echo) return;
 
     const channel = echo.private(`users.${user.id}.notifications`);
-    
+
     // Listen for new notifications
-    channel.listen('NotificationEvent', (data: any) => {
+    channel.listen("NotificationEvent", (data: any) => {
       const newNotification = {
         id: Date.now(),
         title: data.title || "Notifikasi Baru",
         message: data.message || "",
         time: "Baru saja",
         read: false,
-        type: data.type || "announcement"
+        type: data.type || "announcement",
       };
-      
+
       // Add new notification to the beginning
-      setNotifications(prev => [newNotification, ...prev]);
+      setNotifications((prev) => [newNotification, ...prev]);
     });
 
     return () => {
@@ -173,8 +233,12 @@ export default function InstructorLayout({ children }: { children: React.ReactNo
                 <AcademicCapIcon className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="font-bold text-slate-800 dark:text-white">PLN IP</h1>
-                <p className="text-xs text-pln-primary dark:text-pln-light font-medium">Instructor</p>
+                <h1 className="font-bold text-slate-800 dark:text-white">
+                  PLN IP
+                </h1>
+                <p className="text-xs text-pln-primary dark:text-pln-light font-medium">
+                  Instructor
+                </p>
               </div>
             </Link>
             <button
@@ -198,8 +262,12 @@ export default function InstructorLayout({ children }: { children: React.ReactNo
                 className="w-10 h-10 rounded-full object-cover"
               />
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-slate-800 dark:text-white text-sm truncate">{user?.name}</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Instructor</p>
+                <p className="font-medium text-slate-800 dark:text-white text-sm truncate">
+                  {user?.name}
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Instructor
+                </p>
               </div>
             </div>
           </div>
@@ -222,7 +290,9 @@ export default function InstructorLayout({ children }: { children: React.ReactNo
                       : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
                   }`}
                 >
-                  <item.icon className={`w-5 h-5 ${active ? "" : "text-slate-400 group-hover:text-slate-600 dark:group-hover:text-white"}`} />
+                  <item.icon
+                    className={`w-5 h-5 ${active ? "" : "text-slate-400 group-hover:text-slate-600 dark:group-hover:text-white"}`}
+                  />
                   <div className="flex-1">
                     <span className="font-medium text-sm">{item.name}</span>
                   </div>
@@ -237,7 +307,9 @@ export default function InstructorLayout({ children }: { children: React.ReactNo
       </aside>
 
       {/* Main Content */}
-      <div className={`transition-all duration-300 ${sidebarOpen ? "lg:ml-72" : "lg:ml-0"}`}>
+      <div
+        className={`transition-all duration-300 ${sidebarOpen ? "lg:ml-72" : "lg:ml-0"}`}
+      >
         {/* Top Header */}
         <header className="sticky top-0 z-30 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-700/80 transition-colors duration-300">
           <div className="flex items-center justify-between px-4 py-3 lg:px-6">
@@ -306,8 +378,8 @@ export default function InstructorLayout({ children }: { children: React.ReactNo
                 <AnimatePresence>
                   {notificationOpen && (
                     <>
-                      <div 
-                        className="fixed inset-0 z-40" 
+                      <div
+                        className="fixed inset-0 z-40"
                         onClick={() => setNotificationOpen(false)}
                       />
                       <motion.div
@@ -319,7 +391,9 @@ export default function InstructorLayout({ children }: { children: React.ReactNo
                       >
                         {/* Header */}
                         <div className="p-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
-                          <h3 className="font-semibold text-slate-800 dark:text-white">Notifikasi</h3>
+                          <h3 className="font-semibold text-slate-800 dark:text-white">
+                            Notifikasi
+                          </h3>
                           {unreadCount > 0 && (
                             <span className="text-xs bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 px-2 py-0.5 rounded-full font-medium">
                               {unreadCount} baru
@@ -335,25 +409,44 @@ export default function InstructorLayout({ children }: { children: React.ReactNo
                                 key={notif.id}
                                 onClick={() => setNotificationOpen(false)}
                                 className={`p-4 border-b border-slate-50 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer transition-colors ${
-                                  !notif.read ? "bg-blue-50/50 dark:bg-blue-500/10" : ""
+                                  !notif.read
+                                    ? "bg-blue-50/50 dark:bg-blue-500/10"
+                                    : ""
                                 }`}
                               >
                                 <div className="flex gap-3">
-                                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                                    notif.type === "course" ? "bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400" :
-                                    notif.type === "certificate" ? "bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-400" :
-                                    notif.type === "announcement" ? "bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400" :
-                                    "bg-slate-100 dark:bg-slate-600/20 text-slate-600 dark:text-slate-400"
-                                  }`}>
-                                    {notif.type === "course" && <BookOpenIcon className="w-4 h-4" />}
-                                    {notif.type === "certificate" && <CheckCircleIcon className="w-4 h-4" />}
-                                    {notif.type === "announcement" && <MegaphoneIcon className="w-4 h-4" />}
-                                    {notif.type === "reminder" && <BellIcon className="w-4 h-4" />}
+                                  <div
+                                    className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                                      notif.type === "course"
+                                        ? "bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400"
+                                        : notif.type === "certificate"
+                                          ? "bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-400"
+                                          : notif.type === "announcement"
+                                            ? "bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400"
+                                            : "bg-slate-100 dark:bg-slate-600/20 text-slate-600 dark:text-slate-400"
+                                    }`}
+                                  >
+                                    {notif.type === "course" && (
+                                      <BookOpenIcon className="w-4 h-4" />
+                                    )}
+                                    {notif.type === "certificate" && (
+                                      <CheckCircleIcon className="w-4 h-4" />
+                                    )}
+                                    {notif.type === "announcement" && (
+                                      <MegaphoneIcon className="w-4 h-4" />
+                                    )}
+                                    {notif.type === "reminder" && (
+                                      <BellIcon className="w-4 h-4" />
+                                    )}
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <p className={`text-sm ${
-                                      !notif.read ? "font-semibold text-slate-800 dark:text-white" : "font-medium text-slate-700 dark:text-slate-300"
-                                    }`}>
+                                    <p
+                                      className={`text-sm ${
+                                        !notif.read
+                                          ? "font-semibold text-slate-800 dark:text-white"
+                                          : "font-medium text-slate-700 dark:text-slate-300"
+                                      }`}
+                                    >
                                       {notif.title}
                                     </p>
                                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">
@@ -372,7 +465,9 @@ export default function InstructorLayout({ children }: { children: React.ReactNo
                           ) : (
                             <div className="p-8 text-center">
                               <BellIcon className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-                              <p className="text-slate-500 dark:text-slate-400 text-sm">Tidak ada notifikasi</p>
+                              <p className="text-slate-500 dark:text-slate-400 text-sm">
+                                Tidak ada notifikasi
+                              </p>
                             </div>
                           )}
                         </div>
@@ -421,7 +516,9 @@ export default function InstructorLayout({ children }: { children: React.ReactNo
                       className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden"
                     >
                       <div className="p-3 border-b border-slate-100 dark:border-slate-700">
-                        <p className="font-medium text-slate-800 dark:text-white text-sm">{user?.name}</p>
+                        <p className="font-medium text-slate-800 dark:text-white text-sm">
+                          {user?.name}
+                        </p>
                         <p className="text-xs text-slate-500">{user?.email}</p>
                       </div>
                       <div className="p-1">
@@ -449,9 +546,7 @@ export default function InstructorLayout({ children }: { children: React.ReactNo
         </header>
 
         {/* Page Content */}
-        <main className="p-4 lg:p-6">
-          {children}
-        </main>
+        <main className="p-4 lg:p-6">{children}</main>
       </div>
     </div>
   );

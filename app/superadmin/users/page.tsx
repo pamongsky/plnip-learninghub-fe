@@ -71,7 +71,7 @@ interface User {
   role?: string;
   effective_role?: string;
   is_active: boolean;
-  source: 'manual' | 'erp';
+  source: "manual" | "erp";
   access_group?: string;
   role_override?: string;
   created_at: string;
@@ -93,18 +93,25 @@ export default function SuperadminUsersPage() {
   const [sourceFilter, setSourceFilter] = useState("all");
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const [syncLoading, setSyncLoading] = useState(false);
-  const [syncMessage, setSyncMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  
+  const [syncMessage, setSyncMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
+
   // Modal states
   const [detailsModal, setDetailsModal] = useState({ open: false, userId: 0 });
   const [editModal, setEditModal] = useState({ open: false, userId: 0 });
-  const [deleteModal, setDeleteModal] = useState({ open: false, userId: 0, userName: "" });
-  const [overrideModal, setOverrideModal] = useState({ 
-    open: false, 
-    userId: 0, 
-    userName: "", 
-    currentRole: "", 
-    accessGroup: "" 
+  const [deleteModal, setDeleteModal] = useState({
+    open: false,
+    userId: 0,
+    userName: "",
+  });
+  const [overrideModal, setOverrideModal] = useState({
+    open: false,
+    userId: 0,
+    userName: "",
+    currentRole: "",
+    accessGroup: "",
   });
 
   useEffect(() => {
@@ -186,16 +193,16 @@ export default function SuperadminUsersPage() {
     setSyncLoading(true);
     setSyncMessage(null);
     try {
-      const response = await axios.post('/superadmin/sync-erp');
+      const response = await axios.post("/superadmin/sync-erp");
       setSyncMessage({
-        type: 'success',
+        type: "success",
         text: `✅ Sync berhasil: ${response.data.stats.created} baru, ${response.data.stats.updated} diperbarui`,
       });
       // Refresh users list after sync
       setTimeout(() => fetchUsers(), 1000);
     } catch (error: any) {
       setSyncMessage({
-        type: 'error',
+        type: "error",
         text: `❌ Sync gagal: ${error.response?.data?.error || error.message}`,
       });
     } finally {
@@ -226,7 +233,7 @@ export default function SuperadminUsersPage() {
           </p>
         </div>
         <div className="flex gap-3">
-          <Button 
+          <Button
             onClick={handleERPSync}
             disabled={syncLoading}
             variant="outline"
@@ -258,9 +265,9 @@ export default function SuperadminUsersPage() {
         <motion.div
           variants={itemVariants}
           className={`p-4 rounded-lg border ${
-            syncMessage.type === 'success'
-              ? 'bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-900/20 dark:border-emerald-800 dark:text-emerald-300'
-              : 'bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300'
+            syncMessage.type === "success"
+              ? "bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-900/20 dark:border-emerald-800 dark:text-emerald-300"
+              : "bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300"
           }`}
         >
           {syncMessage.text}
@@ -320,7 +327,9 @@ export default function SuperadminUsersPage() {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Status</label>
+                  <label className="text-sm font-medium mb-2 block">
+                    Status
+                  </label>
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Semua Status" />
@@ -334,7 +343,9 @@ export default function SuperadminUsersPage() {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Source</label>
+                  <label className="text-sm font-medium mb-2 block">
+                    Source
+                  </label>
                   <Select value={sourceFilter} onValueChange={setSourceFilter}>
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Semua Source" />
@@ -414,7 +425,9 @@ export default function SuperadminUsersPage() {
                             <p className="font-medium text-slate-900 dark:text-white">
                               {user.name}
                             </p>
-                            <p className="text-sm text-slate-500">{user.email}</p>
+                            <p className="text-sm text-slate-500">
+                              {user.email}
+                            </p>
                           </div>
                         </div>
                       </TableCell>
@@ -422,7 +435,9 @@ export default function SuperadminUsersPage() {
                         {user.employee_id || "-"}
                       </TableCell>
                       <TableCell>{user.department || "-"}</TableCell>
-                      <TableCell>{getRoleBadge(user.effective_role || "user")}</TableCell>
+                      <TableCell>
+                        {getRoleBadge(user.effective_role || "user")}
+                      </TableCell>
                       <TableCell>{getSourceBadge(user.source)}</TableCell>
                       <TableCell>{getStatusBadge(user.is_active)}</TableCell>
                       <TableCell className="text-right">
@@ -433,16 +448,20 @@ export default function SuperadminUsersPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               className="gap-2"
-                              onSelect={() => setDetailsModal({ open: true, userId: user.id })}
+                              onSelect={() =>
+                                setDetailsModal({ open: true, userId: user.id })
+                              }
                             >
                               <EyeIcon className="h-4 w-4" />
                               Lihat Detail
                             </DropdownMenuItem>
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               className="gap-2"
-                              onSelect={() => setEditModal({ open: true, userId: user.id })}
+                              onSelect={() =>
+                                setEditModal({ open: true, userId: user.id })
+                              }
                             >
                               <PencilSquareIcon className="h-4 w-4" />
                               Edit
@@ -450,13 +469,15 @@ export default function SuperadminUsersPage() {
                             {user.source === "manual" && (
                               <>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem 
+                                <DropdownMenuItem
                                   className="gap-2 text-red-600"
-                                  onSelect={() => setDeleteModal({ 
-                                    open: true, 
-                                    userId: user.id, 
-                                    userName: user.name 
-                                  })}
+                                  onSelect={() =>
+                                    setDeleteModal({
+                                      open: true,
+                                      userId: user.id,
+                                      userName: user.name,
+                                    })
+                                  }
                                 >
                                   <TrashIcon className="h-4 w-4" />
                                   Hapus
@@ -466,15 +487,18 @@ export default function SuperadminUsersPage() {
                             {user.source === "erp" && (
                               <>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem 
+                                <DropdownMenuItem
                                   className="gap-2"
-                                  onSelect={() => setOverrideModal({
-                                    open: true,
-                                    userId: user.id,
-                                    userName: user.name,
-                                    currentRole: user.effective_role || "user",
-                                    accessGroup: user.access_group || "N/A"
-                                  })}
+                                  onSelect={() =>
+                                    setOverrideModal({
+                                      open: true,
+                                      userId: user.id,
+                                      userName: user.name,
+                                      currentRole:
+                                        user.effective_role || "user",
+                                      accessGroup: user.access_group || "N/A",
+                                    })
+                                  }
                                 >
                                   <ShieldCheckIcon className="h-4 w-4" />
                                   Override Role
@@ -494,20 +518,20 @@ export default function SuperadminUsersPage() {
       </motion.div>
 
       {/* Modals */}
-      <UserDetailsModal 
+      <UserDetailsModal
         open={detailsModal.open}
         onOpenChange={(open) => setDetailsModal({ ...detailsModal, open })}
         userId={detailsModal.userId}
       />
 
-      <UserEditModal 
+      <UserEditModal
         open={editModal.open}
         onOpenChange={(open) => setEditModal({ ...editModal, open })}
         userId={editModal.userId}
         onSuccess={fetchUsers}
       />
 
-      <UserDeleteModal 
+      <UserDeleteModal
         open={deleteModal.open}
         onOpenChange={(open) => setDeleteModal({ ...deleteModal, open })}
         userId={deleteModal.userId}
@@ -515,7 +539,7 @@ export default function SuperadminUsersPage() {
         onSuccess={fetchUsers}
       />
 
-      <UserOverrideRoleModal 
+      <UserOverrideRoleModal
         open={overrideModal.open}
         onOpenChange={(open) => setOverrideModal({ ...overrideModal, open })}
         userId={overrideModal.userId}

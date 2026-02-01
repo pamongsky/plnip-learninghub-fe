@@ -53,18 +53,70 @@ const categoryLabels: Record<string, { label: string; icon: string }> = {
   other: { label: "Lainnya", icon: "O" },
 };
 
-const priorityConfig: Record<string, { label: string; color: string; bgColor: string }> = {
-  low: { label: "Rendah", color: "text-green-700", bgColor: "bg-green-100 dark:bg-green-900/30" },
-  medium: { label: "Sedang", color: "text-amber-700", bgColor: "bg-amber-100 dark:bg-amber-900/30" },
-  high: { label: "Tinggi", color: "text-orange-700", bgColor: "bg-orange-100 dark:bg-orange-900/30" },
-  urgent: { label: "Urgent", color: "text-red-700", bgColor: "bg-red-100 dark:bg-red-900/30" },
+const priorityConfig: Record<
+  string,
+  { label: string; color: string; bgColor: string }
+> = {
+  low: {
+    label: "Rendah",
+    color: "text-green-700",
+    bgColor: "bg-green-100 dark:bg-green-900/30",
+  },
+  medium: {
+    label: "Sedang",
+    color: "text-amber-700",
+    bgColor: "bg-amber-100 dark:bg-amber-900/30",
+  },
+  high: {
+    label: "Tinggi",
+    color: "text-orange-700",
+    bgColor: "bg-orange-100 dark:bg-orange-900/30",
+  },
+  urgent: {
+    label: "Urgent",
+    color: "text-red-700",
+    bgColor: "bg-red-100 dark:bg-red-900/30",
+  },
 };
 
-const statusConfig: Record<string, { label: string; color: string; bgColor: string; textColor: string; icon: any }> = {
-  open: { label: "Menunggu Respon", color: "border-blue-500", bgColor: "bg-blue-50 dark:bg-blue-900/20", textColor: "text-blue-700 dark:text-blue-400", icon: ClockIcon },
-  in_progress: { label: "Sedang Diproses", color: "border-amber-500", bgColor: "bg-amber-50 dark:bg-amber-900/20", textColor: "text-amber-700 dark:text-amber-400", icon: ArrowPathIcon },
-  resolved: { label: "Selesai", color: "border-green-500", bgColor: "bg-green-50 dark:bg-green-900/20", textColor: "text-green-700 dark:text-green-400", icon: CheckCircleIcon },
-  closed: { label: "Ditutup", color: "border-slate-500", bgColor: "bg-slate-50 dark:bg-slate-900/20", textColor: "text-slate-700 dark:text-slate-400", icon: XCircleIcon },
+const statusConfig: Record<
+  string,
+  {
+    label: string;
+    color: string;
+    bgColor: string;
+    textColor: string;
+    icon: any;
+  }
+> = {
+  open: {
+    label: "Menunggu Respon",
+    color: "border-blue-500",
+    bgColor: "bg-blue-50 dark:bg-blue-900/20",
+    textColor: "text-blue-700 dark:text-blue-400",
+    icon: ClockIcon,
+  },
+  in_progress: {
+    label: "Sedang Diproses",
+    color: "border-amber-500",
+    bgColor: "bg-amber-50 dark:bg-amber-900/20",
+    textColor: "text-amber-700 dark:text-amber-400",
+    icon: ArrowPathIcon,
+  },
+  resolved: {
+    label: "Selesai",
+    color: "border-green-500",
+    bgColor: "bg-green-50 dark:bg-green-900/20",
+    textColor: "text-green-700 dark:text-green-400",
+    icon: CheckCircleIcon,
+  },
+  closed: {
+    label: "Ditutup",
+    color: "border-slate-500",
+    bgColor: "bg-slate-50 dark:bg-slate-900/20",
+    textColor: "text-slate-700 dark:text-slate-400",
+    icon: XCircleIcon,
+  },
 };
 
 export default function InstructorSupportDetailPage() {
@@ -115,7 +167,9 @@ export default function InstructorSupportDetailPage() {
       })
       .catch((error) => {
         if (!isMounted) return;
-        setErrorMessage(error?.response?.data?.message || "Tiket tidak ditemukan");
+        setErrorMessage(
+          error?.response?.data?.message || "Tiket tidak ditemukan",
+        );
       })
       .finally(() => {
         if (!isMounted) return;
@@ -166,7 +220,10 @@ export default function InstructorSupportDetailPage() {
 
     setIsSubmitting(true);
     try {
-      const response = await supportApi.addReply(ticket.id, replyMessage.trim());
+      const response = await supportApi.addReply(
+        ticket.id,
+        replyMessage.trim(),
+      );
       const reply = response.data;
       const newReply: Reply = {
         id: reply.id,
@@ -196,18 +253,25 @@ export default function InstructorSupportDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="p-8 text-sm text-slate-500 dark:text-slate-400">Memuat tiket...</div>
+      <div className="p-8 text-sm text-slate-500 dark:text-slate-400">
+        Memuat tiket...
+      </div>
     );
   }
 
   if (errorMessage || !ticket) {
     return (
-      <div className="p-8 text-sm text-slate-500 dark:text-slate-400">{errorMessage || "Tiket tidak ditemukan"}</div>
+      <div className="p-8 text-sm text-slate-500 dark:text-slate-400">
+        {errorMessage || "Tiket tidak ditemukan"}
+      </div>
     );
   }
 
   const StatusIcon = statusConfig[ticket.status].icon;
-  const category = categoryLabels[ticket.category] || { label: "Lainnya", icon: "📋" };
+  const category = categoryLabels[ticket.category] || {
+    label: "Lainnya",
+    icon: "📋",
+  };
   const isResolved = ticket.status === "resolved" || ticket.status === "closed";
 
   return (
@@ -229,13 +293,17 @@ export default function InstructorSupportDetailPage() {
             <span className="text-sm font-mono text-slate-500 dark:text-slate-400">
               {ticket.ticket_number}
             </span>
-            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${priorityConfig[ticket.priority].bgColor} ${priorityConfig[ticket.priority].color}`}>
+            <span
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${priorityConfig[ticket.priority].bgColor} ${priorityConfig[ticket.priority].color}`}
+            >
               {ticket.priority === "high" || ticket.priority === "urgent" ? (
                 <ExclamationTriangleIcon className="h-3 w-3" />
               ) : null}
               {priorityConfig[ticket.priority].label}
             </span>
-            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${statusConfig[ticket.status].bgColor} ${statusConfig[ticket.status].textColor}`}>
+            <span
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${statusConfig[ticket.status].bgColor} ${statusConfig[ticket.status].textColor}`}
+            >
               <StatusIcon className="h-3.5 w-3.5" />
               {statusConfig[ticket.status].label}
             </span>
@@ -254,11 +322,17 @@ export default function InstructorSupportDetailPage() {
         className={`rounded-xl border-l-4 p-4 ${statusConfig[ticket.status].bgColor} ${statusConfig[ticket.status].color}`}
       >
         <div className="flex items-center gap-3">
-          <StatusIcon className={`h-5 w-5 ${statusConfig[ticket.status].textColor}`} />
+          <StatusIcon
+            className={`h-5 w-5 ${statusConfig[ticket.status].textColor}`}
+          />
           <div>
-            <p className={`font-medium ${statusConfig[ticket.status].textColor}`}>
-              {ticket.status === "open" && "Tiket Anda sedang menunggu respon dari admin."}
-              {ticket.status === "in_progress" && "Admin sedang menangani permintaan Anda."}
+            <p
+              className={`font-medium ${statusConfig[ticket.status].textColor}`}
+            >
+              {ticket.status === "open" &&
+                "Tiket Anda sedang menunggu respon dari admin."}
+              {ticket.status === "in_progress" &&
+                "Admin sedang menangani permintaan Anda."}
               {ticket.status === "resolved" && "Tiket Anda telah diselesaikan."}
               {ticket.status === "closed" && "Tiket ini telah ditutup."}
             </p>
@@ -276,81 +350,89 @@ export default function InstructorSupportDetailPage() {
         <div className="lg:col-span-2 flex flex-col h-screen max-h-screen">
           {/* Messages Container - Scrollable */}
           <div className="flex-1 overflow-y-auto space-y-4 pb-4">
-          {/* Original Message */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden"
-          >
-            <div className="flex items-center gap-4 p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
-              <div className="h-10 w-10 rounded-full bg-pln-primary flex items-center justify-center text-sm font-semibold text-white">
-                {getInitials("Anda")}
-              </div>
-              <div className="flex-1">
-                <span className="font-medium text-slate-900 dark:text-white">Anda</span>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  {formatDate(ticket.created_at)}
-                </p>
-              </div>
-              <div className="flex items-center gap-1 text-sm text-slate-500">
-                <span>{category.icon}</span>
-                <span>{category.label}</span>
-              </div>
-            </div>
-            <div className="p-4">
-              <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
-                {ticket.description}
-              </p>
-            </div>
-          </motion.div>
-
-          {/* Replies */}
-          {ticket.replies.map((reply, index) => (
+            {/* Original Message */}
             <motion.div
-              key={reply.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 + (index * 0.1) }}
-              className={`rounded-2xl border overflow-hidden ${
-                reply.is_admin_reply
-                  ? "bg-pln-primary/5 dark:bg-pln-primary/10 border-pln-primary/20"
-                  : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
-              }`}
+              transition={{ delay: 0.2 }}
+              className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden"
             >
-              <div className={`flex items-center gap-4 p-4 border-b ${
-                reply.is_admin_reply ? "border-pln-primary/20" : "border-slate-200 dark:border-slate-700"
-              }`}>
-                <div className={`h-10 w-10 rounded-full flex items-center justify-center text-sm font-semibold ${
-                  reply.is_admin_reply
-                    ? "bg-pln-primary text-white"
-                    : "bg-slate-600 text-white"
-                }`}>
-                  {getInitials(reply.user.name)}
+              <div className="flex items-center gap-4 p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                <div className="h-10 w-10 rounded-full bg-pln-primary flex items-center justify-center text-sm font-semibold text-white">
+                  {getInitials("Anda")}
                 </div>
                 <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-slate-900 dark:text-white">
-                      {reply.user.name}
-                    </span>
-                    {reply.is_admin_reply && (
-                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-pln-primary text-white">
-                        Admin
-                      </span>
-                    )}
-                  </div>
+                  <span className="font-medium text-slate-900 dark:text-white">
+                    Anda
+                  </span>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    {formatDate(ticket.created_at)}
+                  </p>
                 </div>
-                <span className="text-sm text-slate-500 dark:text-slate-400">
-                  {formatRelativeDate(reply.created_at)}
-                </span>
+                <div className="flex items-center gap-1 text-sm text-slate-500">
+                  <span>{category.icon}</span>
+                  <span>{category.label}</span>
+                </div>
               </div>
               <div className="p-4">
                 <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
-                  {reply.message}
+                  {ticket.description}
                 </p>
               </div>
             </motion.div>
-          ))}
+
+            {/* Replies */}
+            {ticket.replies.map((reply, index) => (
+              <motion.div
+                key={reply.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 + index * 0.1 }}
+                className={`rounded-2xl border overflow-hidden ${
+                  reply.is_admin_reply
+                    ? "bg-pln-primary/5 dark:bg-pln-primary/10 border-pln-primary/20"
+                    : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+                }`}
+              >
+                <div
+                  className={`flex items-center gap-4 p-4 border-b ${
+                    reply.is_admin_reply
+                      ? "border-pln-primary/20"
+                      : "border-slate-200 dark:border-slate-700"
+                  }`}
+                >
+                  <div
+                    className={`h-10 w-10 rounded-full flex items-center justify-center text-sm font-semibold ${
+                      reply.is_admin_reply
+                        ? "bg-pln-primary text-white"
+                        : "bg-slate-600 text-white"
+                    }`}
+                  >
+                    {getInitials(reply.user.name)}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-slate-900 dark:text-white">
+                        {reply.user.name}
+                      </span>
+                      {reply.is_admin_reply && (
+                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-pln-primary text-white">
+                          Admin
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <span className="text-sm text-slate-500 dark:text-slate-400">
+                    {formatRelativeDate(reply.created_at)}
+                  </span>
+                </div>
+                <div className="p-4">
+                  <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
+                    {reply.message}
+                  </p>
+                </div>
+              </motion.div>
+            ))}
           </div>
 
           {/* Reply Input */}
@@ -382,9 +464,24 @@ export default function InstructorSupportDetailPage() {
                   >
                     {isSubmitting ? (
                       <>
-                        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        <svg
+                          className="animate-spin h-4 w-4"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                            fill="none"
+                          />
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          />
                         </svg>
                         Mengirim...
                       </>
@@ -410,7 +507,8 @@ export default function InstructorSupportDetailPage() {
                 Tiket Telah Diselesaikan
               </h3>
               <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                Terima kasih atas koordinasinya. Buat tiket baru jika ada keperluan lain.
+                Terima kasih atas koordinasinya. Buat tiket baru jika ada
+                keperluan lain.
               </p>
               <Link
                 href="/instructor/support/create"
@@ -450,7 +548,9 @@ export default function InstructorSupportDetailPage() {
                 <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
                   Status
                 </label>
-                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${statusConfig[ticket.status].bgColor} ${statusConfig[ticket.status].textColor}`}>
+                <span
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${statusConfig[ticket.status].bgColor} ${statusConfig[ticket.status].textColor}`}
+                >
                   <StatusIcon className="h-3.5 w-3.5" />
                   {statusConfig[ticket.status].label}
                 </span>
@@ -460,7 +560,9 @@ export default function InstructorSupportDetailPage() {
                 <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
                   Prioritas
                 </label>
-                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${priorityConfig[ticket.priority].bgColor} ${priorityConfig[ticket.priority].color}`}>
+                <span
+                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${priorityConfig[ticket.priority].bgColor} ${priorityConfig[ticket.priority].color}`}
+                >
                   {priorityConfig[ticket.priority].label}
                 </span>
               </div>

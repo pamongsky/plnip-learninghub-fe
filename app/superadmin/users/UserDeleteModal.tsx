@@ -51,9 +51,7 @@ export function UserDeleteModal({
     } catch (error: any) {
       setMessage({
         type: "error",
-        text:
-          error.response?.data?.message ||
-          "Gagal menghapus user",
+        text: error.response?.data?.message || "Gagal menghapus user",
       });
     } finally {
       setDeleting(false);
@@ -101,8 +99,8 @@ export function UserDeleteModal({
               <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-3 rounded-lg">
                 <p className="text-sm text-amber-800 dark:text-amber-300">
                   ⚠️ Catatan: Hanya user dengan source &quot;manual&quot; yang
-                  dapat dihapus. User dari ERP tidak bisa dihapus (akan tersinkronisasi
-                  ulang).
+                  dapat dihapus. User dari ERP tidak bisa dihapus (akan
+                  tersinkronisasi ulang).
                 </p>
               </div>
             </>

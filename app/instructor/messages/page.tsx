@@ -43,7 +43,9 @@ export default function InstructorMessagesPage() {
       })
       .catch((error) => {
         if (!isMounted) return;
-        setErrorMessage(error?.response?.data?.message || "Gagal memuat statistik pesan");
+        setErrorMessage(
+          error?.response?.data?.message || "Gagal memuat statistik pesan",
+        );
       })
       .finally(() => {
         if (!isMounted) return;
@@ -126,9 +128,10 @@ export default function InstructorMessagesPage() {
         className="mb-6 rounded-xl bg-gradient-to-r from-pln-primary/10 to-pln-light/10 p-4"
       >
         <p className="text-sm text-slate-600">
-          💡 Gunakan fitur ini untuk berkomunikasi dengan admin terkait jadwal kelas, 
-          perubahan materi, atau kendala teknis. Untuk diskusi dengan peserta, 
-          gunakan fitur <strong>Chat Kelas</strong> di halaman detail kelas.
+          💡 Gunakan fitur ini untuk berkomunikasi dengan admin terkait jadwal
+          kelas, perubahan materi, atau kendala teknis. Untuk diskusi dengan
+          peserta, gunakan fitur <strong>Chat Kelas</strong> di halaman detail
+          kelas.
         </p>
       </motion.div>
 
@@ -144,7 +147,9 @@ export default function InstructorMessagesPage() {
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-600">{stat.title}</p>
+                <p className="text-sm font-medium text-slate-600">
+                  {stat.title}
+                </p>
                 <p className="mt-2 text-3xl font-bold text-slate-900">
                   {isLoading ? (
                     <span className="inline-block h-8 w-16 animate-pulse rounded bg-slate-200" />
@@ -154,7 +159,9 @@ export default function InstructorMessagesPage() {
                 </p>
               </div>
               <div className={`rounded-xl bg-gradient-to-br ${stat.color} p-3`}>
-                {React.createElement(stat.icon, { className: "h-6 w-6 text-white" })}
+                {React.createElement(stat.icon, {
+                  className: "h-6 w-6 text-white",
+                })}
               </div>
             </div>
           </motion.div>

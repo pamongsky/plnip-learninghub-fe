@@ -80,7 +80,8 @@ export function UserEditModal({
         email: response.data.email,
         department: response.data.department || "",
         position: response.data.position || "",
-        role: response.data.role_override || response.data.effective_role || "user",
+        role:
+          response.data.role_override || response.data.effective_role || "user",
         is_active: response.data.is_active,
       });
     } catch (error) {
@@ -113,9 +114,7 @@ export function UserEditModal({
     } catch (error: any) {
       setMessage({
         type: "error",
-        text:
-          error.response?.data?.message ||
-          "Gagal mengupdate user",
+        text: error.response?.data?.message || "Gagal mengupdate user",
       });
     } finally {
       setSubmitting(false);
@@ -154,13 +153,15 @@ export function UserEditModal({
               </div>
             )}
 
-            {user?.role_override === "super-admin" || user?.roles?.some((r: any) => r.name === "super-admin") ? (
+            {user?.role_override === "super-admin" ||
+            user?.roles?.some((r: any) => r.name === "super-admin") ? (
               <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3 rounded-lg">
                 <p className="text-sm font-semibold text-red-700 dark:text-red-300">
                   🔒 Protected Super Admin Account
                 </p>
                 <p className="text-xs text-red-600 dark:text-red-400 mt-1">
-                  Role super admin tidak bisa diubah dari sini. Hubungi administrator sistem jika perlu perubahan.
+                  Role super admin tidak bisa diubah dari sini. Hubungi
+                  administrator sistem jika perlu perubahan.
                 </p>
               </div>
             ) : null}
@@ -197,7 +198,10 @@ export function UserEditModal({
               <Select
                 value={formData.department || "none"}
                 onValueChange={(value) =>
-                  setFormData({ ...formData, department: value === "none" ? "" : value })
+                  setFormData({
+                    ...formData,
+                    department: value === "none" ? "" : value,
+                  })
                 }
               >
                 <SelectTrigger id="department">
@@ -234,9 +238,18 @@ export function UserEditModal({
                 onValueChange={(value) =>
                   setFormData({ ...formData, role: value })
                 }
-                disabled={user?.role_override === "super-admin" || user?.roles?.some((r: any) => r.name === "super-admin")}
+                disabled={
+                  user?.role_override === "super-admin" ||
+                  user?.roles?.some((r: any) => r.name === "super-admin")
+                }
               >
-                <SelectTrigger id="role" disabled={user?.role_override === "super-admin" || user?.roles?.some((r: any) => r.name === "super-admin")}>
+                <SelectTrigger
+                  id="role"
+                  disabled={
+                    user?.role_override === "super-admin" ||
+                    user?.roles?.some((r: any) => r.name === "super-admin")
+                  }
+                >
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -246,11 +259,14 @@ export function UserEditModal({
                   <SelectItem value="user">User</SelectItem>
                 </SelectContent>
               </Select>
-              {user?.source === "erp" && user?.role_override !== "super-admin" && user?.roles?.every((r: any) => r.name !== "super-admin") && (
-                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                  ⚠️ Gunakan "Override Role" untuk ERP users agar tracked di audit log
-                </p>
-              )}
+              {user?.source === "erp" &&
+                user?.role_override !== "super-admin" &&
+                user?.roles?.every((r: any) => r.name !== "super-admin") && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                    ⚠️ Gunakan "Override Role" untuk ERP users agar tracked di
+                    audit log
+                  </p>
+                )}
             </div>
 
             <div className="space-y-2">

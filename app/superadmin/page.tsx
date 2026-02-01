@@ -303,7 +303,7 @@ export default function SuperadminDashboardPage() {
                   <div className={`rounded-xl ${stat.bgColor} p-3`}>
                     {React.createElement(stat.icon, {
                       className: `h-6 w-6 bg-gradient-to-br ${stat.color} bg-clip-text text-transparent`,
-                      style: { stroke: "url(#gradient)" }
+                      style: { stroke: "url(#gradient)" },
                     })}
                   </div>
                   <div

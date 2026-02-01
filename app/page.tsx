@@ -786,7 +786,7 @@ export default function LandingPage() {
                         ?.split(" ")
                         .map((n: string) => n[0])
                         .join("")
-                        .slice(0, 2)} 
+                        .slice(0, 2)}
                     </div>
                   )}
                 </div>

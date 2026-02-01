@@ -32,37 +32,37 @@ const navItems = [
     name: "Dashboard",
     href: "/dashboard",
     icon: HomeIcon,
-    description: "Ringkasan pembelajaran"
+    description: "Ringkasan pembelajaran",
   },
   {
     name: "Kelas Saya",
     href: "/dashboard/classes",
     icon: AcademicCapIcon,
-    description: "Kelas yang diikuti"
+    description: "Kelas yang diikuti",
   },
   {
     name: "Sertifikat",
     href: "/dashboard/certificates",
     icon: TrophyIcon,
-    description: "Sertifikat yang diperoleh"
+    description: "Sertifikat yang diperoleh",
   },
   {
     name: "Pengumuman",
     href: "/dashboard/announcements",
     icon: MegaphoneIcon,
-    description: "Info & pengumuman"
+    description: "Info & pengumuman",
   },
   {
     name: "Bantuan",
     href: "/dashboard/support",
     icon: LifebuoyIcon,
-    description: "Butuh bantuan?"
+    description: "Butuh bantuan?",
   },
   {
     name: "Profil Saya",
     href: "/dashboard/profile",
     icon: UserCircleIcon,
-    description: "Kelola profil"
+    description: "Kelola profil",
   },
 ];
 
@@ -78,21 +78,23 @@ export default function DashboardLayout({
   const [isMobile, setIsMobile] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
-  const [notifications, setNotifications] = useState<Array<{
-    id: number;
-    title: string;
-    message: string;
-    time: string;
-    read: boolean;
-    type: string;
-  }>>([
+  const [notifications, setNotifications] = useState<
+    Array<{
+      id: number;
+      title: string;
+      message: string;
+      time: string;
+      read: boolean;
+      type: string;
+    }>
+  >([
     {
       id: 1,
       title: "Kursus Baru Tersedia",
       message: "Kursus Keselamatan Kerja K3 telah ditambahkan",
       time: "5 menit lalu",
       read: false,
-      type: "course"
+      type: "course",
     },
     {
       id: 2,
@@ -100,7 +102,7 @@ export default function DashboardLayout({
       message: "Sertifikat Dasar Pembangkit Listrik siap diunduh",
       time: "1 jam lalu",
       read: false,
-      type: "certificate"
+      type: "certificate",
     },
     {
       id: 3,
@@ -108,7 +110,7 @@ export default function DashboardLayout({
       message: "Townhall Meeting Q1 2026 akan dilaksanakan",
       time: "2 jam lalu",
       read: true,
-      type: "announcement"
+      type: "announcement",
     },
     {
       id: 4,
@@ -116,11 +118,11 @@ export default function DashboardLayout({
       message: "Selesaikan kursus sebelum deadline",
       time: "1 hari lalu",
       read: true,
-      type: "reminder"
+      type: "reminder",
     },
   ]);
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   const firstName = user?.name?.split(" ")[0] || "User";
   const avatarUrl = user?.avatar || null;
@@ -154,20 +156,20 @@ export default function DashboardLayout({
     if (!echo) return;
 
     const channel = echo.private(`users.${user.id}.notifications`);
-    
+
     // Listen for new notifications
-    channel.listen('NotificationEvent', (data: any) => {
+    channel.listen("NotificationEvent", (data: any) => {
       const newNotification = {
         id: Date.now(),
         title: data.title || "Notifikasi Baru",
         message: data.message || "",
         time: "Baru saja",
         read: false,
-        type: data.type || "announcement"
+        type: data.type || "announcement",
       };
-      
+
       // Add new notification to the beginning
-      setNotifications(prev => [newNotification, ...prev]);
+      setNotifications((prev) => [newNotification, ...prev]);
     });
 
     return () => {
@@ -211,8 +213,12 @@ export default function DashboardLayout({
                 <AcademicCapIcon className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="font-bold text-slate-800 dark:text-white">PLN IP</h1>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Learning Hub</p>
+                <h1 className="font-bold text-slate-800 dark:text-white">
+                  PLN IP
+                </h1>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Learning Hub
+                </p>
               </div>
             </Link>
             <button
@@ -239,8 +245,12 @@ export default function DashboardLayout({
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-slate-800 dark:text-white text-sm truncate">{user?.name}</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Learner</p>
+                <p className="font-medium text-slate-800 dark:text-white text-sm truncate">
+                  {user?.name}
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Learner
+                </p>
               </div>
             </div>
           </div>
@@ -263,7 +273,9 @@ export default function DashboardLayout({
                       : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
                   }`}
                 >
-                  <item.icon className={`w-5 h-5 ${active ? "" : "text-slate-400 group-hover:text-slate-600 dark:group-hover:text-white"}`} />
+                  <item.icon
+                    className={`w-5 h-5 ${active ? "" : "text-slate-400 group-hover:text-slate-600 dark:group-hover:text-white"}`}
+                  />
                   <div className="flex-1">
                     <span className="font-medium text-sm">{item.name}</span>
                   </div>
@@ -274,13 +286,13 @@ export default function DashboardLayout({
               );
             })}
           </nav>
-
-
         </div>
       </aside>
 
       {/* Main Content */}
-      <div className={`transition-all duration-300 ${sidebarOpen ? "lg:ml-72" : "lg:ml-0"}`}>
+      <div
+        className={`transition-all duration-300 ${sidebarOpen ? "lg:ml-72" : "lg:ml-0"}`}
+      >
         {/* Top Header */}
         <header className="sticky top-0 z-30 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-700/80 transition-colors duration-300">
           <div className="flex items-center justify-between px-4 py-3 lg:px-6">
@@ -303,7 +315,7 @@ export default function DashboardLayout({
                 </p>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-1">
               {/* Dark Mode Toggle with Animation */}
               <motion.button
@@ -359,8 +371,8 @@ export default function DashboardLayout({
                 <AnimatePresence>
                   {notificationOpen && (
                     <>
-                      <div 
-                        className="fixed inset-0 z-40" 
+                      <div
+                        className="fixed inset-0 z-40"
                         onClick={() => setNotificationOpen(false)}
                       />
                       <motion.div
@@ -372,7 +384,9 @@ export default function DashboardLayout({
                       >
                         {/* Header */}
                         <div className="p-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
-                          <h3 className="font-semibold text-slate-800 dark:text-white">Notifikasi</h3>
+                          <h3 className="font-semibold text-slate-800 dark:text-white">
+                            Notifikasi
+                          </h3>
                           {unreadCount > 0 && (
                             <span className="text-xs bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 px-2 py-0.5 rounded-full font-medium">
                               {unreadCount} baru
@@ -387,36 +401,60 @@ export default function DashboardLayout({
                               <Link
                                 key={notif.id}
                                 href={
-                                  notif.type === "announcement" ? "/dashboard/announcements" :
-                                  notif.type === "certificate" ? "/dashboard/certificates" :
-                                  notif.type === "course" ? "/dashboard/classes" :
-                                  "/dashboard"
+                                  notif.type === "announcement"
+                                    ? "/dashboard/announcements"
+                                    : notif.type === "certificate"
+                                      ? "/dashboard/certificates"
+                                      : notif.type === "course"
+                                        ? "/dashboard/classes"
+                                        : "/dashboard"
                                 }
                                 onClick={() => {
                                   setNotificationOpen(false);
                                   // Mark as read when clicked
-                                  setNotifications(prev => 
-                                    prev.map(n => n.id === notif.id ? { ...n, read: true } : n)
+                                  setNotifications((prev) =>
+                                    prev.map((n) =>
+                                      n.id === notif.id
+                                        ? { ...n, read: true }
+                                        : n,
+                                    ),
                                   );
                                 }}
                                 className={`block p-4 border-b border-slate-50 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer transition-colors ${
-                                  !notif.read ? "bg-blue-50/50 dark:bg-blue-500/10" : ""
+                                  !notif.read
+                                    ? "bg-blue-50/50 dark:bg-blue-500/10"
+                                    : ""
                                 }`}
                               >
                                 <div className="flex gap-3">
-                                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                                    notif.type === "course" ? "bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400" :
-                                    notif.type === "certificate" ? "bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-400" :
-                                    notif.type === "announcement" ? "bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400" :
-                                    "bg-slate-100 dark:bg-slate-600/20 text-slate-600 dark:text-slate-400"
-                                  }`}>
-                                    {notif.type === "course" && <BookOpenIcon className="w-4 h-4" />}
-                                    {notif.type === "certificate" && <TrophyIcon className="w-4 h-4" />}
-                                    {notif.type === "announcement" && <MegaphoneIcon className="w-4 h-4" />}
-                                    {notif.type === "reminder" && <BellIcon className="w-4 h-4" />}
+                                  <div
+                                    className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                                      notif.type === "course"
+                                        ? "bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400"
+                                        : notif.type === "certificate"
+                                          ? "bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-400"
+                                          : notif.type === "announcement"
+                                            ? "bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400"
+                                            : "bg-slate-100 dark:bg-slate-600/20 text-slate-600 dark:text-slate-400"
+                                    }`}
+                                  >
+                                    {notif.type === "course" && (
+                                      <BookOpenIcon className="w-4 h-4" />
+                                    )}
+                                    {notif.type === "certificate" && (
+                                      <TrophyIcon className="w-4 h-4" />
+                                    )}
+                                    {notif.type === "announcement" && (
+                                      <MegaphoneIcon className="w-4 h-4" />
+                                    )}
+                                    {notif.type === "reminder" && (
+                                      <BellIcon className="w-4 h-4" />
+                                    )}
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <p className={`text-sm ${!notif.read ? "font-semibold text-slate-800 dark:text-white" : "font-medium text-slate-700 dark:text-slate-300"}`}>
+                                    <p
+                                      className={`text-sm ${!notif.read ? "font-semibold text-slate-800 dark:text-white" : "font-medium text-slate-700 dark:text-slate-300"}`}
+                                    >
                                       {notif.title}
                                     </p>
                                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">
@@ -435,7 +473,9 @@ export default function DashboardLayout({
                           ) : (
                             <div className="p-8 text-center">
                               <BellIcon className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-                              <p className="text-slate-500 dark:text-slate-400 text-sm">Tidak ada notifikasi</p>
+                              <p className="text-slate-500 dark:text-slate-400 text-sm">
+                                Tidak ada notifikasi
+                              </p>
                             </div>
                           )}
                         </div>
@@ -455,7 +495,7 @@ export default function DashboardLayout({
                   )}
                 </AnimatePresence>
               </div>
-              
+
               {/* Profile Dropdown */}
               <div className="relative">
                 <button
@@ -479,7 +519,9 @@ export default function DashboardLayout({
                   <span className="text-sm font-medium text-slate-700 dark:text-slate-200 hidden sm:block">
                     {firstName}
                   </span>
-                  <ChevronRightIcon className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${profileDropdownOpen ? 'rotate-90' : ''}`} />
+                  <ChevronRightIcon
+                    className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${profileDropdownOpen ? "rotate-90" : ""}`}
+                  />
                 </button>
 
                 {/* Dropdown Menu */}
@@ -487,11 +529,11 @@ export default function DashboardLayout({
                   {profileDropdownOpen && (
                     <>
                       {/* Backdrop */}
-                      <div 
-                        className="fixed inset-0 z-40" 
+                      <div
+                        className="fixed inset-0 z-40"
                         onClick={() => setProfileDropdownOpen(false)}
                       />
-                      
+
                       {/* Dropdown */}
                       <motion.div
                         initial={{ opacity: 0, y: -10, scale: 0.95 }}
@@ -515,8 +557,12 @@ export default function DashboardLayout({
                               </div>
                             )}
                             <div className="flex-1 min-w-0">
-                              <p className="font-semibold text-slate-800 dark:text-white truncate">{user?.name}</p>
-                              <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{user?.email}</p>
+                              <p className="font-semibold text-slate-800 dark:text-white truncate">
+                                {user?.name}
+                              </p>
+                              <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                                {user?.email}
+                              </p>
                             </div>
                           </div>
                         </div>
@@ -529,7 +575,9 @@ export default function DashboardLayout({
                             className="flex items-center gap-3 px-3 py-2.5 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-all"
                           >
                             <UserCircleIcon className="w-5 h-5 text-slate-400" />
-                            <span className="font-medium text-sm">Profil Saya</span>
+                            <span className="font-medium text-sm">
+                              Profil Saya
+                            </span>
                           </Link>
                         </div>
 

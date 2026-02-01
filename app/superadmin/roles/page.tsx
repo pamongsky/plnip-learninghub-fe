@@ -80,7 +80,9 @@ export default function SuperadminRolesPage() {
       setPermissions(permsRes.data);
 
       if (selectedRole) {
-        const updated = rolesRes.data.find((r: Role) => r.id === selectedRole.id);
+        const updated = rolesRes.data.find(
+          (r: Role) => r.id === selectedRole.id,
+        );
         if (updated) {
           setSelectedRole(updated);
           setSelectedPermissions(updated.permissions);
@@ -89,7 +91,10 @@ export default function SuperadminRolesPage() {
 
       setLoading(false);
     } catch (error: any) {
-      console.error("Failed to fetch roles:", error.response?.data?.message || error.message);
+      console.error(
+        "Failed to fetch roles:",
+        error.response?.data?.message || error.message,
+      );
       setLoading(false);
     }
   };
@@ -113,7 +118,7 @@ export default function SuperadminRolesPage() {
     } catch (error: any) {
       console.error(
         "Failed to update permissions:",
-        error.response?.data?.message || error.message
+        error.response?.data?.message || error.message,
       );
     } finally {
       setSaving(false);
@@ -132,7 +137,7 @@ export default function SuperadminRolesPage() {
     } catch (error: any) {
       console.error(
         "Failed to delete role:",
-        error.response?.data?.message || error.message
+        error.response?.data?.message || error.message,
       );
     } finally {
       setSaving(false);
@@ -143,7 +148,7 @@ export default function SuperadminRolesPage() {
     setSelectedPermissions((prev) =>
       prev.includes(permName)
         ? prev.filter((p) => p !== permName)
-        : [...prev, permName]
+        : [...prev, permName],
     );
   };
 
@@ -153,7 +158,7 @@ export default function SuperadminRolesPage() {
 
   const categories = [...new Set(permissions.map((p) => p.category))];
   const filteredRoles = roles.filter((r) =>
-    r.display_name.toLowerCase().includes(searchQuery.toLowerCase())
+    r.display_name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   if (loading) {
@@ -224,7 +229,9 @@ export default function SuperadminRolesPage() {
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <CardTitle className="text-lg">{role.display_name}</CardTitle>
+                      <CardTitle className="text-lg">
+                        {role.display_name}
+                      </CardTitle>
                       <CardDescription className="text-xs mt-1">
                         {role.user_count} user{role.user_count !== 1 ? "s" : ""}
                       </CardDescription>
@@ -249,7 +256,9 @@ export default function SuperadminRolesPage() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="text-2xl">{selectedRole.display_name}</CardTitle>
+                    <CardTitle className="text-2xl">
+                      {selectedRole.display_name}
+                    </CardTitle>
                     <CardDescription className="mt-2">
                       {selectedRole.description}
                     </CardDescription>
@@ -268,7 +277,7 @@ export default function SuperadminRolesPage() {
                   {categories.map((category) => {
                     const categoryPerms = getPermissionsByCategory(category);
                     const assignedPerms = categoryPerms.filter((p) =>
-                      selectedRole.permissions.includes(p.name)
+                      selectedRole.permissions.includes(p.name),
                     );
 
                     return (
@@ -343,12 +352,16 @@ export default function SuperadminRolesPage() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="text-2xl">{selectedRole.display_name}</CardTitle>
+                    <CardTitle className="text-2xl">
+                      {selectedRole.display_name}
+                    </CardTitle>
                     <CardDescription className="mt-1">
                       Configure permissions for this role
                     </CardDescription>
                   </div>
-                  <Badge variant="default">{selectedPermissions.length} selected</Badge>
+                  <Badge variant="default">
+                    {selectedPermissions.length} selected
+                  </Badge>
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -365,8 +378,12 @@ export default function SuperadminRolesPage() {
 
                 {/* Permissions by Category */}
                 {categories.map((category) => {
-                  const categoryPerms = getPermissionsByCategory(category).filter((p) =>
-                    p.display_name.toLowerCase().includes(searchQuery.toLowerCase())
+                  const categoryPerms = getPermissionsByCategory(
+                    category,
+                  ).filter((p) =>
+                    p.display_name
+                      .toLowerCase()
+                      .includes(searchQuery.toLowerCase()),
                   );
 
                   if (categoryPerms.length === 0) return null;
@@ -440,13 +457,16 @@ export default function SuperadminRolesPage() {
       )}
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteConfirm !== null} onOpenChange={() => setDeleteConfirm(null)}>
+      <AlertDialog
+        open={deleteConfirm !== null}
+        onOpenChange={() => setDeleteConfirm(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Role?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete the {deleteConfirm?.display_name} role? This action
-              cannot be undone.
+              Are you sure you want to delete the {deleteConfirm?.display_name}{" "}
+              role? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">

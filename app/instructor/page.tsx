@@ -75,9 +75,10 @@ function AnimatedCounter({ value }: { value: number }) {
 
 export default function InstructorDashboardPage() {
   const { user } = useAuth();
-  const [dashboardData, setDashboardData] = useState<InstructorDashboardData | null>(null);
+  const [dashboardData, setDashboardData] =
+    useState<InstructorDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
-  
+
   const displayName = user?.name || "Instruktur";
 
   // Get greeting based on time
@@ -117,17 +118,17 @@ export default function InstructorDashboardPage() {
   };
 
   const stats = [
-    { 
-      label: "Kelas Aktif", 
-      value: dashboardData?.stats?.active_classes || 0, 
-      icon: AcademicCapIcon, 
-      color: "pln" 
+    {
+      label: "Kelas Aktif",
+      value: dashboardData?.stats?.active_classes || 0,
+      icon: AcademicCapIcon,
+      color: "pln",
     },
-    { 
-      label: "Total Peserta", 
-      value: dashboardData?.stats?.total_participants || 0, 
-      icon: UserGroupIcon, 
-      color: "blue" 
+    {
+      label: "Total Peserta",
+      value: dashboardData?.stats?.total_participants || 0,
+      icon: UserGroupIcon,
+      color: "blue",
     },
     {
       label: "Pertanyaan Hari Ini",
@@ -136,11 +137,11 @@ export default function InstructorDashboardPage() {
       color: "amber",
       link: "/instructor/questions",
     },
-    { 
-      label: "Kelas Selesai", 
-      value: dashboardData?.stats?.completed_classes || 0, 
-      icon: CheckBadgeIcon, 
-      color: "green" 
+    {
+      label: "Kelas Selesai",
+      value: dashboardData?.stats?.completed_classes || 0,
+      icon: CheckBadgeIcon,
+      color: "green",
     },
   ];
 
@@ -326,15 +327,15 @@ export default function InstructorDashboardPage() {
                               cls.status === "active"
                                 ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400"
                                 : cls.status === "upcoming"
-                                ? "bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400"
-                                : "bg-slate-100 dark:bg-slate-500/20 text-slate-700 dark:text-slate-400"
+                                  ? "bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400"
+                                  : "bg-slate-100 dark:bg-slate-500/20 text-slate-700 dark:text-slate-400"
                             }`}
                           >
                             {cls.status === "active"
                               ? "Aktif"
                               : cls.status === "upcoming"
-                              ? "Akan Datang"
-                              : "Selesai"}
+                                ? "Akan Datang"
+                                : "Selesai"}
                           </span>
                         </div>
                         <h4 className="font-medium text-slate-800 dark:text-white text-sm truncate">

@@ -73,9 +73,7 @@ export function UserOverrideRoleModal({
     } catch (error: any) {
       setMessage({
         type: "error",
-        text:
-          error.response?.data?.message ||
-          "Gagal melakukan override role",
+        text: error.response?.data?.message || "Gagal melakukan override role",
       });
     } finally {
       setSubmitting(false);

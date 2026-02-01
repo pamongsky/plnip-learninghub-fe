@@ -51,7 +51,9 @@ export default function CreateUserPage() {
     password_confirmation: "",
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
@@ -62,7 +64,7 @@ export default function CreateUserPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validation
     if (!formData.name || !formData.email || !formData.role) {
       showToast({
@@ -72,7 +74,10 @@ export default function CreateUserPage() {
       return;
     }
 
-    if (formData.password && formData.password !== formData.password_confirmation) {
+    if (
+      formData.password &&
+      formData.password !== formData.password_confirmation
+    ) {
       showToast({
         type: "error",
         message: "Password tidak cocok",
@@ -123,10 +128,7 @@ export default function CreateUserPage() {
         className="space-y-8"
       >
         {/* Header */}
-        <motion.div
-          variants={itemVariants}
-          className="flex items-center gap-4"
-        >
+        <motion.div variants={itemVariants} className="flex items-center gap-4">
           <button
             onClick={() => router.back()}
             className="flex items-center justify-center w-10 h-10 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
@@ -156,7 +158,9 @@ export default function CreateUserPage() {
               User Manual (Development Phase)
             </h3>
             <p className="text-sm text-blue-700 dark:text-blue-400 mt-1">
-              User yang dibuat manual akan ditandai dengan source "Manual". Role dapat diubah kapan saja. Di production, user akan disinkronisasi dari ERP.
+              User yang dibuat manual akan ditandai dengan source "Manual". Role
+              dapat diubah kapan saja. Di production, user akan disinkronisasi
+              dari ERP.
             </p>
           </div>
         </motion.div>
@@ -166,9 +170,7 @@ export default function CreateUserPage() {
           <Card className="border-0 shadow-lg">
             <CardHeader>
               <CardTitle>Informasi User</CardTitle>
-              <CardDescription>
-                Isi data user yang akan dibuat
-              </CardDescription>
+              <CardDescription>Isi data user yang akan dibuat</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
@@ -244,7 +246,9 @@ export default function CreateUserPage() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Pusat">Pusat</SelectItem>
-                        <SelectItem value="Pembangkitan">Pembangkitan</SelectItem>
+                        <SelectItem value="Pembangkitan">
+                          Pembangkitan
+                        </SelectItem>
                         <SelectItem value="Transmisi">Transmisi</SelectItem>
                         <SelectItem value="Distribusi">Distribusi</SelectItem>
                         <SelectItem value="Corporate">Corporate</SelectItem>
@@ -287,7 +291,9 @@ export default function CreateUserPage() {
                       <SelectItem value="instructor">
                         Instructor (Pembuat Kelas)
                       </SelectItem>
-                      <SelectItem value="user">User (Peserta Belajar)</SelectItem>
+                      <SelectItem value="user">
+                        User (Peserta Belajar)
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-slate-500 mt-2">
@@ -327,7 +333,8 @@ export default function CreateUserPage() {
                     </div>
                   </div>
                   <p className="text-xs text-slate-500">
-                    Minimal 8 karakter. Jika kosong, sistem akan generate password otomatis.
+                    Minimal 8 karakter. Jika kosong, sistem akan generate
+                    password otomatis.
                   </p>
                 </div>
 
