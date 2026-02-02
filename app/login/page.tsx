@@ -47,7 +47,13 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isMounted, setIsMounted] = useState(false);
   const router = useRouter();
+
+  // Mount detection (client-side only)
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Background image rotation
   useEffect(() => {
@@ -103,17 +109,13 @@ export default function LoginPage() {
 
       {/* Floating Particles */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(6)].map((_, i) => (
+        {isMounted && [...Array(6)].map((_, i) => (
           <motion.div
             key={i}
             className="absolute w-2 h-2 bg-white/20 rounded-full"
             initial={{
-              x:
-                Math.random() *
-                (typeof window !== "undefined" ? window.innerWidth : 1000),
-              y:
-                Math.random() *
-                (typeof window !== "undefined" ? window.innerHeight : 800),
+              x: Math.random() * window.innerWidth,
+              y: Math.random() * window.innerHeight,
             }}
             animate={{
               y: [null, -100],

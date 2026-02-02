@@ -51,7 +51,9 @@ export default function SuperadminRolesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newRole, setNewRole] = useState({ name: "", display_name: "" });
-  const [selectedDefaultPerms, setSelectedDefaultPerms] = useState<string[]>([]);
+  const [selectedDefaultPerms, setSelectedDefaultPerms] = useState<string[]>(
+    [],
+  );
 
   useEffect(() => {
     fetchData();
@@ -102,9 +104,7 @@ export default function SuperadminRolesPage() {
       setShowCreateForm(false);
       await fetchData();
     } catch (error: any) {
-      alert(
-        error.response?.data?.message || "Gagal membuat role"
-      );
+      alert(error.response?.data?.message || "Gagal membuat role");
       console.error("Failed to create role:", error);
     } finally {
       setSaving(false);
@@ -165,17 +165,25 @@ export default function SuperadminRolesPage() {
       {showCreateForm && (
         <Card className="border-blue-300 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-800">
           <CardHeader>
-            <CardTitle>Create New Custom Role</CardTitle>
+            <CardTitle>Create New Admin Role</CardTitle>
             <CardDescription>
-              Define a new role with selected default permissions
+              Define a new admin-type role with selected default permissions
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Info Box */}
+            <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+              <p className="text-sm text-amber-800 dark:text-amber-200">
+                ℹ️ <strong>Catatan:</strong> Hanya dapat membuat role dengan
+                tipe "admin". Contoh: admin-unit, admin-divisi, content-admin
+              </p>
+            </div>
+
             {/* Role Info */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Role Name (lowercase, no spaces)
+                  Role Name (harus mengandung "admin")
                 </label>
                 <input
                   type="text"
@@ -186,7 +194,7 @@ export default function SuperadminRolesPage() {
                       name: e.target.value.toLowerCase().replace(/\s+/g, "-"),
                     })
                   }
-                  placeholder="e.g., content-manager"
+                  placeholder="e.g., admin-unit, admin-divisi"
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
                 />
               </div>
@@ -200,7 +208,7 @@ export default function SuperadminRolesPage() {
                   onChange={(e) =>
                     setNewRole({ ...newRole, display_name: e.target.value })
                   }
-                  placeholder="e.g., Content Manager"
+                  placeholder="e.g., Admin Unit"
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
                 />
               </div>
@@ -240,10 +248,15 @@ export default function SuperadminRolesPage() {
             <div className="flex gap-3 pt-4">
               <Button
                 onClick={handleCreateRole}
-                disabled={saving || !newRole.name || !newRole.display_name}
+                disabled={
+                  saving ||
+                  !newRole.name ||
+                  !newRole.display_name ||
+                  !newRole.name.toLowerCase().includes("admin")
+                }
                 className="bg-green-600 hover:bg-green-700"
               >
-                {saving ? "Creating..." : "Create Role"}
+                {saving ? "Creating..." : "Create Admin Role"}
               </Button>
               <Button
                 onClick={() => {
@@ -279,7 +292,9 @@ export default function SuperadminRolesPage() {
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <CardTitle className="text-lg">{role.display_name}</CardTitle>
+                    <CardTitle className="text-lg">
+                      {role.display_name}
+                    </CardTitle>
                     <CardDescription className="text-xs mt-1">
                       {role.user_count} user{role.user_count !== 1 ? "s" : ""}
                     </CardDescription>
@@ -303,57 +318,62 @@ export default function SuperadminRolesPage() {
       {selectedRole && (
         <Card className="border-blue-200 dark:border-blue-800 bg-white dark:bg-gray-950">
           <CardHeader>
-            <CardTitle className="text-2xl">{selectedRole.display_name}</CardTitle>
+            <CardTitle className="text-2xl">
+              {selectedRole.display_name}
+            </CardTitle>
             <CardDescription className="mt-2">
               {selectedRole.description}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
-              {[...new Set(permissions.map((p) => p.category))].map((category) => {
-                const categoryPerms = permissions.filter((p) => p.category === category);
-                const assignedPerms = categoryPerms.filter((p) =>
-                  selectedRole.permissions.includes(p.name),
-                );
+              {[...new Set(permissions.map((p) => p.category))].map(
+                (category) => {
+                  const categoryPerms = permissions.filter(
+                    (p) => p.category === category,
+                  );
+                  const assignedPerms = categoryPerms.filter((p) =>
+                    selectedRole.permissions.includes(p.name),
+                  );
 
-                return (
-                  <div key={category}>
-                    <h3 className="font-semibold text-gray-900 dark:text-white mb-3 text-sm uppercase">
-                      {category} ({assignedPerms.length}/{categoryPerms.length})
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                      {assignedPerms.length > 0 ? (
-                        assignedPerms.map((perm) => (
-                          <div
-                            key={perm.id}
-                            className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg"
-                          >
-                            <CheckIcon className="h-4 w-4 text-green-600" />
-                            <span className="text-sm text-gray-700 dark:text-gray-300">
-                              {perm.display_name}
-                            </span>
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-sm text-gray-500 dark:text-gray-400 italic col-span-full">
-                          No permissions in this category
-                        </p>
-                      )}
+                  return (
+                    <div key={category}>
+                      <h3 className="font-semibold text-gray-900 dark:text-white mb-3 text-sm uppercase">
+                        {category} ({assignedPerms.length}/
+                        {categoryPerms.length})
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                        {assignedPerms.length > 0 ? (
+                          assignedPerms.map((perm) => (
+                            <div
+                              key={perm.id}
+                              className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg"
+                            >
+                              <CheckIcon className="h-4 w-4 text-green-600" />
+                              <span className="text-sm text-gray-700 dark:text-gray-300">
+                                {perm.display_name}
+                              </span>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-sm text-gray-500 dark:text-gray-400 italic col-span-full">
+                            No permissions in this category
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                },
+              )}
             </div>
 
             <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-              <Button
-                onClick={() => setSelectedRole(null)}
-                variant="outline"
-              >
+              <Button onClick={() => setSelectedRole(null)} variant="outline">
                 Close
               </Button>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-3 italic">
-                💡 Untuk mengatur permissions role ini, gunakan fitur Management di Admin Panel nanti.
+                💡 Untuk mengatur permissions role ini, gunakan fitur Management
+                di Admin Panel nanti.
               </p>
             </div>
           </CardContent>

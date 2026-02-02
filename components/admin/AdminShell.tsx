@@ -15,6 +15,7 @@ import {
   TicketIcon,
   ChatBubbleLeftRightIcon,
   AcademicCapIcon,
+  SparklesIcon,
 } from "@heroicons/react/24/outline";
 import { BellIcon } from "@heroicons/react/24/solid";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,7 @@ const navItems = [
   { href: "/admin", label: "Dashboard", icon: ChartBarIcon },
   { href: "/admin/users", label: "Kelola User", icon: UsersIcon },
   { href: "/admin/announcements", label: "Pengumuman", icon: MegaphoneIcon },
+  { href: "/admin/ai-faqs", label: "AI FAQ Assistant", icon: SparklesIcon },
   { href: "/admin/support", label: "Support Ticket", icon: TicketIcon },
   { href: "/admin/escalations", label: "Tiket ke Super Admin", icon: ChatBubbleLeftRightIcon },
   { href: "/admin/courses", label: "Manajemen Kelas", icon: AcademicCapIcon },

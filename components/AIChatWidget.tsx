@@ -15,6 +15,8 @@ import {
   PencilSquareIcon,
   TrashIcon,
   PaperClipIcon,
+  HandThumbUpIcon,
+  HandThumbDownIcon,
 } from "@heroicons/react/24/outline";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +34,10 @@ interface Message {
   role: "user" | "ai";
   text: string;
   attachmentUrl?: string; // For images/files
+  source?: "faq" | "gemini_api"; // Response source
+  faqId?: number; // FAQ ID if from FAQ
+  analyticId?: number; // For feedback tracking
+  feedbackGiven?: boolean; // Whether user gave feedback
 }
 
 interface ChatSession {
@@ -49,7 +55,7 @@ export default function AIChatWidget() {
     {
       id: "welcome",
       role: "ai",
-      text: "Halo! Saya asisten AI Learning Hub. Ada yang bisa saya bantu tentang materi atau jadwal?",
+      text: "Halo! Ada yang bisa saya bantu? 😊",
     },
   ]);
   const [input, setInput] = useState("");
@@ -60,6 +66,7 @@ export default function AIChatWidget() {
   >("online"); // New Connection State
   const [currentTitle, setCurrentTitle] = useState("AI Assistant");
   const [attachment, setAttachment] = useState<File | null>(null);
+  const [imageModal, setImageModal] = useState<string | null>(null); // For image preview
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -95,7 +102,7 @@ export default function AIChatWidget() {
           {
             id: "welcome",
             role: "ai",
-            text: "Halo! Sesi baru dimulai.",
+            text: "Halo! Ada yang bisa saya bantu? 😊",
           },
         ]);
         setCurrentTitle("Percakapan Baru");
@@ -148,7 +155,7 @@ export default function AIChatWidget() {
       {
         id: "new",
         role: "ai",
-        text: "Silakan tanya apa saja, saya siap membantu.",
+        text: "Sesi baru dimulai. Silakan tanya apa saja! 😊",
       },
     ]);
     setShowHistory(false);
@@ -207,18 +214,60 @@ export default function AIChatWidget() {
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setAttachment(e.target.files[0]);
+      const file = e.target.files[0];
+      const maxSize = 10 * 1024 * 1024; // 10MB
+
+      // Check file size
+      if (file.size > maxSize) {
+        alert("File terlalu besar! Maksimal 10MB");
+        return;
+      }
+
+      // Check file type
+      const allowedTypes = [
+        "image/jpeg",
+        "image/jpg",
+        "image/png",
+        "image/gif",
+        "application/pdf",
+      ];
+      if (!allowedTypes.includes(file.type)) {
+        alert("Format file tidak didukung! Gunakan JPG, PNG, GIF, atau PDF");
+        return;
+      }
+
+      // Info for PDF files
+      if (file.type === "application/pdf") {
+        const proceed = confirm(
+          "📄 PDF akan tersimpan tapi AI tidak bisa membaca isinya.\n\n" +
+            "Untuk analisa dokumen, lebih baik kirim screenshot atau ketik pertanyaan spesifik.\n\n" +
+            "Lanjutkan upload?",
+        );
+        if (!proceed) return;
+      }
+
+      setAttachment(file);
     }
   };
 
   const handleSend = async () => {
     if ((!input.trim() && !attachment) || isLoading) return;
 
+    console.log("Sending message:", {
+      input,
+      hasAttachment: !!attachment,
+      sessionId,
+    });
+
     const tempId = Date.now().toString();
+
+    // Use default message if only attachment is sent
+    const messageText = input.trim() || (attachment ? "📎 Lampiran" : "");
+
     const userMsg: Message = {
       id: tempId,
       role: "user",
-      text: input,
+      text: messageText,
       attachmentUrl: attachment ? URL.createObjectURL(attachment) : undefined,
     };
 
@@ -227,25 +276,35 @@ export default function AIChatWidget() {
     const fileToSend = attachment;
     setAttachment(null);
     setIsLoading(true);
+    setConnectionStatus("connecting"); // Set to connecting state
 
     try {
       const formData = new FormData();
-      formData.append(
-        "message",
-        userMsg.text || (fileToSend ? "Sent an attachment" : "."),
-      );
+      formData.append("message", messageText || "Lihat gambar ini");
       if (sessionId) formData.append("session_id", sessionId.toString());
       if (fileToSend) formData.append("attachment", fileToSend);
+
+      console.log("Sending to API:", {
+        message: userMsg.text,
+        sessionId,
+        hasFile: !!fileToSend,
+      });
 
       const res = await api.post("/chat", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
+      console.log("API Response:", res.data);
+
       const aiMsg: Message = {
         id: (Date.now() + 1).toString(),
         role: "ai",
-        text: res.data.reply,
+        text: res.data.reply || res.data.message?.content || "No response",
         attachmentUrl: res.data.attachment_url,
+        source: res.data.source, // 'faq' or 'gemini_api'
+        faqId: res.data.faq_id,
+        analyticId: res.data.analytic_id, // For feedback tracking
+        feedbackGiven: false,
       };
 
       if (res.data.session_id) {
@@ -265,20 +324,79 @@ export default function AIChatWidget() {
 
       setMessages((prev) => [...prev, aiMsg]);
       setConnectionStatus("online"); // Success -> Green
-    } catch (error) {
+    } catch (error: any) {
+      console.error("AI Chat Error:", error);
+
+      // Get detailed error message
+      let errorMessage = "Maaf, saya sedang mengalami gangguan koneksi.";
+
+      if (error.response) {
+        // Server responded with error
+        const status = error.response.status;
+        const data = error.response.data;
+
+        if (status === 422) {
+          // Validation error
+          if (data.errors) {
+            // Laravel validation errors
+            const firstError = Object.values(data.errors)[0];
+            errorMessage = Array.isArray(firstError)
+              ? firstError[0]
+              : data.message || "Format file tidak didukung.";
+          } else {
+            errorMessage =
+              data.message ||
+              "Format file tidak didukung. Gunakan gambar (jpg, png, gif) atau PDF.";
+          }
+        } else if (status === 502 || status === 500) {
+          errorMessage =
+            data.message || "Server sedang bermasalah. Coba lagi sebentar.";
+        } else if (status === 429) {
+          errorMessage = "Terlalu banyak permintaan. Tunggu beberapa detik ya.";
+        } else if (status === 401) {
+          errorMessage = "Sesi Anda habis. Silakan login kembali.";
+        } else if (data && data.message) {
+          errorMessage = data.message;
+        }
+      } else if (error.request) {
+        // Request made but no response
+        errorMessage =
+          "Tidak bisa terhubung ke server. Periksa koneksi internet Anda.";
+      }
+
       setConnectionStatus("error"); // Error -> Red
       setMessages((prev) => [
         ...prev,
         {
           id: Date.now().toString(),
           role: "ai",
-          text: "Maaf, saya sedang mengalami gangguan koneksi.",
+          text: errorMessage,
         },
       ]);
       // Auto-revert to online after 5 seconds to not scare user permanently
       setTimeout(() => setConnectionStatus("online"), 5000);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleFaqFeedback = async (messageId: string, analyticId: number, wasHelpful: boolean) => {
+    try {
+      await api.post("/chat/faq-feedback", {
+        analytic_id: analyticId,
+        was_helpful: wasHelpful,
+      });
+
+      // Update message to mark feedback as given
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === messageId ? { ...msg, feedbackGiven: true } : msg
+        )
+      );
+
+      console.log(`FAQ Feedback sent: ${wasHelpful ? 'Helpful' : 'Not Helpful'}`);
+    } catch (error) {
+      console.error("Failed to send FAQ feedback:", error);
     }
   };
 
@@ -540,7 +658,11 @@ export default function AIChatWidget() {
                                   <img
                                     src={msg.attachmentUrl}
                                     alt="attachment"
-                                    className="rounded-lg max-w-full h-auto max-h-[200px] border border-white/20"
+                                    onClick={() =>
+                                      setImageModal(msg.attachmentUrl!)
+                                    }
+                                    className="rounded-lg max-w-full h-auto max-h-[200px] border border-white/20 cursor-pointer hover:opacity-90 transition-opacity"
+                                    title="Klik untuk memperbesar"
                                   />
                                 ) : (
                                   <a
@@ -558,7 +680,28 @@ export default function AIChatWidget() {
 
                             {msg.role === "ai" && (
                               <div className="mt-2 flex gap-2">
-                                {/* Future: Copy / Like Buttons */}
+                                {/* FAQ Feedback Buttons (only if from FAQ) */}
+                                {msg.analyticId && !msg.feedbackGiven && (
+                                  <>
+                                    <button
+                                      onClick={() => handleFaqFeedback(msg.id, msg.analyticId!, true)}
+                                      className="flex items-center gap-1 px-2 py-1 text-xs text-gray-500 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded transition-colors"
+                                      title="Helpful"
+                                    >
+                                      <HandThumbUpIcon className="h-3 w-3" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleFaqFeedback(msg.id, msg.analyticId!, false)}
+                                      className="flex items-center gap-1 px-2 py-1 text-xs text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                                      title="Not Helpful"
+                                    >
+                                      <HandThumbDownIcon className="h-3 w-3" />
+                                    </button>
+                                  </>
+                                )}
+                                {msg.feedbackGiven && (
+                                  <span className="text-xs text-gray-400">Terima kasih atas feedback Anda!</span>
+                                )}
                               </div>
                             )}
                           </div>
@@ -611,7 +754,7 @@ export default function AIChatWidget() {
                           className="hidden"
                           ref={fileInputRef}
                           onChange={handleFileSelect}
-                          accept="image/*,application/pdf"
+                          accept="image/jpeg,image/jpg,image/png,image/gif,application/pdf"
                         />
 
                         <Button
@@ -730,6 +873,39 @@ export default function AIChatWidget() {
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* Image Preview Modal */}
+      <AnimatePresence>
+        {imageModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+            onClick={() => setImageModal(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative max-w-5xl max-h-[90vh] w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={() => setImageModal(null)}
+                className="absolute -top-12 right-0 text-white hover:text-slate-300 transition-colors"
+              >
+                <XMarkIcon className="w-8 h-8" />
+              </button>
+              <img
+                src={imageModal}
+                alt="Preview"
+                className="w-full h-full object-contain rounded-lg shadow-2xl"
+              />
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
     </>

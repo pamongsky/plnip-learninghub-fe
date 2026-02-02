@@ -19,6 +19,7 @@ import {
   UserGroupIcon,
   PaintBrushIcon,
   ChatBubbleLeftRightIcon,
+  SparklesIcon,
 } from "@heroicons/react/24/outline";
 import { BellIcon } from "@heroicons/react/24/solid";
 import { Button } from "@/components/ui/button";
@@ -45,6 +46,11 @@ const navItems = [
     href: "/superadmin/announcements",
     label: "Pengumuman Global",
     icon: MegaphoneIcon,
+  },
+  {
+    href: "/superadmin/ai-faqs",
+    label: "AI FAQ Assistant",
+    icon: SparklesIcon,
   },
   {
     href: "/superadmin/escalations",
