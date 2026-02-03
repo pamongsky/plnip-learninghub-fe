@@ -8,6 +8,8 @@ import {
   PaperAirplaneIcon,
   SparklesIcon,
   LightBulbIcon,
+  ArrowsPointingOutIcon,
+  ArrowsPointingInIcon,
 } from "@heroicons/react/24/outline";
 import {
   aiAssistantApi,
@@ -17,11 +19,19 @@ import {
 
 export default function AIChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isMaximized, setIsMaximized] = useState(false);
   const [messages, setMessages] = useState<AIChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [context, setContext] = useState<AIContext | null>(null);
-  const [conversationId] = useState(() => `conv-${Date.now()}`);
+  const [conversationId, setConversationId] = useState(() => {
+    // Try to restore from localStorage
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("ai_conversation_id");
+      return saved || `conv-${Date.now()}${Math.random()}`;
+    }
+    return `conv-${Date.now()}${Math.random()}`;
+  });
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Load AI context when widget opens
@@ -30,6 +40,13 @@ export default function AIChatWidget() {
       loadContext();
     }
   }, [isOpen]);
+
+  // Save conversation ID to localStorage
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("ai_conversation_id", conversationId);
+    }
+  }, [conversationId]);
 
   // Auto scroll to bottom
   useEffect(() => {
@@ -49,7 +66,7 @@ export default function AIChatWidget() {
       setMessages([
         {
           role: "assistant",
-          content: `Halo ${ctx.user_info.name}! 👋\n\nSaya AI Assistant untuk PLN IP Learning Hub. Saya sudah melihat menu dan fitur yang tersedia untuk Anda.\n\n**Fitur yang bisa Anda gunakan:**\n${features}\n\n💬 Saya bisa bantu jelaskan cara menggunakan fitur-fitur di atas dengan detail, step-by-step!\n\nAda yang ingin ditanyakan?`,
+          content: `Halo ${ctx.user_info.name}! 👋\n\nSaya AI Assistant PLN IP Learning Hub. Saya bisa bantu kamu dengan:\n\n**🎓 Materi Pembelajaran**\n• Perhitungan kelistrikan\n• Konsep teknik & teori\n• Rumus dan contoh praktis\n\n**🧭 Navigasi Platform**\n${features}\n\n💡 Tanya apa saja tentang pembelajaran atau fitur platform!`,
           timestamp: new Date().toISOString(),
         },
       ]);
@@ -156,7 +173,11 @@ export default function AIChatWidget() {
             initial={{ opacity: 0, y: 100, scale: 0.8 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 100, scale: 0.8 }}
-            className="fixed bottom-6 right-6 z-50 w-96 h-[600px] rounded-2xl bg-white dark:bg-slate-800 shadow-2xl border border-slate-200 dark:border-slate-700 flex flex-col overflow-hidden"
+            className={`fixed z-50 rounded-2xl bg-white dark:bg-slate-800 shadow-2xl border border-slate-200 dark:border-slate-700 flex flex-col overflow-hidden transition-all duration-300 ${
+              isMaximized
+                ? "inset-4 w-auto h-auto"
+                : "bottom-6 right-6 w-96 h-[600px]"
+            }`}
           >
             {/* Header */}
             <div className="bg-gradient-to-r from-pln-primary to-blue-600 p-4 text-white flex items-center justify-between">
@@ -172,12 +193,25 @@ export default function AIChatWidget() {
                   <p className="text-xs text-white/80">Selalu siap membantu</p>
                 </div>
               </div>
-              <button
-                onClick={() => setIsOpen(false)}
-                className="rounded-full p-2 hover:bg-white/20 transition-colors"
-              >
-                <XMarkIcon className="h-5 w-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setIsMaximized(!isMaximized)}
+                  className="rounded-full p-2 hover:bg-white/20 transition-colors"
+                  title={isMaximized ? "Perkecil" : "Perbesar"}
+                >
+                  {isMaximized ? (
+                    <ArrowsPointingInIcon className="h-5 w-5" />
+                  ) : (
+                    <ArrowsPointingOutIcon className="h-5 w-5" />
+                  )}
+                </button>
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="rounded-full p-2 hover:bg-white/20 transition-colors"
+                >
+                  <XMarkIcon className="h-5 w-5" />
+                </button>
+              </div>
             </div>
 
             {/* Messages */}
@@ -278,7 +312,7 @@ export default function AIChatWidget() {
                 </button>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
-                💡 AI bisa membantu navigasi platform, bukan code/database
+                💡 AI bisa bantu pembelajaran & navigasi platform
               </p>
             </div>
           </motion.div>
