@@ -28,6 +28,7 @@ import {
 import { supportApi, type SupportTicket, type SupportReply } from "@/lib/api";
 import { escalationApi } from "@/lib/api/escalation";
 import { useSupportTicketChannel } from "@/hooks/useRealTimeMessages";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Extended type with replies
 interface TicketWithReplies extends SupportTicket {
@@ -129,6 +130,7 @@ const statusConfig: Record<
 export default function AdminSupportDetailPage() {
   const params = useParams();
   const ticketId = Number(params.id);
+  const { user } = useAuth();
 
   const [ticket, setTicket] = useState<TicketWithReplies | null>(null);
   const [replyMessage, setReplyMessage] = useState("");
@@ -136,6 +138,16 @@ export default function AdminSupportDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isChangingStatus, setIsChangingStatus] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Update current time every minute for relative timestamps
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // Update every minute
+
+    return () => clearInterval(interval);
+  }, []);
 
   // No replies state duplication needed as it is in ticket object, but keeping attachments state
   const [attachments, setAttachments] = useState<File[]>([]);
@@ -184,28 +196,49 @@ export default function AdminSupportDetailPage() {
   };
 
   // Real-time: Listen for new replies
-  const handleNewReply = useCallback((data: any) => {
-    const newReply: SupportReply = {
-      id: data.id,
-      ticket_id: data.ticket_id,
-      user_id: data.user_id,
-      message: data.message,
-      is_admin_reply: data.is_admin_reply,
-      created_at: data.created_at,
-      user: data.user,
-      attachments: data.attachments || [],
-    };
+  const handleNewReply = useCallback(
+    (data: any) => {
+      console.log("handleNewReply called with data:", data);
 
-    setTicket((prev) => {
-      if (!prev) return prev;
-      // Avoid duplicates
-      if (prev.replies.some((r) => r.id === newReply.id)) return prev;
-      return {
-        ...prev,
-        replies: [...prev.replies, newReply],
+      // Skip if this is our own reply (already added via optimistic update)
+      if (user && data.user_id === user.id) {
+        console.log("Skipping own reply from broadcast:", data.id);
+        return;
+      }
+
+      const newReply: SupportReply = {
+        id: data.id,
+        ticket_id: data.ticket_id,
+        user_id: data.user_id,
+        message: data.message,
+        is_admin_reply: data.is_admin_reply,
+        created_at: data.created_at,
+        user: data.user,
+        attachments: data.attachments || [],
       };
-    });
-  }, []);
+
+      setTicket((prev) => {
+        if (!prev) {
+          console.log("No previous ticket state");
+          return prev;
+        }
+
+        // Avoid duplicates - check by ID
+        const exists = prev.replies.some((r) => r.id === newReply.id);
+        if (exists) {
+          console.log("Reply already exists, skipping:", newReply.id);
+          return prev;
+        }
+
+        console.log("Adding new reply from broadcast:", newReply.id);
+        return {
+          ...prev,
+          replies: [...prev.replies, newReply],
+        };
+      });
+    },
+    [user],
+  );
 
   // Subscribe to real-time support ticket channel
   useSupportTicketChannel(ticketId, handleNewReply);
@@ -249,6 +282,14 @@ export default function AdminSupportDetailPage() {
     return formatDate(dateString);
   };
 
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString("id-ID", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
   const getInitials = (name: string) => {
     return name
       .split(" ")
@@ -284,24 +325,27 @@ export default function AdminSupportDetailPage() {
   const renderAttachments = (urls: string[] | null | undefined) => {
     if (!urls || urls.length === 0) return null;
 
+    const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+
     return (
       <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
         {urls.map((url, index) => {
-          const isImage = url.match(/(jpeg|jpg|png|gif)$/i);
-          const fileName = url.split("/").pop();
+          const fullUrl = url.startsWith("http") ? url : `${baseURL}${url}`;
+          const fileName = url.split("/").pop() || "file";
+          const isImage = /\.(jpeg|jpg|png|gif|webp)$/i.test(fileName);
 
           if (isImage) {
             return (
               <a
-                key={index}
-                href={url}
+                key={`attach-img-${index}`}
+                href={fullUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="relative aspect-video w-full overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700 group"
               >
                 <img
-                  src={url}
-                  alt="Attachment"
+                  src={fullUrl}
+                  alt={fileName}
                   className="h-full w-full object-cover transition-transform group-hover:scale-105"
                 />
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
@@ -313,8 +357,8 @@ export default function AdminSupportDetailPage() {
 
           return (
             <a
-              key={index}
-              href={url}
+              key={`attach-file-${index}`}
+              href={fullUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2 text-xs text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
@@ -334,8 +378,28 @@ export default function AdminSupportDetailPage() {
     setIsSubmitting(true);
 
     try {
-      await supportApi.addReply(ticketId, replyMessage.trim(), attachments);
-      await loadTicket();
+      const response = await supportApi.addReply(
+        ticketId,
+        replyMessage.trim(),
+        attachments,
+      );
+
+      // Optimistically add reply to UI (real-time broadcast will update for other users)
+      setTicket((prev) => {
+        if (!prev) return prev;
+
+        // Check if reply already exists (shouldn't, but be safe)
+        const exists = prev.replies.some((r) => r.id === response.data.id);
+        if (exists) {
+          return prev;
+        }
+
+        return {
+          ...prev,
+          replies: [...prev.replies, response.data],
+        };
+      });
+
       setReplyMessage("");
       setAttachments([]);
       setPreviewUrls([]);
@@ -344,6 +408,13 @@ export default function AdminSupportDetailPage() {
       setError(err.response?.data?.message || "Gagal mengirim balasan");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSendReply();
     }
   };
 
@@ -569,7 +640,7 @@ export default function AdminSupportDetailPage() {
             {ticket.replies &&
               ticket.replies.map((reply, index) => (
                 <motion.div
-                  key={reply.id}
+                  key={`reply-${reply.id}-${reply.created_at}`}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 + index * 0.05 }}
@@ -607,15 +678,17 @@ export default function AdminSupportDetailPage() {
                         )}
                       </div>
                     </div>
-                    <span className="text-sm text-slate-500 dark:text-slate-400">
-                      {formatRelativeDate(reply.created_at)}
-                    </span>
                   </div>
                   <div className="p-4">
                     <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
                       {reply.message}
                     </p>
                     {renderAttachments(reply.attachments)}
+                    <div className="mt-2 pt-2 border-t border-slate-200/50 dark:border-slate-600/50">
+                      <span className="text-xs text-slate-400 dark:text-slate-500">
+                        {formatTime(reply.created_at)}
+                      </span>
+                    </div>
                   </div>
                 </motion.div>
               ))}
@@ -1001,7 +1074,8 @@ export default function AdminSupportDetailPage() {
                 <div className="flex items-start gap-2">
                   <ExclamationTriangleIcon className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
                   <p className="text-sm text-amber-700 dark:text-amber-300">
-                    Eskalasi akan mengirimkan tiket ini ke Super Admin untuk penanganan lebih lanjut.
+                    Eskalasi akan mengirimkan tiket ini ke Super Admin untuk
+                    penanganan lebih lanjut.
                   </p>
                 </div>
               </div>

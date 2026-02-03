@@ -36,7 +36,11 @@ const navItems = [
   { href: "/admin/announcements", label: "Pengumuman", icon: MegaphoneIcon },
   { href: "/admin/ai-faqs", label: "AI FAQ Assistant", icon: SparklesIcon },
   { href: "/admin/support", label: "Support Ticket", icon: TicketIcon },
-  { href: "/admin/escalations", label: "Tiket ke Super Admin", icon: ChatBubbleLeftRightIcon },
+  {
+    href: "/admin/escalations",
+    label: "Tiket ke Super Admin",
+    icon: ChatBubbleLeftRightIcon,
+  },
   { href: "/admin/courses", label: "Manajemen Kelas", icon: AcademicCapIcon },
   { href: "/admin/profile", label: "Profile", icon: UserCircleIcon },
 ];

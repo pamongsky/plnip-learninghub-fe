@@ -4,9 +4,23 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import api from "@/lib/axios";
 import {
-  Plus, Edit2, Trash2, CheckCircle, XCircle, TrendingUp, Users, 
-  MessageSquare, ThumbsUp, ThumbsDown, Search, Filter, BarChart3,
-  Sparkles, AlertCircle, RefreshCw, Eye
+  Plus,
+  Edit2,
+  Trash2,
+  CheckCircle,
+  XCircle,
+  TrendingUp,
+  Users,
+  MessageSquare,
+  ThumbsUp,
+  ThumbsDown,
+  Search,
+  Filter,
+  BarChart3,
+  Sparkles,
+  AlertCircle,
+  RefreshCw,
+  Eye,
 } from "lucide-react";
 
 interface FAQ {
@@ -51,11 +65,14 @@ export default function AIFAQsPage() {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"faqs" | "suggestions" | "analytics">("faqs");
+  const [activeTab, setActiveTab] = useState<
+    "faqs" | "suggestions" | "analytics"
+  >("faqs");
   const [showFaqModal, setShowFaqModal] = useState(false);
   const [showSuggestionModal, setShowSuggestionModal] = useState(false);
   const [editingFaq, setEditingFaq] = useState<FAQ | null>(null);
-  const [reviewingSuggestion, setReviewingSuggestion] = useState<Suggestion | null>(null);
+  const [reviewingSuggestion, setReviewingSuggestion] =
+    useState<Suggestion | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterActive, setFilterActive] = useState("all");
@@ -83,7 +100,8 @@ export default function AIFAQsPage() {
         api.get("/admin/ai-faqs", {
           params: {
             category: filterCategory !== "all" ? filterCategory : undefined,
-            is_active: filterActive !== "all" ? (filterActive === "active") : undefined,
+            is_active:
+              filterActive !== "all" ? filterActive === "active" : undefined,
             search: searchQuery || undefined,
           },
         }),
@@ -211,9 +229,12 @@ export default function AIFAQsPage() {
   const getCategoryColor = (category: string) => {
     const colors: Record<string, string> = {
       login: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-      course: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
-      technical: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300",
-      general: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
+      course:
+        "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
+      technical:
+        "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300",
+      general:
+        "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
     };
     return colors[category] || colors.general;
   };
@@ -227,7 +248,9 @@ export default function AIFAQsPage() {
           className="text-center"
         >
           <RefreshCw className="w-12 h-12 animate-spin text-indigo-600 mx-auto mb-4" />
-          <p className="text-gray-600 dark:text-gray-300">Loading FAQ System...</p>
+          <p className="text-gray-600 dark:text-gray-300">
+            Loading FAQ System...
+          </p>
         </motion.div>
       </div>
     );
@@ -308,9 +331,22 @@ export default function AIFAQsPage() {
       {/* Tabs */}
       <div className="flex gap-2 mb-6 border-b border-gray-200 dark:border-gray-700">
         {[
-          { key: "faqs", label: "FAQs", icon: <MessageSquare className="w-4 h-4" /> },
-          { key: "suggestions", label: "Suggestions", icon: <Sparkles className="w-4 h-4" />, badge: suggestions.length },
-          { key: "analytics", label: "Analytics", icon: <BarChart3 className="w-4 h-4" /> },
+          {
+            key: "faqs",
+            label: "FAQs",
+            icon: <MessageSquare className="w-4 h-4" />,
+          },
+          {
+            key: "suggestions",
+            label: "Suggestions",
+            icon: <Sparkles className="w-4 h-4" />,
+            badge: suggestions.length,
+          },
+          {
+            key: "analytics",
+            label: "Analytics",
+            icon: <BarChart3 className="w-4 h-4" />,
+          },
         ].map((tab) => (
           <button
             key={tab.key}
@@ -486,13 +522,19 @@ function StatsCard({ icon, label, value, color, badge }: any) {
       whileHover={{ scale: 1.02, y: -4 }}
       className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg relative overflow-hidden"
     >
-      <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br ${colors[color]} opacity-10 rounded-full -mr-8 -mt-8`} />
+      <div
+        className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br ${colors[color]} opacity-10 rounded-full -mr-8 -mt-8`}
+      />
       <div className="relative z-10">
-        <div className={`inline-flex p-3 rounded-lg bg-gradient-to-br ${colors[color]} text-white mb-3`}>
+        <div
+          className={`inline-flex p-3 rounded-lg bg-gradient-to-br ${colors[color]} text-white mb-3`}
+        >
           {icon}
         </div>
         <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">{label}</p>
-        <p className="text-3xl font-bold text-gray-900 dark:text-white">{value}</p>
+        <p className="text-3xl font-bold text-gray-900 dark:text-white">
+          {value}
+        </p>
       </div>
       {badge && (
         <div className="absolute top-2 right-2">
@@ -504,7 +546,14 @@ function StatsCard({ icon, label, value, color, badge }: any) {
 }
 
 // FAQ Card Component
-function FAQCard({ faq, index, onEdit, onDelete, onToggle, getCategoryColor }: any) {
+function FAQCard({
+  faq,
+  index,
+  onEdit,
+  onDelete,
+  onToggle,
+  getCategoryColor,
+}: any) {
   const successRate = faq.success_rate || 0;
 
   return (
@@ -518,15 +567,15 @@ function FAQCard({ faq, index, onEdit, onDelete, onToggle, getCategoryColor }: a
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2">
-            <span className={`px-3 py-1 rounded-full text-xs font-medium ${getCategoryColor(faq.category)}`}>
+            <span
+              className={`px-3 py-1 rounded-full text-xs font-medium ${getCategoryColor(faq.category)}`}
+            >
               {faq.category}
             </span>
             {faq.is_verified && (
               <CheckCircle className="w-4 h-4 text-green-500" />
             )}
-            {!faq.is_active && (
-              <XCircle className="w-4 h-4 text-red-500" />
-            )}
+            {!faq.is_active && <XCircle className="w-4 h-4 text-red-500" />}
           </div>
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
             {faq.question}
@@ -587,11 +636,15 @@ function FAQCard({ faq, index, onEdit, onDelete, onToggle, getCategoryColor }: a
         </div>
         {successRate > 0 && (
           <div className="ml-auto">
-            <span className={`px-2 py-1 rounded text-xs font-medium ${
-              successRate >= 70 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' :
-              successRate >= 40 ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300' :
-              'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
-            }`}>
+            <span
+              className={`px-2 py-1 rounded text-xs font-medium ${
+                successRate >= 70
+                  ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
+                  : successRate >= 40
+                    ? "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300"
+                    : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+              }`}
+            >
               {successRate}% success
             </span>
           </div>
@@ -668,13 +721,20 @@ function AnalyticsView({ stats }: { stats: Stats }) {
           </h3>
           <div className="space-y-3">
             {stats.by_category.map((cat) => (
-              <div key={cat.category} className="flex items-center justify-between">
-                <span className="capitalize text-gray-700 dark:text-gray-300">{cat.category}</span>
+              <div
+                key={cat.category}
+                className="flex items-center justify-between"
+              >
+                <span className="capitalize text-gray-700 dark:text-gray-300">
+                  {cat.category}
+                </span>
                 <div className="flex items-center gap-2">
                   <div className="w-32 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"
-                      style={{ width: `${(cat.count / stats.total_faqs) * 100}%` }}
+                      style={{
+                        width: `${(cat.count / stats.total_faqs) * 100}%`,
+                      }}
                     />
                   </div>
                   <span className="text-sm font-medium text-gray-900 dark:text-white w-8 text-right">
@@ -699,7 +759,10 @@ function AnalyticsView({ stats }: { stats: Stats }) {
           </h3>
           <div className="space-y-3">
             {stats.top_used.map((faq, idx) => (
-              <div key={faq.id} className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+              <div
+                key={faq.id}
+                className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
+              >
                 <span className="flex-shrink-0 w-6 h-6 flex items-center justify-center bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-full text-xs font-bold">
                   {idx + 1}
                 </span>
@@ -723,7 +786,14 @@ function AnalyticsView({ stats }: { stats: Stats }) {
 }
 
 // FAQ Modal Component
-function FAQModal({ isOpen, onClose, onSave, formData, setFormData, isEditing }: any) {
+function FAQModal({
+  isOpen,
+  onClose,
+  onSave,
+  formData,
+  setFormData,
+  isEditing,
+}: any) {
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -750,7 +820,9 @@ function FAQModal({ isOpen, onClose, onSave, formData, setFormData, isEditing }:
             </label>
             <select
               value={formData.category}
-              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, category: e.target.value })
+              }
               className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
             >
               <option value="general">General</option>
@@ -767,7 +839,9 @@ function FAQModal({ isOpen, onClose, onSave, formData, setFormData, isEditing }:
             <input
               type="text"
               value={formData.question}
-              onChange={(e) => setFormData({ ...formData, question: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, question: e.target.value })
+              }
               className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
               placeholder="Enter the FAQ question..."
             />
@@ -779,7 +853,9 @@ function FAQModal({ isOpen, onClose, onSave, formData, setFormData, isEditing }:
             </label>
             <textarea
               value={formData.answer}
-              onChange={(e) => setFormData({ ...formData, answer: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, answer: e.target.value })
+              }
               rows={4}
               className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
               placeholder="Enter the complete answer..."
@@ -792,7 +868,9 @@ function FAQModal({ isOpen, onClose, onSave, formData, setFormData, isEditing }:
             </label>
             <textarea
               value={formData.answer_short}
-              onChange={(e) => setFormData({ ...formData, answer_short: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, answer_short: e.target.value })
+              }
               rows={2}
               className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
               placeholder="Short version for quick responses..."
@@ -808,7 +886,12 @@ function FAQModal({ isOpen, onClose, onSave, formData, setFormData, isEditing }:
               min="0"
               max="100"
               value={formData.confidence_score}
-              onChange={(e) => setFormData({ ...formData, confidence_score: parseInt(e.target.value) })}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  confidence_score: parseInt(e.target.value),
+                })
+              }
               className="w-full"
             />
           </div>
@@ -818,19 +901,27 @@ function FAQModal({ isOpen, onClose, onSave, formData, setFormData, isEditing }:
               <input
                 type="checkbox"
                 checked={formData.is_active}
-                onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                onChange={(e) =>
+                  setFormData({ ...formData, is_active: e.target.checked })
+                }
                 className="w-4 h-4 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500"
               />
-              <span className="text-sm text-gray-700 dark:text-gray-300">Active</span>
+              <span className="text-sm text-gray-700 dark:text-gray-300">
+                Active
+              </span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
                 checked={formData.is_verified}
-                onChange={(e) => setFormData({ ...formData, is_verified: e.target.checked })}
+                onChange={(e) =>
+                  setFormData({ ...formData, is_verified: e.target.checked })
+                }
                 className="w-4 h-4 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500"
               />
-              <span className="text-sm text-gray-700 dark:text-gray-300">Verified</span>
+              <span className="text-sm text-gray-700 dark:text-gray-300">
+                Verified
+              </span>
             </label>
           </div>
         </div>
@@ -859,7 +950,14 @@ function FAQModal({ isOpen, onClose, onSave, formData, setFormData, isEditing }:
 }
 
 // Suggestion Modal Component
-function SuggestionModal({ isOpen, onClose, onApprove, suggestion, formData, setFormData }: any) {
+function SuggestionModal({
+  isOpen,
+  onClose,
+  onApprove,
+  suggestion,
+  formData,
+  setFormData,
+}: any) {
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -884,8 +982,9 @@ function SuggestionModal({ isOpen, onClose, onApprove, suggestion, formData, set
 
         <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4 mb-6">
           <p className="text-sm text-orange-700 dark:text-orange-300">
-            This FAQ was auto-generated by AI and has been requested <strong>{suggestion.occurrence_count} times</strong>.
-            Review and edit before approving.
+            This FAQ was auto-generated by AI and has been requested{" "}
+            <strong>{suggestion.occurrence_count} times</strong>. Review and
+            edit before approving.
           </p>
         </div>
 
@@ -896,7 +995,9 @@ function SuggestionModal({ isOpen, onClose, onApprove, suggestion, formData, set
             </label>
             <select
               value={formData.category}
-              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, category: e.target.value })
+              }
               className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
             >
               <option value="general">General</option>
@@ -913,7 +1014,9 @@ function SuggestionModal({ isOpen, onClose, onApprove, suggestion, formData, set
             <input
               type="text"
               value={formData.question}
-              onChange={(e) => setFormData({ ...formData, question: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, question: e.target.value })
+              }
               className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
             />
           </div>
@@ -924,7 +1027,9 @@ function SuggestionModal({ isOpen, onClose, onApprove, suggestion, formData, set
             </label>
             <textarea
               value={formData.answer}
-              onChange={(e) => setFormData({ ...formData, answer: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, answer: e.target.value })
+              }
               rows={4}
               className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
             />

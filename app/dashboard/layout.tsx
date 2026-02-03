@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { getEcho } from "@/lib/echo";
+import AIChatWidget from "@/components/AIChatWidget";
 import {
   HomeIcon,
   BookOpenIcon,

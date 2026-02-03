@@ -23,28 +23,28 @@ interface Category {
 
 const categories: Category[] = [
   {
-    value: "access",
-    label: "Akses Kelas",
-    description: "Tidak bisa masuk kelas, error akses, enrollment",
+    value: "technical",
+    label: "Masalah Teknis",
+    description: "Tidak bisa masuk kelas, error akses, error sistem",
     icon: "🔐",
   },
   {
-    value: "material",
-    label: "Materi Pembelajaran",
-    description: "Video tidak jalan, dokumen corrupt, konten error",
+    value: "learning",
+    label: "Masalah Pembelajaran",
+    description: "Video tidak jalan, materi tidak muncul, konten error",
     icon: "📚",
   },
   {
     value: "certificate",
-    label: "Sertifikat",
+    label: "Masalah Sertifikat",
     description: "Sertifikat belum terbit, nama salah, download gagal",
     icon: "🏆",
   },
   {
-    value: "account",
-    label: "Akun & Login",
-    description: "Lupa password, profil, masalah login",
-    icon: "👤",
+    value: "payment",
+    label: "Masalah Pembayaran",
+    description: "Pembayaran, invoice, refund",
+    icon: "💳",
   },
   {
     value: "other",
@@ -93,28 +93,28 @@ export default function CreateTicketPage() {
     setIsSubmitting(true);
 
     try {
-      // Map category values to backend enum
-      const categoryMap: Record<string, string> = {
-        access: "technical",
-        material: "learning",
-        certificate: "certificate",
-        account: "technical",
-        other: "other",
-      };
-
-      await supportApi.createTicket({
+      const ticketData = {
         subject: subject.trim(),
         description: description.trim(),
-        category: categoryMap[selectedCategory] || "other",
-        priority: "medium", // Default for users
-      });
+        category: selectedCategory,
+        priority: "medium",
+        attachments: attachments,
+      };
+
+      console.log('=== CREATING TICKET ===');
+      console.log('Selected Category:', selectedCategory);
+      console.log('Ticket Data:', { ...ticketData, attachments: `${attachments.length} files` });
+
+      await supportApi.createTicket(ticketData);
 
       // Redirect to support list with success
       router.push("/dashboard/support?created=true");
     } catch (err: any) {
       console.error("Error creating ticket:", err);
       setErrors({
-        submit: err.response?.data?.message || "Gagal membuat tiket. Silakan coba lagi.",
+        submit:
+          err.response?.data?.message ||
+          "Gagal membuat tiket. Silakan coba lagi.",
       });
       setIsSubmitting(false);
     }
@@ -207,11 +207,13 @@ export default function CreateTicketPage() {
                   <div className="flex items-start gap-3">
                     <span className="text-2xl">{category.icon}</span>
                     <div>
-                      <h3 className={`font-medium ${
-                        selectedCategory === category.value
-                          ? "text-pln-primary"
-                          : "text-slate-900 dark:text-white"
-                      }`}>
+                      <h3
+                        className={`font-medium ${
+                          selectedCategory === category.value
+                            ? "text-pln-primary"
+                            : "text-slate-900 dark:text-white"
+                        }`}
+                      >
                         {category.label}
                       </h3>
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
@@ -297,7 +299,9 @@ export default function CreateTicketPage() {
                 } bg-white dark:bg-slate-900 px-4 py-3 text-sm text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2`}
               />
               {errors.description && (
-                <p className="text-sm text-red-500 mt-1">{errors.description}</p>
+                <p className="text-sm text-red-500 mt-1">
+                  {errors.description}
+                </p>
               )}
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                 {description.length}/500 karakter
@@ -339,11 +343,15 @@ export default function CreateTicketPage() {
                 className="w-full p-6 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl hover:border-pln-primary dark:hover:border-pln-light hover:bg-pln-primary/5 dark:hover:bg-pln-primary/10 transition-all flex flex-col items-center justify-center gap-2 text-slate-600 dark:text-slate-400 hover:text-pln-primary dark:hover:text-pln-light"
               >
                 <PhotoIcon className="w-8 h-8" />
-                <span className="font-medium">Klik untuk upload atau drag & drop</span>
+                <span className="font-medium">
+                  Klik untuk upload atau drag & drop
+                </span>
                 <span className="text-xs">PNG, JPG, JPEG (Max 5 file)</span>
               </button>
               {errors.attachments && (
-                <p className="text-sm text-red-500 mt-2">{errors.attachments}</p>
+                <p className="text-sm text-red-500 mt-2">
+                  {errors.attachments}
+                </p>
               )}
             </div>
 

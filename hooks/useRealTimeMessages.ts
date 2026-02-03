@@ -62,7 +62,7 @@ interface SupportReplyData {
 // Hook for Direct Messages
 export function useDirectMessageChannel(
   conversationId: number | null,
-  onNewMessage: (data: DirectMessageData) => void
+  onNewMessage: (data: DirectMessageData) => void,
 ) {
   const callbackRef = useRef(onNewMessage);
   callbackRef.current = onNewMessage;
@@ -75,7 +75,7 @@ export function useDirectMessageChannel(
 
     const channel = echo.private(`conversation.${conversationId}`);
 
-    channel.listen('.new.direct.message', (data: DirectMessageData) => {
+    channel.listen(".new.direct.message", (data: DirectMessageData) => {
       callbackRef.current(data);
     });
 
@@ -88,7 +88,7 @@ export function useDirectMessageChannel(
 // Hook for User's personal messages channel (inbox notifications)
 export function useUserMessagesChannel(
   userId: number | null,
-  onNewMessage: (data: DirectMessageData) => void
+  onNewMessage: (data: DirectMessageData) => void,
 ) {
   const callbackRef = useRef(onNewMessage);
   callbackRef.current = onNewMessage;
@@ -101,7 +101,7 @@ export function useUserMessagesChannel(
 
     const channel = echo.private(`user.${userId}.messages`);
 
-    channel.listen('.new.direct.message', (data: DirectMessageData) => {
+    channel.listen(".new.direct.message", (data: DirectMessageData) => {
       callbackRef.current(data);
     });
 
@@ -114,7 +114,7 @@ export function useUserMessagesChannel(
 // Hook for Class Chat
 export function useClassChatChannel(
   classId: number | null,
-  onNewMessage: (data: ClassMessageData) => void
+  onNewMessage: (data: ClassMessageData) => void,
 ) {
   const callbackRef = useRef(onNewMessage);
   callbackRef.current = onNewMessage;
@@ -127,7 +127,7 @@ export function useClassChatChannel(
 
     const channel = echo.private(`class-chat.${classId}`);
 
-    channel.listen('.message.new', (data: ClassMessageData) => {
+    channel.listen(".message.new", (data: ClassMessageData) => {
       callbackRef.current(data);
     });
 
@@ -140,7 +140,7 @@ export function useClassChatChannel(
 // Hook for Support Ticket
 export function useSupportTicketChannel(
   ticketId: number | null,
-  onNewReply: (data: SupportReplyData) => void
+  onNewReply: (data: SupportReplyData) => void,
 ) {
   const callbackRef = useRef(onNewReply);
   callbackRef.current = onNewReply;
@@ -149,16 +149,33 @@ export function useSupportTicketChannel(
     if (!ticketId) return;
 
     const echo = getEcho();
-    if (!echo) return;
+    if (!echo) {
+      console.warn("Echo not available for support ticket channel");
+      return;
+    }
 
-    const channel = echo.private(`support-ticket.${ticketId}`);
+    const channelName = `support-ticket.${ticketId}`;
+    console.log("Subscribing to channel:", channelName);
 
-    channel.listen('.reply.new', (data: SupportReplyData) => {
+    const channel = echo.private(channelName);
+
+    channel.listen(".reply.new", (data: SupportReplyData) => {
+      console.log("Received reply.new event:", data);
       callbackRef.current(data);
     });
 
+    // Debug channel connection
+    channel.subscription.bind("pusher:subscription_succeeded", () => {
+      console.log("Successfully subscribed to:", channelName);
+    });
+
+    channel.subscription.bind("pusher:subscription_error", (status: any) => {
+      console.error("Subscription error:", status);
+    });
+
     return () => {
-      echo.leave(`support-ticket.${ticketId}`);
+      console.log("Unsubscribing from channel:", channelName);
+      echo.leave(channelName);
     };
   }, [ticketId]);
 }

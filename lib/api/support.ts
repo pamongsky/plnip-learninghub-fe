@@ -66,6 +66,7 @@ export interface CreateTicketData {
   category: string;
   priority?: string;
   class_id?: number;
+  attachments?: File[];
 }
 
 // Pagination response from Laravel
@@ -115,9 +116,27 @@ export const supportApi = {
 
   // Create new ticket
   createTicket: async (data: CreateTicketData) => {
+    const formData = new FormData();
+    formData.append("subject", data.subject);
+    formData.append("description", data.description);
+    formData.append("category", data.category);
+    if (data.priority) formData.append("priority", data.priority);
+    if (data.class_id) formData.append("class_id", data.class_id.toString());
+
+    if (data.attachments && data.attachments.length > 0) {
+      data.attachments.forEach((file) => {
+        formData.append("attachments[]", file);
+      });
+    }
+
     const response = await api.post<{ data: SupportTicket; message: string }>(
       "/support/tickets",
-      data,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      },
     );
     return response.data;
   },
