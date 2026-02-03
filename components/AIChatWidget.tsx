@@ -9,7 +9,11 @@ import {
   SparklesIcon,
   LightBulbIcon,
 } from "@heroicons/react/24/outline";
-import { aiAssistantApi, type AIContext, type AIChatMessage } from "@/lib/api/ai-assistant";
+import {
+  aiAssistantApi,
+  type AIContext,
+  type AIChatMessage,
+} from "@/lib/api/ai-assistant";
 
 export default function AIChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
@@ -36,10 +40,12 @@ export default function AIChatWidget() {
     try {
       const ctx = await aiAssistantApi.getContext();
       setContext(ctx);
-      
+
       // Add welcome message with user's name and available features
-      const features = ctx.available_features.map(f => `• ${f.name}: ${f.description}`).join('\n');
-      
+      const features = ctx.available_features
+        .map((f) => `• ${f.name}: ${f.description}`)
+        .join("\n");
+
       setMessages([
         {
           role: "assistant",
@@ -66,42 +72,42 @@ export default function AIChatWidget() {
     setIsLoading(true);
 
     try {
-      console.log('=== SENDING TO AI ASSISTANT ===');
-      console.log('Input message:', inputMessage);
-      console.log('Calling aiAssistantApi.chat()');
-      
+      console.log("=== SENDING TO AI ASSISTANT ===");
+      console.log("Input message:", inputMessage);
+      console.log("Calling aiAssistantApi.chat()");
+
       const response = await aiAssistantApi.chat(inputMessage, conversationId);
-      
-      console.log('=== AI RESPONSE RECEIVED ===');
-      console.log('Full response:', response);
-      console.log('Response text:', response.response);
-      console.log('Timestamp:', response.timestamp);
-      
+
+      console.log("=== AI RESPONSE RECEIVED ===");
+      console.log("Full response:", response);
+      console.log("Response text:", response.response);
+      console.log("Timestamp:", response.timestamp);
+
       if (!response.response) {
-        console.error('ERROR: No response.response field!');
-        throw new Error('Empty AI response');
+        console.error("ERROR: No response.response field!");
+        throw new Error("Empty AI response");
       }
-      
+
       const assistantMessage: AIChatMessage = {
         role: "assistant",
         content: response.response,
         timestamp: response.timestamp,
       };
 
-      console.log('Adding assistant message to state:', assistantMessage);
+      console.log("Adding assistant message to state:", assistantMessage);
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (error: any) {
       console.error("=== AI CHAT ERROR ===");
       console.error("Error object:", error);
       console.error("Error message:", error.message);
       console.error("Error response:", error.response);
-      
+
       const errorMessage: AIChatMessage = {
         role: "assistant",
-        content: `Maaf, terjadi kesalahan: ${error.message || 'Unknown error'}. Silakan coba lagi atau buat tiket support.`,
+        content: `Maaf, terjadi kesalahan: ${error.message || "Unknown error"}. Silakan coba lagi atau buat tiket support.`,
         timestamp: new Date().toISOString(),
       };
-      
+
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
@@ -212,9 +218,18 @@ export default function AIChatWidget() {
                 <div className="flex justify-start">
                   <div className="bg-slate-100 dark:bg-slate-700 rounded-2xl px-4 py-3">
                     <div className="flex gap-1">
-                      <div className="h-2 w-2 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: "0ms" }} />
-                      <div className="h-2 w-2 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: "150ms" }} />
-                      <div className="h-2 w-2 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: "300ms" }} />
+                      <div
+                        className="h-2 w-2 rounded-full bg-slate-400 animate-bounce"
+                        style={{ animationDelay: "0ms" }}
+                      />
+                      <div
+                        className="h-2 w-2 rounded-full bg-slate-400 animate-bounce"
+                        style={{ animationDelay: "150ms" }}
+                      />
+                      <div
+                        className="h-2 w-2 rounded-full bg-slate-400 animate-bounce"
+                        style={{ animationDelay: "300ms" }}
+                      />
                     </div>
                   </div>
                 </div>

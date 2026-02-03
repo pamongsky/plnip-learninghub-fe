@@ -325,7 +325,8 @@ export default function AdminSupportDetailPage() {
   const renderAttachments = (urls: string[] | null | undefined) => {
     if (!urls || urls.length === 0) return null;
 
-    const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+    const baseURL =
+      process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
 
     return (
       <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">

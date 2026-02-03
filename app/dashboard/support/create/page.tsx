@@ -101,9 +101,12 @@ export default function CreateTicketPage() {
         attachments: attachments,
       };
 
-      console.log('=== CREATING TICKET ===');
-      console.log('Selected Category:', selectedCategory);
-      console.log('Ticket Data:', { ...ticketData, attachments: `${attachments.length} files` });
+      console.log("=== CREATING TICKET ===");
+      console.log("Selected Category:", selectedCategory);
+      console.log("Ticket Data:", {
+        ...ticketData,
+        attachments: `${attachments.length} files`,
+      });
 
       await supportApi.createTicket(ticketData);
 
