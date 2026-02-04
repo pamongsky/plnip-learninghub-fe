@@ -7,7 +7,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { getEcho } from "@/lib/echo";
-import AIChatWidget from "@/components/AIChatWidget";
 import {
   HomeIcon,
   BookOpenIcon,
@@ -15,55 +14,59 @@ import {
   MegaphoneIcon,
   UserCircleIcon,
   ArrowRightOnRectangleIcon,
-  XMarkIcon,
   AcademicCapIcon,
-  BellIcon,
-  Cog6ToothIcon,
-  ChevronRightIcon,
-  ChevronDoubleLeftIcon,
-  ChevronDoubleRightIcon,
+  ChevronDownIcon,
   SunIcon,
   MoonIcon,
-  SparklesIcon,
   LifebuoyIcon,
+  Bars3Icon,
+  BoltIcon,
 } from "@heroicons/react/24/outline";
+import { BellIcon } from "@heroicons/react/24/solid";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 
-const navItems = [
+// Grouped navigation items
+const navGroups = [
   {
-    name: "Dashboard",
-    href: "/dashboard",
-    icon: HomeIcon,
-    description: "Ringkasan pembelajaran",
+    label: "Overview",
+    items: [{ href: "/dashboard", name: "Dashboard", icon: HomeIcon }],
   },
   {
-    name: "Kelas Saya",
-    href: "/dashboard/classes",
-    icon: AcademicCapIcon,
-    description: "Kelas yang diikuti",
+    label: "Pembelajaran",
+    items: [
+      { href: "/dashboard/classes", name: "Kelas Saya", icon: AcademicCapIcon },
+      { href: "/dashboard/certificates", name: "Sertifikat", icon: TrophyIcon },
+    ],
   },
   {
-    name: "Sertifikat",
-    href: "/dashboard/certificates",
-    icon: TrophyIcon,
-    description: "Sertifikat yang diperoleh",
+    label: "Informasi",
+    items: [
+      {
+        href: "/dashboard/announcements",
+        name: "Pengumuman",
+        icon: MegaphoneIcon,
+      },
+    ],
   },
   {
-    name: "Pengumuman",
-    href: "/dashboard/announcements",
-    icon: MegaphoneIcon,
-    description: "Info & pengumuman",
+    label: "Bantuan",
+    items: [
+      { href: "/dashboard/support", name: "Support", icon: LifebuoyIcon },
+    ],
   },
   {
-    name: "Bantuan",
-    href: "/dashboard/support",
-    icon: LifebuoyIcon,
-    description: "Butuh bantuan?",
-  },
-  {
-    name: "Profil Saya",
-    href: "/dashboard/profile",
-    icon: UserCircleIcon,
-    description: "Kelola profil",
+    label: "Akun",
+    items: [
+      { href: "/dashboard/profile", name: "Profil Saya", icon: UserCircleIcon },
+    ],
   },
 ];
 
@@ -75,9 +78,12 @@ export default function DashboardLayout({
   const { user, logout } = useAuth();
   const { darkMode, toggleDarkMode } = useTheme();
   const pathname = usePathname();
-  const [sidebarOpen, setSidebarOpen] = useState(true); // Default open on desktop
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<string[]>(
+    navGroups.map((g) => g.label),
+  );
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [notifications, setNotifications] = useState<
     Array<{
@@ -113,38 +119,31 @@ export default function DashboardLayout({
       read: true,
       type: "announcement",
     },
-    {
-      id: 4,
-      title: "Reminder",
-      message: "Selesaikan kursus sebelum deadline",
-      time: "1 hari lalu",
-      read: true,
-      type: "reminder",
-    },
   ]);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   const firstName = user?.name?.split(" ")[0] || "User";
+  const initials = user?.name
+    ? user.name
+        .split(" ")
+        .map((part) => part[0])
+        .slice(0, 2)
+        .join("")
+        .toUpperCase()
+    : "US";
   const avatarUrl = user?.avatar || null;
 
-  // Detect mobile/desktop and handle resize
+  // Detect mobile/desktop
   useEffect(() => {
     const checkMobile = () => {
       const mobile = window.innerWidth < 1024;
       setIsMobile(mobile);
-      // On first load or resize, adjust sidebar
       if (mobile) {
-        setSidebarOpen(false);
-      } else {
-        setSidebarOpen(true);
+        setIsCollapsed(true);
       }
     };
-
-    // Initial check
     checkMobile();
-
-    // Listen for resize
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
@@ -158,7 +157,6 @@ export default function DashboardLayout({
 
     const channel = echo.private(`users.${user.id}.notifications`);
 
-    // Listen for new notifications
     channel.listen("NotificationEvent", (data: any) => {
       const newNotification = {
         id: Date.now(),
@@ -169,7 +167,6 @@ export default function DashboardLayout({
         type: data.type || "announcement",
       };
 
-      // Add new notification to the beginning
       setNotifications((prev) => [newNotification, ...prev]);
     });
 
@@ -177,6 +174,12 @@ export default function DashboardLayout({
       echo.leaveChannel(`users.${user.id}.notifications`);
     };
   }, [user?.id]);
+
+  const toggleGroup = (label: string) => {
+    setExpandedGroups((prev) =>
+      prev.includes(label) ? prev.filter((g) => g !== label) : [...prev, label],
+    );
+  };
 
   const isActive = (href: string) => {
     if (href === "/dashboard") {
@@ -186,429 +189,583 @@ export default function DashboardLayout({
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-500">
-      {/* Mobile Sidebar Overlay */}
-      <AnimatePresence>
-        {sidebarOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Sidebar */}
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+      {/* Sidebar Desktop */}
       <aside
-        className={`fixed top-0 left-0 z-50 h-full w-72 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 transform transition-all duration-300 ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        className={cn(
+          "fixed inset-y-0 left-0 z-40 hidden flex-col border-r border-slate-200/80 bg-white transition-all duration-300 dark:border-slate-800 dark:bg-slate-900 lg:flex",
+          isCollapsed ? "w-[72px]" : "w-72",
+        )}
       >
-        <div className="flex flex-col h-full">
-          {/* Logo */}
-          <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-700">
-            <Link href="/" className="flex items-center gap-3 group">
-              <div className="w-10 h-10 bg-gradient-to-br from-pln-primary to-pln-light rounded-xl flex items-center justify-center shadow-lg shadow-pln-primary/20 group-hover:shadow-xl group-hover:shadow-pln-primary/30 transition-all">
-                <AcademicCapIcon className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="font-bold text-slate-800 dark:text-white">
-                  PLN IP
-                </h1>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Learning Hub
-                </p>
-              </div>
-            </Link>
-            <button
-              onClick={() => setSidebarOpen(false)}
-              className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-              title="Tutup Sidebar"
-            >
-              <ChevronDoubleLeftIcon className="w-5 h-5 text-slate-500 dark:text-slate-400" />
-            </button>
+        {/* Logo Header */}
+        <div
+          className={cn(
+            "flex items-center gap-3 border-b border-slate-200/80 dark:border-slate-800 p-4",
+            isCollapsed && "justify-center px-2",
+          )}
+        >
+          <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-pln-primary to-pln-light shadow-lg shadow-pln-primary/25">
+            <BoltIcon className="h-5 w-5 text-white" />
           </div>
+          {!isCollapsed && (
+            <div className="flex flex-col">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-pln-light">
+                Learner
+              </span>
+              <span className="text-sm font-bold text-slate-900 dark:text-white">
+                PLN IP Learning Hub
+              </span>
+            </div>
+          )}
+        </div>
 
-          {/* User Quick Info */}
-          <div className="p-4">
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-700 dark:to-slate-700/50">
+        {/* User Info */}
+        {!isCollapsed && (
+          <div className="p-3">
+            <div className="flex items-center gap-3 rounded-xl bg-gradient-to-r from-slate-50 to-slate-100 p-3 dark:from-slate-800 dark:to-slate-800/50">
               {avatarUrl ? (
                 <img
                   src={avatarUrl}
                   alt={user?.name || "User"}
-                  className="w-10 h-10 rounded-full object-cover border border-white/60 shadow-sm"
+                  className="h-10 w-10 rounded-lg object-cover border border-white/60 shadow-sm"
                 />
               ) : (
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pln-primary to-pln-light flex items-center justify-center text-white font-semibold text-sm">
-                  {firstName.charAt(0)}
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-pln-primary to-pln-light text-sm font-bold text-white">
+                  {initials}
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-slate-800 dark:text-white text-sm truncate">
+                <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
                   {user?.name}
                 </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
                   Learner
                 </p>
               </div>
             </div>
           </div>
+        )}
 
-          {/* Navigation */}
-          <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto">
-            <p className="px-3 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-              Menu Utama
-            </p>
-            {navItems.map((item) => {
-              const active = isActive(item.href);
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  onClick={() => isMobile && setSidebarOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group ${
-                    active
-                      ? "bg-pln-primary text-white shadow-lg shadow-pln-primary/30"
-                      : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
-                  }`}
+        {/* Collapse Toggle */}
+        <div className={cn("px-3 py-2", isCollapsed && "px-2")}>
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className={cn(
+              "flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-600 transition-all hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700",
+              isCollapsed && "px-2",
+            )}
+          >
+            <Bars3Icon className="h-4 w-4" />
+            {!isCollapsed && <span>Collapse</span>}
+          </button>
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 overflow-y-auto px-3 py-2">
+          {navGroups.map((group) => (
+            <div key={group.label} className="mb-2">
+              {!isCollapsed && (
+                <button
+                  onClick={() => toggleGroup(group.label)}
+                  className="flex w-full items-center justify-between px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-400 transition-colors"
                 >
-                  <item.icon
-                    className={`w-5 h-5 ${active ? "" : "text-slate-400 group-hover:text-slate-600 dark:group-hover:text-white"}`}
+                  <span>{group.label}</span>
+                  <ChevronDownIcon
+                    className={cn(
+                      "h-3 w-3 transition-transform duration-200",
+                      expandedGroups.includes(group.label) && "rotate-180",
+                    )}
                   />
-                  <div className="flex-1">
-                    <span className="font-medium text-sm">{item.name}</span>
-                  </div>
-                  {active && (
-                    <ChevronRightIcon className="w-4 h-4 opacity-70" />
-                  )}
-                </Link>
-              );
-            })}
-          </nav>
+                </button>
+              )}
+              <AnimatePresence initial={false}>
+                {(isCollapsed || expandedGroups.includes(group.label)) && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="space-y-0.5 overflow-hidden"
+                  >
+                    {group.items.map((item) => {
+                      const active = isActive(item.href);
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          className={cn(
+                            "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                            isCollapsed && "justify-center px-2",
+                            active
+                              ? "bg-gradient-to-r from-pln-primary to-pln-primary/90 text-white shadow-md shadow-pln-primary/25"
+                              : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800",
+                          )}
+                        >
+                          <item.icon
+                            className={cn(
+                              "h-5 w-5 flex-shrink-0 transition-transform group-hover:scale-110",
+                              active
+                                ? "text-white"
+                                : "text-slate-400 group-hover:text-pln-primary dark:text-slate-500",
+                            )}
+                          />
+                          {!isCollapsed && <span>{item.name}</span>}
+                        </Link>
+                      );
+                    })}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          ))}
+        </nav>
+
+        {/* Bottom Section */}
+        <div
+          className={cn(
+            "border-t border-slate-200/80 dark:border-slate-800 p-3 space-y-2",
+            isCollapsed && "px-2",
+          )}
+        >
+          {/* Theme Toggle */}
+          <button
+            onClick={toggleDarkMode}
+            className={cn(
+              "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 transition-all hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800",
+              isCollapsed && "justify-center px-2",
+            )}
+          >
+            {darkMode ? (
+              <SunIcon className="h-5 w-5 text-amber-500" />
+            ) : (
+              <MoonIcon className="h-5 w-5 text-slate-500" />
+            )}
+            {!isCollapsed && (
+              <span>{darkMode ? "Light Mode" : "Dark Mode"}</span>
+            )}
+          </button>
+
+          {/* Logout */}
+          <button
+            onClick={logout}
+            className={cn(
+              "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-red-600 transition-all hover:bg-red-50 dark:hover:bg-red-900/20",
+              isCollapsed && "justify-center px-2",
+            )}
+          >
+            <ArrowRightOnRectangleIcon className="h-5 w-5" />
+            {!isCollapsed && <span>Keluar</span>}
+          </button>
         </div>
       </aside>
 
-      {/* Main Content */}
-      <div
-        className={`transition-all duration-300 ${sidebarOpen ? "lg:ml-72" : "lg:ml-0"}`}
-      >
-        {/* Top Header */}
-        <header className="sticky top-0 z-30 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-700/80 transition-colors duration-300">
-          <div className="flex items-center justify-between px-4 py-3 lg:px-6">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setSidebarOpen(true)}
-                className={`p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors ${sidebarOpen ? "hidden" : ""}`}
-                title="Buka Sidebar"
-              >
-                <ChevronDoubleRightIcon className="w-6 h-6 text-slate-600 dark:text-slate-300" />
-              </button>
-              <div className="hidden sm:block">
-                <p className="text-sm font-medium text-slate-800 dark:text-slate-200">
-                  {new Date().toLocaleDateString("id-ID", {
-                    weekday: "long",
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                  })}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-1">
-              {/* Dark Mode Toggle with Animation */}
-              <motion.button
-                onClick={toggleDarkMode}
-                className="relative p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors overflow-hidden"
-                title={darkMode ? "Mode Terang" : "Mode Gelap"}
-                whileTap={{ scale: 0.9 }}
-              >
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={darkMode ? "sun" : "moon"}
-                    initial={{ y: -20, opacity: 0, rotate: -90 }}
-                    animate={{ y: 0, opacity: 1, rotate: 0 }}
-                    exit={{ y: 20, opacity: 0, rotate: 90 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    {darkMode ? (
-                      <SunIcon className="w-5 h-5 text-amber-400" />
-                    ) : (
-                      <MoonIcon className="w-5 h-5 text-slate-600 dark:text-slate-300" />
-                    )}
-                  </motion.div>
-                </AnimatePresence>
-                {/* Sparkle effect on toggle */}
-                {darkMode && (
-                  <motion.div
-                    initial={{ scale: 0, opacity: 1 }}
-                    animate={{ scale: 2, opacity: 0 }}
-                    transition={{ duration: 0.5 }}
-                    className="absolute inset-0 bg-amber-400/20 rounded-full"
-                  />
-                )}
-              </motion.button>
-
-              {/* Notifications */}
-              <div className="relative">
-                <button
-                  onClick={() => {
-                    setNotificationOpen(!notificationOpen);
-                    setProfileDropdownOpen(false);
-                  }}
-                  className="relative p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-all"
-                >
-                  <BellIcon className="w-5 h-5 text-slate-600 dark:text-slate-300" />
-                  {unreadCount > 0 && (
-                    <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 rounded-full text-[10px] text-white font-bold flex items-center justify-center">
-                      {unreadCount}
-                    </span>
-                  )}
-                </button>
-
-                {/* Notification Dropdown */}
-                <AnimatePresence>
-                  {notificationOpen && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-40"
-                        onClick={() => setNotificationOpen(false)}
-                      />
-                      <motion.div
-                        initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                        transition={{ duration: 0.15 }}
-                        className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 z-50 overflow-hidden"
-                      >
-                        {/* Header */}
-                        <div className="p-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
-                          <h3 className="font-semibold text-slate-800 dark:text-white">
-                            Notifikasi
-                          </h3>
-                          {unreadCount > 0 && (
-                            <span className="text-xs bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 px-2 py-0.5 rounded-full font-medium">
-                              {unreadCount} baru
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Notification List */}
-                        <div className="max-h-80 overflow-y-auto">
-                          {notifications.length > 0 ? (
-                            notifications.map((notif) => (
-                              <Link
-                                key={notif.id}
-                                href={
-                                  notif.type === "announcement"
-                                    ? "/dashboard/announcements"
-                                    : notif.type === "certificate"
-                                      ? "/dashboard/certificates"
-                                      : notif.type === "course"
-                                        ? "/dashboard/classes"
-                                        : "/dashboard"
-                                }
-                                onClick={() => {
-                                  setNotificationOpen(false);
-                                  // Mark as read when clicked
-                                  setNotifications((prev) =>
-                                    prev.map((n) =>
-                                      n.id === notif.id
-                                        ? { ...n, read: true }
-                                        : n,
-                                    ),
-                                  );
-                                }}
-                                className={`block p-4 border-b border-slate-50 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer transition-colors ${
-                                  !notif.read
-                                    ? "bg-blue-50/50 dark:bg-blue-500/10"
-                                    : ""
-                                }`}
-                              >
-                                <div className="flex gap-3">
-                                  <div
-                                    className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                                      notif.type === "course"
-                                        ? "bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400"
-                                        : notif.type === "certificate"
-                                          ? "bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-400"
-                                          : notif.type === "announcement"
-                                            ? "bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400"
-                                            : "bg-slate-100 dark:bg-slate-600/20 text-slate-600 dark:text-slate-400"
-                                    }`}
-                                  >
-                                    {notif.type === "course" && (
-                                      <BookOpenIcon className="w-4 h-4" />
-                                    )}
-                                    {notif.type === "certificate" && (
-                                      <TrophyIcon className="w-4 h-4" />
-                                    )}
-                                    {notif.type === "announcement" && (
-                                      <MegaphoneIcon className="w-4 h-4" />
-                                    )}
-                                    {notif.type === "reminder" && (
-                                      <BellIcon className="w-4 h-4" />
-                                    )}
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <p
-                                      className={`text-sm ${!notif.read ? "font-semibold text-slate-800 dark:text-white" : "font-medium text-slate-700 dark:text-slate-300"}`}
-                                    >
-                                      {notif.title}
-                                    </p>
-                                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">
-                                      {notif.message}
-                                    </p>
-                                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-                                      {notif.time}
-                                    </p>
-                                  </div>
-                                  {!notif.read && (
-                                    <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-2" />
-                                  )}
-                                </div>
-                              </Link>
-                            ))
-                          ) : (
-                            <div className="p-8 text-center">
-                              <BellIcon className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-                              <p className="text-slate-500 dark:text-slate-400 text-sm">
-                                Tidak ada notifikasi
-                              </p>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Footer */}
-                        <div className="p-3 border-t border-slate-100 dark:border-slate-700">
-                          <Link
-                            href="/dashboard/announcements"
-                            onClick={() => setNotificationOpen(false)}
-                            className="block text-center text-sm text-pln-primary dark:text-pln-light hover:text-pln-primary/80 dark:hover:text-pln-light/80 font-medium"
-                          >
-                            Lihat Semua Notifikasi
-                          </Link>
-                        </div>
-                      </motion.div>
-                    </>
-                  )}
-                </AnimatePresence>
-              </div>
-
-              {/* Profile Dropdown */}
-              <div className="relative">
-                <button
-                  onClick={() => {
-                    setProfileDropdownOpen(!profileDropdownOpen);
-                    setNotificationOpen(false);
-                  }}
-                  className="flex items-center gap-2 p-1.5 pr-3 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-all"
-                >
-                  {avatarUrl ? (
-                    <img
-                      src={avatarUrl}
-                      alt={user?.name || "User"}
-                      className="w-8 h-8 rounded-full object-cover border border-white/60 shadow-sm"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pln-primary to-pln-light flex items-center justify-center text-white font-semibold text-sm">
-                      {firstName.charAt(0)}
-                    </div>
-                  )}
-                  <span className="text-sm font-medium text-slate-700 dark:text-slate-200 hidden sm:block">
-                    {firstName}
-                  </span>
-                  <ChevronRightIcon
-                    className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${profileDropdownOpen ? "rotate-90" : ""}`}
-                  />
-                </button>
-
-                {/* Dropdown Menu */}
-                <AnimatePresence>
-                  {profileDropdownOpen && (
-                    <>
-                      {/* Backdrop */}
-                      <div
-                        className="fixed inset-0 z-40"
-                        onClick={() => setProfileDropdownOpen(false)}
-                      />
-
-                      {/* Dropdown */}
-                      <motion.div
-                        initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                        transition={{ duration: 0.15 }}
-                        className="absolute right-0 mt-2 w-64 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 z-50 overflow-hidden"
-                      >
-                        {/* User Info */}
-                        <div className="p-4 bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-700 dark:to-slate-700/50 border-b border-slate-200 dark:border-slate-700">
-                          <div className="flex items-center gap-3">
-                            {avatarUrl ? (
-                              <img
-                                src={avatarUrl}
-                                alt={user?.name || "User"}
-                                className="w-12 h-12 rounded-full object-cover border border-white/60 shadow-sm"
-                              />
-                            ) : (
-                              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pln-primary to-pln-light flex items-center justify-center text-white font-bold text-lg">
-                                {firstName.charAt(0)}
-                              </div>
-                            )}
-                            <div className="flex-1 min-w-0">
-                              <p className="font-semibold text-slate-800 dark:text-white truncate">
-                                {user?.name}
-                              </p>
-                              <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                                {user?.email}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Menu Items */}
-                        <div className="p-2">
-                          <Link
-                            href="/dashboard/profile"
-                            onClick={() => setProfileDropdownOpen(false)}
-                            className="flex items-center gap-3 px-3 py-2.5 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-all"
-                          >
-                            <UserCircleIcon className="w-5 h-5 text-slate-400" />
-                            <span className="font-medium text-sm">
-                              Profil Saya
-                            </span>
-                          </Link>
-                        </div>
-
-                        {/* Logout */}
-                        <div className="p-2 border-t border-slate-100 dark:border-slate-700">
-                          <button
-                            onClick={() => {
-                              setProfileDropdownOpen(false);
-                              logout();
-                            }}
-                            className="flex items-center gap-3 w-full px-3 py-2.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"
-                          >
-                            <ArrowRightOnRectangleIcon className="w-5 h-5" />
-                            <span className="font-medium text-sm">Keluar</span>
-                          </button>
-                        </div>
-                      </motion.div>
-                    </>
-                  )}
-                </AnimatePresence>
-              </div>
-            </div>
+      {/* Mobile Header */}
+      <header className="fixed top-0 left-0 right-0 z-30 flex h-16 items-center justify-between border-b border-slate-200 bg-white/95 px-4 backdrop-blur dark:border-slate-800 dark:bg-slate-900/95 lg:hidden">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+          >
+            <Bars3Icon className="h-6 w-6" />
+          </button>
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-pln-primary to-pln-light">
+            <BoltIcon className="h-5 w-5 text-white" />
           </div>
-        </header>
+          <span className="font-bold text-slate-900 dark:text-white">
+            Learning Hub
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          {/* Notifications */}
+          <div className="relative">
+            <button
+              onClick={() => setNotificationOpen(!notificationOpen)}
+              className="relative rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+            >
+              <BellIcon className="h-5 w-5" />
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                  {unreadCount}
+                </span>
+              )}
+            </button>
 
-        {/* Page Content */}
-        <main className="p-4 lg:p-6 transition-colors duration-300">
-          {children}
-        </main>
-      </div>
+            {/* Notification Dropdown */}
+            <AnimatePresence>
+              {notificationOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setNotificationOpen(false)}
+                  />
+                  <motion.div
+                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 mt-2 w-80 rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800 z-50 overflow-hidden"
+                  >
+                    <div className="border-b border-slate-100 p-4 dark:border-slate-700">
+                      <h3 className="font-semibold text-slate-800 dark:text-white">
+                        Notifikasi
+                      </h3>
+                    </div>
+                    <div className="max-h-80 overflow-y-auto">
+                      {notifications.map((notif) => (
+                        <div
+                          key={notif.id}
+                          className={cn(
+                            "border-b border-slate-50 p-4 dark:border-slate-700/50",
+                            !notif.read && "bg-blue-50/50 dark:bg-blue-500/10",
+                          )}
+                        >
+                          <p className="text-sm font-medium text-slate-800 dark:text-white">
+                            {notif.title}
+                          </p>
+                          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                            {notif.message}
+                          </p>
+                          <p className="mt-1 text-[11px] text-slate-400">
+                            {notif.time}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </div>
+
+          <button
+            onClick={toggleDarkMode}
+            className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+          >
+            {darkMode ? (
+              <SunIcon className="h-5 w-5 text-amber-500" />
+            ) : (
+              <MoonIcon className="h-5 w-5" />
+            )}
+          </button>
+        </div>
+      </header>
+
+      {/* Mobile Menu Overlay */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Mobile Sidebar */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.aside
+            initial={{ x: "-100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "-100%" }}
+            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+            className="fixed inset-y-0 left-0 z-50 w-72 flex-col border-r border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 lg:hidden flex"
+          >
+            {/* Logo */}
+            <div className="flex items-center gap-3 border-b border-slate-200 dark:border-slate-800 p-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-pln-primary to-pln-light shadow-lg">
+                <BoltIcon className="h-5 w-5 text-white" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-pln-light">
+                  Learner
+                </span>
+                <span className="text-sm font-bold text-slate-900 dark:text-white">
+                  PLN IP Learning Hub
+                </span>
+              </div>
+            </div>
+
+            {/* User Info */}
+            <div className="p-3">
+              <div className="flex items-center gap-3 rounded-xl bg-gradient-to-r from-slate-50 to-slate-100 p-3 dark:from-slate-800 dark:to-slate-800/50">
+                {avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    alt={user?.name || "User"}
+                    className="h-10 w-10 rounded-lg object-cover border border-white/60 shadow-sm"
+                  />
+                ) : (
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-pln-primary to-pln-light text-sm font-bold text-white">
+                    {initials}
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
+                    {user?.name}
+                  </p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Learner
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Navigation */}
+            <nav className="flex-1 overflow-y-auto p-3">
+              {navGroups.map((group) => (
+                <div key={group.label} className="mb-3">
+                  <p className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                    {group.label}
+                  </p>
+                  <div className="space-y-0.5">
+                    {group.items.map((item) => {
+                      const active = isActive(item.href);
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setIsMobileMenuOpen(false)}
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
+                            active
+                              ? "bg-gradient-to-r from-pln-primary to-pln-primary/90 text-white shadow-md"
+                              : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800",
+                          )}
+                        >
+                          <item.icon
+                            className={cn("h-5 w-5", active && "text-white")}
+                          />
+                          <span>{item.name}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </nav>
+
+            {/* Logout */}
+            <div className="border-t border-slate-200 dark:border-slate-800 p-3">
+              <button
+                onClick={logout}
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-50 dark:hover:bg-red-900/20"
+              >
+                <ArrowRightOnRectangleIcon className="h-5 w-5" />
+                Keluar
+              </button>
+            </div>
+          </motion.aside>
+        )}
+      </AnimatePresence>
+
+      {/* Desktop Header */}
+      <header
+        className={cn(
+          "sticky top-0 z-30 hidden h-16 items-center justify-between border-b border-slate-200 bg-white/95 px-6 backdrop-blur dark:border-slate-800 dark:bg-slate-900/95 lg:flex",
+          isCollapsed ? "lg:ml-[72px]" : "lg:ml-72",
+        )}
+      >
+        <div>
+          <p className="text-sm font-medium text-slate-800 dark:text-slate-200">
+            {new Date().toLocaleDateString("id-ID", {
+              weekday: "long",
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {/* Notifications */}
+          <div className="relative">
+            <button
+              onClick={() => setNotificationOpen(!notificationOpen)}
+              className="relative rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+            >
+              <BellIcon className="h-5 w-5" />
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                  {unreadCount}
+                </span>
+              )}
+            </button>
+
+            {/* Notification Dropdown */}
+            <AnimatePresence>
+              {notificationOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setNotificationOpen(false)}
+                  />
+                  <motion.div
+                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 mt-2 w-80 rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800 z-50 overflow-hidden"
+                  >
+                    <div className="border-b border-slate-100 p-4 dark:border-slate-700 flex items-center justify-between">
+                      <h3 className="font-semibold text-slate-800 dark:text-white">
+                        Notifikasi
+                      </h3>
+                      {unreadCount > 0 && (
+                        <span className="text-xs bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 px-2 py-0.5 rounded-full font-medium">
+                          {unreadCount} baru
+                        </span>
+                      )}
+                    </div>
+                    <div className="max-h-80 overflow-y-auto">
+                      {notifications.map((notif) => (
+                        <Link
+                          key={notif.id}
+                          href={
+                            notif.type === "announcement"
+                              ? "/dashboard/announcements"
+                              : notif.type === "certificate"
+                                ? "/dashboard/certificates"
+                                : notif.type === "course"
+                                  ? "/dashboard/classes"
+                                  : "/dashboard"
+                          }
+                          onClick={() => {
+                            setNotificationOpen(false);
+                            setNotifications((prev) =>
+                              prev.map((n) =>
+                                n.id === notif.id ? { ...n, read: true } : n,
+                              ),
+                            );
+                          }}
+                          className={cn(
+                            "block border-b border-slate-50 p-4 hover:bg-slate-50 dark:border-slate-700/50 dark:hover:bg-slate-700/50 transition-colors",
+                            !notif.read && "bg-blue-50/50 dark:bg-blue-500/10",
+                          )}
+                        >
+                          <div className="flex gap-3">
+                            <div
+                              className={cn(
+                                "flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full",
+                                notif.type === "course" &&
+                                  "bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400",
+                                notif.type === "certificate" &&
+                                  "bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-400",
+                                notif.type === "announcement" &&
+                                  "bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400",
+                              )}
+                            >
+                              {notif.type === "course" && (
+                                <BookOpenIcon className="h-4 w-4" />
+                              )}
+                              {notif.type === "certificate" && (
+                                <TrophyIcon className="h-4 w-4" />
+                              )}
+                              {notif.type === "announcement" && (
+                                <MegaphoneIcon className="h-4 w-4" />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p
+                                className={cn(
+                                  "text-sm",
+                                  !notif.read
+                                    ? "font-semibold text-slate-800 dark:text-white"
+                                    : "font-medium text-slate-700 dark:text-slate-300",
+                                )}
+                              >
+                                {notif.title}
+                              </p>
+                              <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400 truncate">
+                                {notif.message}
+                              </p>
+                              <p className="mt-1 text-[11px] text-slate-400">
+                                {notif.time}
+                              </p>
+                            </div>
+                            {!notif.read && (
+                              <div className="mt-2 h-2 w-2 flex-shrink-0 rounded-full bg-blue-500" />
+                            )}
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                    <div className="border-t border-slate-100 p-3 dark:border-slate-700">
+                      <Link
+                        href="/dashboard/announcements"
+                        onClick={() => setNotificationOpen(false)}
+                        className="block text-center text-sm font-medium text-pln-primary hover:text-pln-dark dark:text-pln-light"
+                      >
+                        Lihat Semua Notifikasi
+                      </Link>
+                    </div>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Profile Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex items-center gap-2 rounded-lg p-1.5 pr-3 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+                {avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    alt={user?.name || "User"}
+                    className="h-8 w-8 rounded-lg object-cover border border-white/60 shadow-sm"
+                  />
+                ) : (
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-pln-primary to-pln-light text-xs font-bold text-white">
+                    {initials}
+                  </div>
+                )}
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                  {firstName}
+                </span>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56 rounded-xl">
+              <DropdownMenuLabel className="font-normal">
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium">{user?.name}</p>
+                  <p className="text-xs text-slate-500">{user?.email}</p>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild className="cursor-pointer">
+                <Link
+                  href="/dashboard/profile"
+                  className="flex items-center gap-2"
+                >
+                  <UserCircleIcon className="h-4 w-4" />
+                  Profil Saya
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={logout}
+                className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20"
+              >
+                <ArrowRightOnRectangleIcon className="h-4 w-4 mr-2" />
+                Keluar
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main
+        className={cn(
+          "min-h-screen pt-16 transition-all duration-300 lg:pt-0",
+          isCollapsed ? "lg:pl-[72px]" : "lg:pl-72",
+        )}
+      >
+        <div className="p-4 md:p-6 lg:p-8">{children}</div>
+      </main>
     </div>
   );
 }

@@ -17,6 +17,16 @@ export interface Course {
     name: string;
     avatar: string;
   };
+  // Certificate fields
+  certificate_template_id?: number | null;
+  passing_grade?: number;
+  certificate_criteria?:
+    | "final_grade"
+    | "specific_quiz"
+    | "completion_and_grade";
+  certificate_quiz_id?: number | null;
+  auto_issue_certificate?: boolean;
+  certificate_issue_delay_days?: number;
   created_at: string;
 }
 

@@ -1,13 +1,16 @@
 import type { Metadata } from "next";
-import { Inter, Manrope } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import AIChatWidget from "@/components/AIChatWidget";
 
-const inter = Inter({ subsets: ["latin"] });
-const manrope = Manrope({ subsets: ["latin"], variable: "--font-instructor" });
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-jakarta",
+  weight: ["300", "400", "500", "600", "700", "800"],
+});
 
 export const metadata: Metadata = {
   title: "PLN IP Learning Hub",
@@ -22,7 +25,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${inter.className} ${manrope.variable} transition-colors duration-300`}
+        className={`${jakarta.variable} font-sans antialiased transition-colors duration-300`}
         suppressHydrationWarning
       >
         <AuthProvider>

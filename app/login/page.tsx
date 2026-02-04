@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import axios from "@/lib/axios";
 import {
   AcademicCapIcon,
   BookOpenIcon,
@@ -15,8 +16,8 @@ import {
   ArrowLeftIcon,
 } from "@heroicons/react/24/outline";
 
-// Background images for carousel
-const backgroundImages = [
+// Default background images (fallback)
+const defaultBackgroundImages = [
   {
     url: "https://images.unsplash.com/photo-1497366216548-37526070297c?w=1920&q=80",
     title: "Modern Learning Environment",
@@ -48,12 +49,62 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isMounted, setIsMounted] = useState(false);
+  const [backgroundImages, setBackgroundImages] = useState(
+    defaultBackgroundImages,
+  );
+  const [loginContent, setLoginContent] = useState({
+    title: "PLN IP",
+    subtitle: "Learning Hub",
+    tagline: "Empowering Growth Through Knowledge",
+    feature1: "Access Thousands of Courses",
+    feature2: "AI-Powered Learning Assistant",
+    feature3: "Earn Verified Certificates",
+  });
   const router = useRouter();
 
   // Mount detection (client-side only)
   useEffect(() => {
     setIsMounted(true);
+    fetchLoginPageData();
   }, []);
+
+  // Fetch login page data from API
+  const fetchLoginPageData = async () => {
+    try {
+      const res = await axios.get("/landing-page");
+      const data = res.data;
+
+      // Set login backgrounds if available
+      if (data.login_backgrounds && data.login_backgrounds.length > 0) {
+        setBackgroundImages(
+          data.login_backgrounds.map((bg: any) => ({
+            url: bg.image_path,
+            title: bg.title || "Background",
+          })),
+        );
+      }
+
+      // Set login content from settings
+      if (data.settings) {
+        setLoginContent({
+          title: data.settings.login_title || "PLN IP",
+          subtitle: data.settings.login_subtitle || "Learning Hub",
+          tagline:
+            data.settings.login_tagline ||
+            "Empowering Growth Through Knowledge",
+          feature1:
+            data.settings.login_feature1 || "Access Thousands of Courses",
+          feature2:
+            data.settings.login_feature2 || "AI-Powered Learning Assistant",
+          feature3:
+            data.settings.login_feature3 || "Earn Verified Certificates",
+        });
+      }
+    } catch (error) {
+      console.error("Failed to fetch login page data:", error);
+      // Keep default values
+    }
+  };
 
   // Background image rotation
   useEffect(() => {
@@ -150,20 +201,18 @@ export default function LoginPage() {
               <AcademicCapIcon className="w-10 h-10 text-white" />
             </motion.div>
             <h1 className="text-4xl font-bold leading-tight">
-              PLN IP
+              {loginContent.title}
               <br />
-              <span className="text-pln-light">Learning Hub</span>
+              <span className="text-pln-light">{loginContent.subtitle}</span>
             </h1>
-            <p className="text-lg text-white/70">
-              Empowering Growth Through Knowledge
-            </p>
+            <p className="text-lg text-white/70">{loginContent.tagline}</p>
           </div>
 
           <div className="space-y-4">
             {[
-              { icon: BookOpenIcon, text: "Access Thousands of Courses" },
-              { icon: SparklesIcon, text: "AI-Powered Learning Assistant" },
-              { icon: ShieldCheckIcon, text: "Earn Verified Certificates" },
+              { icon: BookOpenIcon, text: loginContent.feature1 },
+              { icon: SparklesIcon, text: loginContent.feature2 },
+              { icon: ShieldCheckIcon, text: loginContent.feature3 },
             ].map((item, index) => (
               <motion.div
                 key={index}

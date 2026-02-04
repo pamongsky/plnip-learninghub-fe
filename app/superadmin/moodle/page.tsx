@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowPathIcon,
@@ -31,7 +31,17 @@ import {
 } from "@/components/ui/table";
 import { Toast } from "@/components/ui/Toast";
 import { useToast } from "@/hooks/useToast";
-import api from "@/lib/axios";
+import {
+  getMoodleSyncStatus,
+  runFullSync,
+  syncUsers,
+  syncCourses,
+  syncEnrollments,
+  getSyncHistory,
+  type SyncStatus,
+  type SyncHistory as SyncHistoryType,
+  type SyncResult,
+} from "@/lib/api/moodleSync";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -46,138 +56,105 @@ const itemVariants = {
   visible: { opacity: 1, y: 0 },
 };
 
-// Mock sync status
-const syncStatus = {
-  connection: "connected",
-  lastSync: "2026-01-22 08:30:15",
-  nextScheduled: "2026-01-22 12:00:00",
-  moodleVersion: "4.3.2",
-  apiEndpoint: "https://lms.plnip.co.id/webservice/rest/server.php",
-};
-
-const syncStats = [
-  {
-    title: "Users Synced",
-    value: 5120,
-    lastSync: "08:30",
-    status: "success",
-    icon: UsersIcon,
-    color: "from-pln-primary to-pln-light",
-  },
-  {
-    title: "Courses Synced",
-    value: 245,
-    lastSync: "08:30",
-    status: "success",
-    icon: AcademicCapIcon,
-    color: "from-pln-primary to-pln-light",
-  },
-  {
-    title: "Enrollments",
-    value: 12840,
-    lastSync: "08:30",
-    status: "success",
-    icon: DocumentTextIcon,
-    color: "from-pln-primary to-pln-light",
-  },
-  {
-    title: "Pending Sync",
-    value: 12,
-    lastSync: "-",
-    status: "pending",
-    icon: ClockIcon,
-    color: "from-pln-primary to-pln-light",
-  },
-];
-
-const syncHistory = [
-  {
-    id: 1,
-    type: "Full Sync",
-    startTime: "2026-01-22 08:30:00",
-    endTime: "2026-01-22 08:30:15",
-    status: "success",
-    usersAdded: 5,
-    usersUpdated: 23,
-    coursesAdded: 0,
-    coursesUpdated: 2,
-  },
-  {
-    id: 2,
-    type: "User Sync",
-    startTime: "2026-01-22 06:00:00",
-    endTime: "2026-01-22 06:00:08",
-    status: "success",
-    usersAdded: 12,
-    usersUpdated: 45,
-    coursesAdded: 0,
-    coursesUpdated: 0,
-  },
-  {
-    id: 3,
-    type: "Course Sync",
-    startTime: "2026-01-21 23:00:00",
-    endTime: "2026-01-21 23:00:22",
-    status: "success",
-    usersAdded: 0,
-    usersUpdated: 0,
-    coursesAdded: 3,
-    coursesUpdated: 8,
-  },
-  {
-    id: 4,
-    type: "Full Sync",
-    startTime: "2026-01-21 20:00:00",
-    endTime: "2026-01-21 20:00:18",
-    status: "warning",
-    usersAdded: 8,
-    usersUpdated: 15,
-    coursesAdded: 1,
-    coursesUpdated: 5,
-  },
-  {
-    id: 5,
-    type: "Full Sync",
-    startTime: "2026-01-21 12:00:00",
-    endTime: "2026-01-21 12:00:12",
-    status: "error",
-    usersAdded: 0,
-    usersUpdated: 0,
-    coursesAdded: 0,
-    coursesUpdated: 0,
-  },
-];
-
 export default function SuperadminMoodlePage() {
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
+  const [syncHistory, setSyncHistory] = useState<SyncHistoryType[]>([]);
+  const [lastSyncResult, setLastSyncResult] = useState<SyncResult | null>(null);
   const { toast, showToast, clearToast } = useToast();
+
+  // Load status on mount & every 30 seconds
+  useEffect(() => {
+    loadSyncStatus();
+    loadSyncHistory();
+
+    const interval = setInterval(() => {
+      if (!isSyncing) {
+        loadSyncStatus();
+        loadSyncHistory();
+      }
+    }, 30000); // Refresh every 30s
+
+    return () => clearInterval(interval);
+  }, [isSyncing]);
+
+  const loadSyncStatus = async () => {
+    try {
+      const data = await getMoodleSyncStatus();
+      setSyncStatus(data);
+    } catch (error: any) {
+      console.error("Failed to load sync status:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadSyncHistory = async () => {
+    try {
+      const data = await getSyncHistory();
+      setSyncHistory(data.history);
+    } catch (error: any) {
+      console.error("Failed to load sync history:", error);
+    }
+  };
 
   const handleSync = async (type: string) => {
     setIsSyncing(true);
     showToast({ type: "info", message: `Memulai ${type}...` });
 
     try {
-      let endpoint = "";
-      if (type === "Course Sync") {
-        endpoint = "/courses/sync";
-      } else {
-        // Placeholder for other syncs
-        setTimeout(() => {
-          setIsSyncing(false);
+      let result;
+
+      switch (type) {
+        case "Full Sync":
+          const fullResult = await runFullSync();
+          result = fullResult.results.users; // Show users result for now
           showToast({
             type: "success",
-            message: `${type} berhasil (Simulasi)!`,
+            message: `${fullResult.message} - Users: +${fullResult.results.users.added}/↻${fullResult.results.users.updated}, Courses: +${fullResult.results.courses.added}/↻${fullResult.results.courses.updated}`,
           });
-        }, 2000);
-        return;
+          break;
+
+        case "User Sync":
+          const userResult = await syncUsers();
+          result = userResult.results;
+          showToast({
+            type: "success",
+            message: `${userResult.message} - Added: ${result.added}, Updated: ${result.updated}`,
+          });
+          break;
+
+        case "Course Sync":
+          const courseResult = await syncCourses();
+          result = courseResult.results;
+          showToast({
+            type: "success",
+            message: `${courseResult.message} - Added: ${result.added}, Updated: ${result.updated}`,
+          });
+          break;
+
+        case "Enrollment Sync":
+          const enrollResult = await syncEnrollments();
+          result = enrollResult.results;
+          showToast({
+            type: "success",
+            message: `${enrollResult.message} - Added: ${result.added}, Updated: ${result.updated}`,
+          });
+          break;
+
+        default:
+          showToast({ type: "error", message: "Unknown sync type" });
+          return;
       }
 
-      const response = await api.post(endpoint);
+      setLastSyncResult(result);
 
-      showToast({
-        type: "success",
-        message: response.data.message || `${type} berhasil!`,
-      });
+      // Reload status after sync
+      setTimeout(() => {
+        loadSyncStatus();
+        loadSyncHistory();
+      }, 1000);
     } catch (error: any) {
       console.error("Sync Error:", error);
       showToast({
@@ -219,6 +196,59 @@ export default function SuperadminMoodlePage() {
         return <Badge variant="secondary">{status}</Badge>;
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="text-center">
+          <ArrowPathIcon className="mx-auto h-8 w-8 animate-spin text-pln-primary" />
+          <p className="mt-2 text-sm text-slate-500">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!syncStatus) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="text-center">
+          <ExclamationTriangleIcon className="mx-auto h-12 w-12 text-red-500" />
+          <p className="mt-2 text-sm text-slate-500">
+            Failed to load sync status
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const syncStats = [
+    {
+      title: "Portal Users",
+      value: syncStatus.stats.portal_users,
+      synced: syncStatus.stats.synced_users,
+      icon: UsersIcon,
+      color: "from-pln-primary to-pln-light",
+    },
+    {
+      title: "Portal Courses",
+      value: syncStatus.stats.portal_courses,
+      synced: syncStatus.stats.synced_courses,
+      icon: AcademicCapIcon,
+      color: "from-pln-primary to-pln-light",
+    },
+    {
+      title: "Enrollments",
+      value: syncStatus.stats.portal_enrollments,
+      icon: DocumentTextIcon,
+      color: "from-pln-primary to-pln-light",
+    },
+    {
+      title: "Moodle Users",
+      value: syncStatus.connection.total_users || 0,
+      icon: ServerIcon,
+      color: "from-emerald-500 to-emerald-600",
+    },
+  ];
 
   return (
     <>
@@ -262,9 +292,13 @@ export default function SuperadminMoodlePage() {
               <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
                 <div className="flex items-center gap-4">
                   <div
-                    className={`rounded-xl p-4 ${syncStatus.connection === "connected" ? "bg-emerald-100 dark:bg-emerald-900/30" : "bg-red-100 dark:bg-red-900/30"}`}
+                    className={`rounded-xl p-4 ${
+                      syncStatus.connection.status === "connected"
+                        ? "bg-emerald-100 dark:bg-emerald-900/30"
+                        : "bg-red-100 dark:bg-red-900/30"
+                    }`}
                   >
-                    {syncStatus.connection === "connected" ? (
+                    {syncStatus.connection.status === "connected" ? (
                       <CheckCircleIcon className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
                     ) : (
                       <ExclamationTriangleIcon className="h-8 w-8 text-red-600 dark:text-red-400" />
@@ -272,32 +306,47 @@ export default function SuperadminMoodlePage() {
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
-                      {syncStatus.connection === "connected"
+                      {syncStatus.connection.status === "connected"
                         ? "Terhubung ke Moodle"
                         : "Tidak Terhubung"}
                     </h3>
                     <p className="text-sm text-slate-500">
-                      {syncStatus.apiEndpoint}
+                      {syncStatus.connection.database || "Oracle Database"}
+                      {syncStatus.connection.error && (
+                        <span className="text-red-600">
+                          {" "}
+                          - {syncStatus.connection.error}
+                        </span>
+                      )}
                     </p>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-6 md:grid-cols-3">
-                  <div>
-                    <p className="text-xs text-slate-500">Last Sync</p>
-                    <p className="font-medium text-slate-900 dark:text-white">
-                      {syncStatus.lastSync}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500">Next Scheduled</p>
-                    <p className="font-medium text-slate-900 dark:text-white">
-                      {syncStatus.nextScheduled}
-                    </p>
-                  </div>
+                  {syncStatus.last_sync && (
+                    <>
+                      <div>
+                        <p className="text-xs text-slate-500">Last Sync</p>
+                        <p className="font-medium text-slate-900 dark:text-white">
+                          {new Date(
+                            syncStatus.last_sync.completed_at,
+                          ).toLocaleTimeString("id-ID", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-500">Duration</p>
+                        <p className="font-medium text-slate-900 dark:text-white">
+                          {syncStatus.last_sync.duration}s
+                        </p>
+                      </div>
+                    </>
+                  )}
                   <div>
                     <p className="text-xs text-slate-500">Moodle Version</p>
                     <p className="font-medium text-slate-900 dark:text-white">
-                      {syncStatus.moodleVersion}
+                      {syncStatus.connection.moodle_version || "N/A"}
                     </p>
                   </div>
                 </div>
@@ -320,19 +369,18 @@ export default function SuperadminMoodlePage() {
                   >
                     <stat.icon className="h-5 w-5" />
                   </div>
-                  {getStatusBadge(stat.status)}
                 </div>
                 <div className="mt-4">
                   <p className="text-3xl font-bold text-slate-900 dark:text-white">
                     {stat.value.toLocaleString()}
                   </p>
                   <p className="text-sm text-slate-500">{stat.title}</p>
+                  {stat.synced !== undefined && (
+                    <p className="mt-1 text-xs text-emerald-600">
+                      {stat.synced} synced from Moodle
+                    </p>
+                  )}
                 </div>
-                {stat.lastSync !== "-" && (
-                  <p className="mt-2 text-xs text-slate-400">
-                    Last sync: {stat.lastSync}
-                  </p>
-                )}
               </CardContent>
             </Card>
           ))}
@@ -405,32 +453,42 @@ export default function SuperadminMoodlePage() {
                     <TableRow key={sync.id}>
                       <TableCell className="font-medium">{sync.type}</TableCell>
                       <TableCell className="text-slate-500">
-                        {sync.startTime}
+                        {new Date(sync.started_at).toLocaleString("id-ID")}
                       </TableCell>
                       <TableCell className="text-slate-500">
-                        {sync.endTime}
+                        {new Date(sync.completed_at).toLocaleString("id-ID")}
                       </TableCell>
                       <TableCell>{getStatusBadge(sync.status)}</TableCell>
                       <TableCell className="text-right">
                         <span className="text-emerald-600">
-                          +{sync.usersAdded}
+                          +{sync.users_added || 0}
                         </span>
                         {" / "}
                         <span className="text-blue-600">
-                          ↻{sync.usersUpdated}
+                          ↻{sync.users_updated || 0}
                         </span>
                       </TableCell>
                       <TableCell className="text-right">
                         <span className="text-emerald-600">
-                          +{sync.coursesAdded}
+                          +{sync.courses_added || 0}
                         </span>
                         {" / "}
                         <span className="text-blue-600">
-                          ↻{sync.coursesUpdated}
+                          ↻{sync.courses_updated || 0}
                         </span>
                       </TableCell>
                     </TableRow>
                   ))}
+                  {syncHistory.length === 0 && (
+                    <TableRow>
+                      <TableCell
+                        colSpan={6}
+                        className="text-center text-slate-500"
+                      >
+                        Belum ada history sync
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </CardContent>

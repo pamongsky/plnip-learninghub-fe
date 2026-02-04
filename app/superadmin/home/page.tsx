@@ -61,10 +61,21 @@ const companyData = {
 export default function SuperadminHomePage() {
   const [formData, setFormData] = useState(companyData);
   const [heroImages, setHeroImages] = useState<any[]>([]);
+  const [loginBackgrounds, setLoginBackgrounds] = useState<any[]>([]);
   const [heroSettings, setHeroSettings] = useState({
     title: "Menggerakkan Talenta Energi Masa Depan",
     subtitle:
       "Platform learning terintegrasi untuk memperkuat kompetensi, sertifikasi, dan inovasi di lingkungan PLN Indonesia Power.",
+  });
+
+  // Settings for Login Page
+  const [loginSettings, setLoginSettings] = useState({
+    title: "PLN IP",
+    subtitle: "Learning Hub",
+    tagline: "Empowering Growth Through Knowledge",
+    feature1: "Access Thousands of Courses",
+    feature2: "AI-Powered Learning Assistant",
+    feature3: "Earn Verified Certificates",
   });
 
   // Settings for Features
@@ -188,8 +199,22 @@ export default function SuperadminHomePage() {
           p4_val: data.settings.p4_val || "20",
           p4_label: data.settings.p4_label || "Tech Partners",
         });
+        setLoginSettings({
+          title: data.settings.login_title || "PLN IP",
+          subtitle: data.settings.login_subtitle || "Learning Hub",
+          tagline:
+            data.settings.login_tagline ||
+            "Empowering Growth Through Knowledge",
+          feature1:
+            data.settings.login_feature1 || "Access Thousands of Courses",
+          feature2:
+            data.settings.login_feature2 || "AI-Powered Learning Assistant",
+          feature3:
+            data.settings.login_feature3 || "Earn Verified Certificates",
+        });
       }
       if (data.hero_images) setHeroImages(data.hero_images);
+      if (data.login_backgrounds) setLoginBackgrounds(data.login_backgrounds);
 
       if (data.partners) setPartners(data.partners);
     } catch (error) {
@@ -253,8 +278,8 @@ export default function SuperadminHomePage() {
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (heroImages.length >= 8) {
-      showToast({ type: "error", message: "Maksimal 8 foto." });
+    if (heroImages.length >= 6) {
+      showToast({ type: "error", message: "Maksimal 6 foto hero banner." });
       return;
     }
 
@@ -297,6 +322,70 @@ export default function SuperadminHomePage() {
         },
       });
       showToast({ type: "success", message: "Text Hero disimpan!" });
+    } catch (error) {
+      showToast({ type: "error", message: "Gagal menyimpan." });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Login Page Handlers
+  const handleLoginBackgroundUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (loginBackgrounds.length >= 6) {
+      showToast({
+        type: "error",
+        message: "Maksimal 6 foto background login.",
+      });
+      return;
+    }
+
+    const uploadData = new FormData();
+    uploadData.append("image", file);
+    uploadData.append("title", "Login Background");
+
+    setIsUploading(true);
+    try {
+      const response = await axios.post("/cms/login-backgrounds", uploadData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setLoginBackgrounds((prev) => [...prev, response.data]);
+      showToast({ type: "success", message: "Background berhasil diupload!" });
+    } catch (error) {
+      showToast({ type: "error", message: "Gagal upload background." });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleDeleteLoginBackground = async (id: number) => {
+    if (!confirm("Hapus background ini?")) return;
+    try {
+      await axios.delete(`/cms/login-backgrounds/${id}`);
+      setLoginBackgrounds((prev) => prev.filter((img) => img.id !== id));
+      showToast({ type: "success", message: "Background dihapus." });
+    } catch (error) {
+      showToast({ type: "error", message: "Gagal hapus background." });
+    }
+  };
+
+  const handleSaveLoginSettings = async () => {
+    setIsSaving(true);
+    try {
+      await axios.post("/cms/settings", {
+        settings: {
+          login_title: loginSettings.title,
+          login_subtitle: loginSettings.subtitle,
+          login_tagline: loginSettings.tagline,
+          login_feature1: loginSettings.feature1,
+          login_feature2: loginSettings.feature2,
+          login_feature3: loginSettings.feature3,
+        },
+      });
+      showToast({ type: "success", message: "Login Page settings disimpan!" });
     } catch (error) {
       showToast({ type: "error", message: "Gagal menyimpan." });
     } finally {
@@ -383,33 +472,38 @@ export default function SuperadminHomePage() {
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white md:text-3xl">
-            Home Editor
+            Home
           </h1>
           <p className="mt-1 text-slate-500 dark:text-slate-400">
-            Kelola konten halaman depan (Landing Page)
+            Kelola konten halaman depan Landing Page
           </p>
         </div>
 
-        <Tabs defaultValue="company" className="w-full space-y-6">
+        <Tabs defaultValue="hero" className="w-full space-y-6">
           <TabsList className="bg-white dark:bg-slate-900 p-1 border border-slate-200 dark:border-slate-800 rounded-xl">
-            <TabsTrigger
-              value="company"
-              className="data-[state=active]:bg-pln-primary data-[state=active]:text-white"
-            >
-              Info Perusahaan
-            </TabsTrigger>
             <TabsTrigger
               value="hero"
               className="data-[state=active]:bg-pln-primary data-[state=active]:text-white"
             >
-              Hero Section
+              Hero Banner
             </TabsTrigger>
-
+            <TabsTrigger
+              value="login"
+              className="data-[state=active]:bg-pln-primary data-[state=active]:text-white"
+            >
+              Login Page
+            </TabsTrigger>
             <TabsTrigger
               value="features"
               className="data-[state=active]:bg-pln-primary data-[state=active]:text-white"
             >
               Fitur & Statistik
+            </TabsTrigger>
+            <TabsTrigger
+              value="company"
+              className="data-[state=active]:bg-pln-primary data-[state=active]:text-white"
+            >
+              Info Perusahaan
             </TabsTrigger>
           </TabsList>
 
@@ -472,30 +566,34 @@ export default function SuperadminHomePage() {
                     <Input
                       value={formData.name}
                       className="mt-1"
+                      placeholder="PT PLN Indonesia Power"
                       onChange={(e) =>
                         setFormData({ ...formData, name: e.target.value })
                       }
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-medium">Tagline</label>
+                    <label className="text-sm font-medium">Website URL</label>
                     <Input
-                      value={formData.tagline}
-                      placeholder="Menggerakkan Talenta Energi Masa Depan"
+                      value={formData.website}
+                      placeholder="https://www.plnip.co.id"
                       className="mt-1"
                       onChange={(e) =>
-                        setFormData({ ...formData, tagline: e.target.value })
+                        setFormData({ ...formData, website: e.target.value })
                       }
                     />
                   </div>
                   <div>
                     <label className="text-sm font-medium">
-                      Deskripsi Singkat
+                      Deskripsi Perusahaan
                     </label>
+                    <p className="text-xs text-slate-500 mb-1">
+                      Akan ditampilkan di footer website
+                    </p>
                     <Textarea
                       rows={4}
                       value={formData.description}
-                      placeholder="Deskripsi perusahaan untuk footer"
+                      placeholder="Deskripsi singkat tentang perusahaan..."
                       onChange={(e) =>
                         setFormData({
                           ...formData,
@@ -612,18 +710,23 @@ export default function SuperadminHomePage() {
           <TabsContent value="hero" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Teks Hero Section</CardTitle>
+                <CardTitle>Hero Banner - Teks Utama</CardTitle>
                 <CardDescription>
-                  Ubah judul dan deskripsi utama di halaman depan.
+                  Judul dan deskripsi yang akan ditampilkan di bagian hero
+                  landing page.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
                   <label className="text-sm font-medium">
-                    Judul Utama (Title)
+                    Judul Hero (Title)
                   </label>
+                  <p className="text-xs text-slate-500 mb-1">
+                    Headline utama yang menarik perhatian
+                  </p>
                   <Input
                     value={heroSettings.title}
+                    placeholder="Menggerakkan Talenta Energi Masa Depan"
                     onChange={(e) =>
                       setHeroSettings({
                         ...heroSettings,
@@ -634,10 +737,15 @@ export default function SuperadminHomePage() {
                 </div>
                 <div>
                   <label className="text-sm font-medium">
-                    Deskripsi (Subtitle)
+                    Deskripsi Hero (Subtitle)
                   </label>
+                  <p className="text-xs text-slate-500 mb-1">
+                    Penjelasan singkat di bawah judul
+                  </p>
                   <Textarea
+                    rows={3}
                     value={heroSettings.subtitle}
+                    placeholder="Platform learning terintegrasi untuk..."
                     onChange={(e) =>
                       setHeroSettings({
                         ...heroSettings,
@@ -647,16 +755,16 @@ export default function SuperadminHomePage() {
                   />
                 </div>
                 <Button onClick={handleSaveHeroSettings} disabled={isSaving}>
-                  {isSaving ? "Menyimpan..." : "Simpan Teks"}
+                  {isSaving ? "Menyimpan..." : "Simpan Teks Hero"}
                 </Button>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>Hero Carousel Images</CardTitle>
+                <CardTitle>Hero Banner Images</CardTitle>
                 <CardDescription>
-                  Upload hingga 8 gambar untuk carousel.
+                  Upload hingga 6 gambar untuk hero carousel di landing page.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -690,7 +798,7 @@ export default function SuperadminHomePage() {
                       </button>
                     </div>
                   ))}
-                  {heroImages.length < 8 && (
+                  {heroImages.length < 6 && (
                     <div className="relative aspect-video rounded-lg border-2 border-dashed border-slate-300 flex flex-col items-center justify-center bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer">
                       <input
                         type="file"
@@ -708,6 +816,175 @@ export default function SuperadminHomePage() {
                           <PhotoIcon className="h-8 w-8 text-slate-400" />
                           <span className="text-xs text-slate-500 mt-1">
                             Upload Foto
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="login" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Login Page - Teks & Branding</CardTitle>
+                <CardDescription>
+                  Edit teks yang ditampilkan di halaman login.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Judul Utama</label>
+                    <p className="text-xs text-slate-500 mb-1">
+                      Baris pertama (contoh: PLN IP)
+                    </p>
+                    <Input
+                      value={loginSettings.title}
+                      placeholder="PLN IP"
+                      onChange={(e) =>
+                        setLoginSettings({
+                          ...loginSettings,
+                          title: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Subtitle</label>
+                    <p className="text-xs text-slate-500 mb-1">
+                      Baris kedua (contoh: Learning Hub)
+                    </p>
+                    <Input
+                      value={loginSettings.subtitle}
+                      placeholder="Learning Hub"
+                      onChange={(e) =>
+                        setLoginSettings({
+                          ...loginSettings,
+                          subtitle: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Tagline</label>
+                  <p className="text-xs text-slate-500 mb-1">
+                    Slogan di bawah logo
+                  </p>
+                  <Input
+                    value={loginSettings.tagline}
+                    placeholder="Empowering Growth Through Knowledge"
+                    onChange={(e) =>
+                      setLoginSettings({
+                        ...loginSettings,
+                        tagline: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div className="border-t pt-4 mt-2">
+                  <label className="text-sm font-medium mb-3 block">
+                    3 Fitur Unggulan (Bullet Points)
+                  </label>
+                  <div className="space-y-2">
+                    <Input
+                      value={loginSettings.feature1}
+                      placeholder="Access Thousands of Courses"
+                      onChange={(e) =>
+                        setLoginSettings({
+                          ...loginSettings,
+                          feature1: e.target.value,
+                        })
+                      }
+                    />
+                    <Input
+                      value={loginSettings.feature2}
+                      placeholder="AI-Powered Learning Assistant"
+                      onChange={(e) =>
+                        setLoginSettings({
+                          ...loginSettings,
+                          feature2: e.target.value,
+                        })
+                      }
+                    />
+                    <Input
+                      value={loginSettings.feature3}
+                      placeholder="Earn Verified Certificates"
+                      onChange={(e) =>
+                        setLoginSettings({
+                          ...loginSettings,
+                          feature3: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+                <Button onClick={handleSaveLoginSettings} disabled={isSaving}>
+                  {isSaving ? "Menyimpan..." : "Simpan Teks Login"}
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Login Background Images</CardTitle>
+                <CardDescription>
+                  Upload hingga 6 gambar untuk background carousel di login
+                  page.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                  {loginBackgrounds.map((img) => (
+                    <div
+                      key={img.id}
+                      className="relative aspect-video rounded-lg overflow-hidden group border border-slate-200"
+                    >
+                      <img
+                        src={img.image_path}
+                        alt={img.title}
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        onClick={() => handleDeleteLoginBackground(img.id)}
+                        className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="currentColor"
+                          className="w-4 h-4"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M16.5 4.478v.227a48.816 48.816 0 0 1 3.878.512.75.75 0 1 1-.49 1.478l-.196-.043-1.096 11.233a4.75 4.75 0 0 1-4.58 4.29H9.932a4.75 4.75 0 0 1-4.59-4.309l-1.055-11.225-.227.042a.75.75 0 0 1-.49-1.478 48.529 48.529 0 0 1 3.872-.512v-.227c0-1.564 1.213-2.9 2.816-2.951a52.662 52.662 0 0 1 3.369 0c1.603.051 2.815 1.387 2.815 2.951Zm-6.136-1.452a51.196 51.196 0 0 1 3.273 0C14.39 3.05 15 3.684 15 4.478v.113a49.488 49.488 0 0 0-6 0v-.113c0-.794.609-1.428 1.364-1.452Zm-3.536 4.314 1.026 10.91A3.25 3.25 0 0 0 11.139 21h1.723a3.25 3.25 0 0 0 3.25-3.076l1.07-10.966-8.32 1.018Z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                  {loginBackgrounds.length < 6 && (
+                    <div className="relative aspect-video rounded-lg border-2 border-dashed border-slate-300 flex flex-col items-center justify-center bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="absolute inset-0 opacity-0 cursor-pointer"
+                        onChange={handleLoginBackgroundUpload}
+                        disabled={isUploading}
+                      />
+                      {isUploading ? (
+                        <span className="text-sm text-slate-500">
+                          Uploading...
+                        </span>
+                      ) : (
+                        <>
+                          <PhotoIcon className="h-8 w-8 text-slate-400" />
+                          <span className="text-xs text-slate-500 mt-1">
+                            Upload Background
                           </span>
                         </>
                       )}

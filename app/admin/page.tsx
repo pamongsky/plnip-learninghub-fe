@@ -11,9 +11,6 @@ import { useToast } from "@/hooks/useToast";
 import {
   UsersIcon,
   MegaphoneIcon,
-  DocumentChartBarIcon,
-  ArrowTrendingUpIcon,
-  ArrowTrendingDownIcon,
   ExclamationTriangleIcon,
   ArrowPathIcon,
   ArrowRightIcon,
@@ -21,6 +18,15 @@ import {
   CheckCircleIcon,
   UserPlusIcon,
   EyeIcon,
+  AcademicCapIcon,
+  ChatBubbleLeftRightIcon,
+  CalendarDaysIcon,
+  SparklesIcon,
+  BookOpenIcon,
+  ChartBarIcon,
+  BellAlertIcon,
+  UserGroupIcon,
+  PlusCircleIcon,
 } from "@heroicons/react/24/outline";
 import {
   Card,
@@ -30,23 +36,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import MoodleLoginButton from "@/components/MoodleLoginButton";
 
 // Animation variants
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: { staggerChildren: 0.1 },
+    transition: { staggerChildren: 0.08 },
   },
 };
 
@@ -55,14 +52,18 @@ const itemVariants = {
   visible: { opacity: 1, y: 0 },
 };
 
-type StatCard = {
-  title: string;
-  value: number;
-  change: string;
-  trend: "up" | "down";
-  icon: typeof UsersIcon;
-  color: string;
-  bgColor: string;
+const cardHoverVariants = {
+  rest: { scale: 1, y: 0 },
+  hover: { scale: 1.02, y: -4, transition: { duration: 0.2 } },
+};
+
+type DashboardStats = {
+  total_users: number;
+  active_users: number;
+  total_announcements: number;
+  total_courses: number;
+  pending_tickets: number;
+  total_certificates: number;
 };
 
 type LatestAnnouncement = {
@@ -75,89 +76,62 @@ type LatestAnnouncement = {
   created_at?: string | null;
 };
 
-const buildStatCards = (stats?: {
-  total_users?: number;
-  total_announcements?: number;
-  total_courses?: number;
-}): StatCard[] => [
-  {
-    title: "Total User",
-    value: stats?.total_users ?? 0,
-    change: "",
-    trend: "up",
-    icon: UsersIcon,
-    color: "from-blue-500 to-cyan-500",
-    bgColor: "bg-blue-50 dark:bg-blue-900/20",
-  },
-  {
-    title: "User Aktif",
-    value: stats?.total_users ?? 0,
-    change: "",
-    trend: "up",
-    icon: CheckCircleIcon,
-    color: "from-emerald-500 to-teal-500",
-    bgColor: "bg-emerald-50 dark:bg-emerald-900/20",
-  },
-  {
-    title: "Pengumuman Aktif",
-    value: stats?.total_announcements ?? 0,
-    change: "",
-    trend: "up",
-    icon: MegaphoneIcon,
-    color: "from-amber-500 to-orange-500",
-    bgColor: "bg-amber-50 dark:bg-amber-900/20",
-  },
-  {
-    title: "Total Kursus",
-    value: stats?.total_courses ?? 0,
-    change: "",
-    trend: "up",
-    icon: DocumentChartBarIcon,
-    color: "from-purple-500 to-pink-500",
-    bgColor: "bg-purple-50 dark:bg-purple-900/20",
-  },
-];
-const quickActions = [
-  {
-    title: "Tambah User",
-    desc: "Daftarkan user baru",
-    icon: UserPlusIcon,
-    href: "/admin/users/create",
-    color: "from-blue-500 to-cyan-500",
-  },
-  {
-    title: "Buat Pengumuman",
-    desc: "Publikasikan info terbaru",
-    icon: MegaphoneIcon,
-    href: "/admin/announcements/create",
-    color: "from-amber-500 to-orange-500",
-  },
-  {
-    title: "Lihat Laporan",
-    desc: "Analisis data unit",
-    icon: DocumentChartBarIcon,
-    href: "/admin/reports",
-    color: "from-purple-500 to-pink-500",
-  },
-];
+type RecentUser = {
+  id: number;
+  name: string;
+  email: string;
+  department?: string;
+  position?: string;
+  created_at: string;
+  is_active?: boolean;
+};
+
+type Activity = {
+  id: number;
+  type: "user" | "announcement" | "course" | "ticket";
+  message: string;
+  time: string;
+  icon: typeof UsersIcon;
+  color: string;
+  bgColor: string;
+};
 
 export default function AdminDashboardPage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [statCards, setStatCards] = useState<StatCard[]>([]);
+  const [stats, setStats] = useState<DashboardStats>({
+    total_users: 0,
+    active_users: 0,
+    total_announcements: 0,
+    total_courses: 0,
+    pending_tickets: 0,
+    total_certificates: 0,
+  });
   const [recentAnnouncements, setRecentAnnouncements] = useState<
     LatestAnnouncement[]
   >([]);
-  const recentUsers: Array<{
-    id: number;
-    name: string;
-    email: string;
-    department?: string;
-    status?: string;
-    joinedAt?: string;
-  }> = [];
+  const [recentUsers, setRecentUsers] = useState<RecentUser[]>([]);
   const { toast, showToast, clearToast } = useToast();
+
+  // Get current greeting based on time
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Selamat Pagi";
+    if (hour < 15) return "Selamat Siang";
+    if (hour < 18) return "Selamat Sore";
+    return "Selamat Malam";
+  };
+
+  // Get current date formatted
+  const getCurrentDate = () => {
+    return new Date().toLocaleDateString("id-ID", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  };
 
   useEffect(() => {
     const loadDashboard = async () => {
@@ -165,21 +139,43 @@ export default function AdminDashboardPage() {
         setLoading(true);
         setErrorMessage(null);
 
-        const [statsRes, latestRes] = await Promise.all([
+        const [statsRes, latestRes, usersRes] = await Promise.all([
           api.get("/dashboard/stats"),
           api.get("/announcements/latest"),
+          api.get("/users/all").catch(() => ({ data: { data: [] } })),
         ]);
 
-        setStatCards(buildStatCards(statsRes?.data?.data));
+        const statsData = statsRes?.data?.data || statsRes?.data || {};
+        setStats({
+          total_users: statsData.total_users || 0,
+          active_users: statsData.active_users || statsData.total_users || 0,
+          total_announcements: statsData.total_announcements || 0,
+          total_courses: statsData.total_courses || 0,
+          pending_tickets: statsData.pending_tickets || 0,
+          total_certificates: statsData.total_certificates || 0,
+        });
 
         const latest = latestRes?.data?.data;
-        setRecentAnnouncements(Array.isArray(latest) ? latest : []);
+        setRecentAnnouncements(Array.isArray(latest) ? latest.slice(0, 4) : []);
+
+        const usersData = usersRes?.data?.data || [];
+        setRecentUsers(
+          Array.isArray(usersData)
+            ? usersData.slice(0, 5).map((u: any) => ({
+                id: u.id,
+                name: u.name,
+                email: u.email,
+                department: u.department,
+                position: u.position,
+                created_at: u.created_at,
+                is_active: u.is_active,
+              }))
+            : [],
+        );
       } catch (err: unknown) {
         const message =
           err instanceof Error ? err.message : "Gagal memuat dashboard admin.";
         setErrorMessage(message);
-        setStatCards(buildStatCards());
-        setRecentAnnouncements([]);
       } finally {
         setLoading(false);
       }
@@ -188,88 +184,158 @@ export default function AdminDashboardPage() {
     void loadDashboard();
   }, []);
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "active":
-        return (
-          <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
-            Aktif
-          </Badge>
-        );
-      case "pending":
-        return (
-          <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100">
-            Pending
-          </Badge>
-        );
-      case "inactive":
-        return (
-          <Badge className="bg-slate-100 text-slate-700 hover:bg-slate-100">
-            Nonaktif
-          </Badge>
-        );
-      case "published":
-        return (
-          <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
-            Published
-          </Badge>
-        );
-      case "draft":
-        return (
-          <Badge className="bg-slate-100 text-slate-700 hover:bg-slate-100">
-            Draft
-          </Badge>
-        );
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  };
-
-  const getPriorityBadge = (priority: string) => {
+  const getPriorityBadge = (priority?: string | null) => {
     switch (priority) {
       case "high":
         return (
-          <Badge className="bg-red-100 text-red-700 hover:bg-red-100">
-            Tinggi
+          <Badge className="bg-red-100 text-red-700 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400">
+            Penting
           </Badge>
         );
       case "medium":
         return (
-          <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100">
+          <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400">
             Sedang
           </Badge>
         );
       case "low":
         return (
-          <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">
+          <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400">
             Rendah
           </Badge>
         );
       default:
-        return <Badge variant="outline">{priority}</Badge>;
+        return null;
     }
   };
 
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase();
+  };
+
+  const statCards = [
+    {
+      title: "Total User",
+      value: stats.total_users,
+      icon: UserGroupIcon,
+      gradient: "from-pln-primary to-pln-600",
+      iconBg: "bg-pln-100 dark:bg-pln-900/30",
+      iconColor: "text-pln-primary",
+    },
+    {
+      title: "User Aktif",
+      value: stats.active_users,
+      icon: CheckCircleIcon,
+      gradient: "from-emerald-500 to-teal-500",
+      iconBg: "bg-emerald-100 dark:bg-emerald-900/30",
+      iconColor: "text-emerald-600",
+    },
+    {
+      title: "Pengumuman",
+      value: stats.total_announcements,
+      icon: MegaphoneIcon,
+      gradient: "from-amber-500 to-orange-500",
+      iconBg: "bg-amber-100 dark:bg-amber-900/30",
+      iconColor: "text-amber-600",
+    },
+    {
+      title: "Total Kursus",
+      value: stats.total_courses,
+      icon: BookOpenIcon,
+      gradient: "from-pln-light to-cyan-500",
+      iconBg: "bg-cyan-100 dark:bg-cyan-900/30",
+      iconColor: "text-cyan-600",
+    },
+  ];
+
+  const quickActions = [
+    {
+      title: "Tambah User",
+      desc: "Daftarkan user baru ke sistem",
+      icon: UserPlusIcon,
+      href: "/admin/users",
+      gradient: "from-pln-primary to-pln-light",
+    },
+    {
+      title: "Buat Pengumuman",
+      desc: "Publikasikan informasi terbaru",
+      icon: PlusCircleIcon,
+      href: "/admin/announcements",
+      gradient: "from-amber-500 to-orange-500",
+    },
+    {
+      title: "Kelola Kelas",
+      desc: "Atur kelas dan peserta",
+      icon: AcademicCapIcon,
+      href: "/admin/courses",
+      gradient: "from-violet-500 to-purple-500",
+    },
+    {
+      title: "Support Ticket",
+      desc: "Lihat dan balas tiket",
+      icon: ChatBubbleLeftRightIcon,
+      href: "/admin/support",
+      gradient: "from-rose-500 to-pink-500",
+    },
+  ];
+
+  const activities: Activity[] = [
+    {
+      id: 1,
+      type: "user",
+      message: `${stats.active_users} user aktif di sistem`,
+      time: "Saat ini",
+      icon: UserGroupIcon,
+      color: "text-emerald-600",
+      bgColor: "bg-emerald-100 dark:bg-emerald-900/30",
+    },
+    {
+      id: 2,
+      type: "announcement",
+      message: `${stats.total_announcements} pengumuman dipublikasikan`,
+      time: "Total",
+      icon: MegaphoneIcon,
+      color: "text-amber-600",
+      bgColor: "bg-amber-100 dark:bg-amber-900/30",
+    },
+    {
+      id: 3,
+      type: "course",
+      message: `${stats.total_courses} kursus tersedia`,
+      time: "Total",
+      icon: BookOpenIcon,
+      color: "text-pln-primary",
+      bgColor: "bg-pln-100 dark:bg-pln-900/30",
+    },
+  ];
+
   if (loading) {
     return (
-      <div className="p-6 lg:p-8">
-        {toast && <Toast {...toast} onClose={clearToast} />}
+      <div className="p-6 lg:p-8 min-h-screen">
         {/* Header Skeleton */}
-        <div className="mb-8 space-y-2">
-          <Skeleton className="h-8 w-64" />
-          <Skeleton className="h-4 w-48" />
+        <div className="mb-8">
+          <div className="rounded-3xl bg-slate-200 dark:bg-slate-800 h-44 animate-pulse" />
         </div>
 
         {/* Stats Skeleton */}
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {[1, 2, 3, 4].map((i) => (
             <div
               key={i}
-              className="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900"
+              className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5"
             >
-              <Skeleton className="h-4 w-24 mb-4" />
-              <Skeleton className="h-8 w-20 mb-2" />
-              <Skeleton className="h-3 w-16" />
+              <div className="flex items-center gap-4">
+                <Skeleton className="h-12 w-12 rounded-xl" />
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-7 w-12" />
+                </div>
+              </div>
             </div>
           ))}
         </div>
@@ -277,24 +343,12 @@ export default function AdminDashboardPage() {
         {/* Content Skeleton */}
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2 space-y-6">
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
-              <Skeleton className="h-5 w-32 mb-4" />
-              <div className="space-y-3">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <Skeleton key={i} className="h-12 w-full" />
-                ))}
-              </div>
-            </div>
+            <Skeleton className="h-72 w-full rounded-2xl" />
+            <Skeleton className="h-64 w-full rounded-2xl" />
           </div>
           <div className="space-y-6">
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
-              <Skeleton className="h-5 w-28 mb-4" />
-              <div className="space-y-3">
-                {[1, 2, 3].map((i) => (
-                  <Skeleton key={i} className="h-16 w-full" />
-                ))}
-              </div>
-            </div>
+            <Skeleton className="h-80 w-full rounded-2xl" />
+            <Skeleton className="h-52 w-full rounded-2xl" />
           </div>
         </div>
       </div>
@@ -305,27 +359,34 @@ export default function AdminDashboardPage() {
     return (
       <div className="min-h-[80vh] flex items-center justify-center p-6">
         {toast && <Toast {...toast} onClose={clearToast} />}
-        <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center max-w-md w-full shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 dark:bg-red-900/30">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="rounded-2xl border border-slate-200 bg-white p-8 text-center max-w-md w-full shadow-xl dark:border-slate-800 dark:bg-slate-900"
+        >
+          <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4 dark:bg-red-900/30">
             <ExclamationTriangleIcon className="w-8 h-8 text-red-600" />
           </div>
-          <h3 className="text-lg font-bold text-slate-900 mb-2 dark:text-white">
+          <h3 className="text-xl font-bold text-slate-900 mb-2 dark:text-white">
             Gagal Memuat Data
           </h3>
           <p className="text-slate-500 mb-6 dark:text-slate-400">
             {errorMessage}
           </p>
-          <Button onClick={() => window.location.reload()}>
+          <Button
+            onClick={() => window.location.reload()}
+            className="bg-gradient-to-r from-pln-primary to-pln-light hover:from-pln-dark hover:to-pln-primary"
+          >
             <ArrowPathIcon className="w-4 h-4 mr-2" />
             Coba Lagi
           </Button>
-        </div>
+        </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 lg:p-8">
+    <div className="p-6 lg:p-8 min-h-screen">
       {toast && <Toast {...toast} onClose={clearToast} />}
 
       <motion.div
@@ -333,58 +394,78 @@ export default function AdminDashboardPage() {
         initial="hidden"
         animate="visible"
       >
-        {/* Header */}
+        {/* Hero Header */}
         <motion.div variants={itemVariants} className="mb-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
-            Admin Dashboard
-          </p>
-          <h1 className="mt-2 text-2xl font-bold text-slate-900 lg:text-3xl dark:text-white">
-            Panel Administrator
-          </h1>
-          <p className="text-slate-500 mt-1 dark:text-slate-400">
-            Kelola user, pengumuman, dan laporan unit Anda
-          </p>
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-pln-primary via-pln-600 to-pln-light p-6 lg:p-8 text-white">
+            {/* Background decoration */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
+
+            <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <SparklesIcon className="h-5 w-5 text-yellow-300" />
+                  <span className="text-sm font-medium text-pln-100">
+                    {getCurrentDate()}
+                  </span>
+                </div>
+                <h1 className="text-2xl lg:text-3xl font-bold mb-2">
+                  {getGreeting()}, {user?.name?.split(" ")[0] || "Admin"}! 👋
+                </h1>
+                <p className="text-pln-100 max-w-lg">
+                  Selamat datang di Panel Administrator. Kelola user,
+                  pengumuman, dan pantau aktivitas unit Anda.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <Link href="/admin/announcements">
+                  <Button className="bg-white/20 hover:bg-white/30 text-white border-white/30 backdrop-blur-sm">
+                    <BellAlertIcon className="h-4 w-4 mr-2" />
+                    Buat Pengumuman
+                  </Button>
+                </Link>
+                <Link href="/admin/users">
+                  <Button className="bg-white text-pln-primary hover:bg-white/90">
+                    <UserPlusIcon className="h-4 w-4 mr-2" />
+                    Tambah User
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </div>
         </motion.div>
 
         {/* Stats Cards */}
         <motion.div
           variants={itemVariants}
-          className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-8"
+          className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8"
         >
-          {statCards.map((stat, index) => (
+          {statCards.map((stat) => (
             <motion.div
               key={stat.title}
-              whileHover={{ y: -4, transition: { duration: 0.2 } }}
-              className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-lg dark:border-slate-800 dark:bg-slate-900"
+              variants={cardHoverVariants}
+              initial="rest"
+              whileHover="hover"
+              className="group relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 shadow-sm"
             >
-              <div className="flex items-start justify-between">
-                <div className={`rounded-xl p-3 ${stat.bgColor}`}>
-                  <stat.icon className="h-6 w-6 text-slate-700 dark:text-slate-300" />
-                </div>
+              <div className="flex items-center gap-4">
                 <div
-                  className={`flex items-center gap-1 text-sm font-medium ${
-                    stat.trend === "up" ? "text-emerald-600" : "text-red-500"
-                  }`}
+                  className={`flex h-12 w-12 items-center justify-center rounded-xl ${stat.iconBg}`}
                 >
-                  {stat.trend === "up" ? (
-                    <ArrowTrendingUpIcon className="h-4 w-4" />
-                  ) : (
-                    <ArrowTrendingDownIcon className="h-4 w-4" />
-                  )}
-                  {stat.change}
+                  <stat.icon className={`h-6 w-6 ${stat.iconColor}`} />
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    {stat.title}
+                  </p>
+                  <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                    {stat.value.toLocaleString()}
+                  </p>
                 </div>
               </div>
-              <div className="mt-4">
-                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
-                  {stat.title}
-                </p>
-                <p className="mt-1 text-3xl font-bold text-slate-900 dark:text-white">
-                  {stat.value.toLocaleString()}
-                </p>
-              </div>
-              {/* Gradient accent */}
+              {/* Gradient line on hover */}
               <div
-                className={`absolute bottom-0 left-0 h-1 w-full bg-gradient-to-r ${stat.color} opacity-0 transition-opacity group-hover:opacity-100`}
+                className={`absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r ${stat.gradient} transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300`}
               />
             </motion.div>
           ))}
@@ -392,31 +473,32 @@ export default function AdminDashboardPage() {
 
         {/* Quick Actions */}
         <motion.div variants={itemVariants} className="mb-8">
-          <h2 className="text-lg font-semibold text-slate-900 mb-4 dark:text-white">
-            Aksi Cepat
-          </h2>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+              Aksi Cepat
+            </h2>
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {quickActions.map((action) => (
               <Link key={action.title} href={action.href}>
                 <motion.div
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="group flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-5 transition-all hover:border-slate-300 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700"
+                  variants={cardHoverVariants}
+                  initial="rest"
+                  whileHover="hover"
+                  className="group relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 h-full transition-shadow hover:shadow-lg"
                 >
                   <div
-                    className={`flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br ${action.color} text-white shadow-lg`}
+                    className={`flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br ${action.gradient} text-white mb-4 shadow-lg`}
                   >
                     <action.icon className="h-6 w-6" />
                   </div>
-                  <div className="flex-1">
-                    <p className="font-semibold text-slate-900 dark:text-white">
-                      {action.title}
-                    </p>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">
-                      {action.desc}
-                    </p>
-                  </div>
-                  <ArrowRightIcon className="h-5 w-5 text-slate-400 transition-transform group-hover:translate-x-1" />
+                  <h3 className="font-semibold text-slate-900 dark:text-white mb-1">
+                    {action.title}
+                  </h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    {action.desc}
+                  </p>
+                  <ArrowRightIcon className="absolute top-5 right-5 h-5 w-5 text-slate-300 dark:text-slate-600 group-hover:text-slate-500 dark:group-hover:text-slate-400 group-hover:translate-x-1 transition-all" />
                 </motion.div>
               </Link>
             ))}
@@ -427,152 +509,246 @@ export default function AdminDashboardPage() {
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Recent Users */}
           <motion.div variants={itemVariants} className="lg:col-span-2">
-            <Card className="border-slate-200 dark:border-slate-800">
-              <CardHeader className="flex flex-row items-center justify-between">
+            <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <div>
-                  <CardTitle className="text-lg">User Terbaru</CardTitle>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <UserGroupIcon className="h-5 w-5 text-pln-primary" />
+                    User Terbaru
+                  </CardTitle>
                   <CardDescription>
-                    Daftar user yang baru bergabung
+                    User yang baru bergabung ke sistem
                   </CardDescription>
                 </div>
-                <Button variant="outline" size="sm" asChild>
+                <Button variant="outline" size="sm" asChild className="group">
                   <Link href="/admin/users">
                     Lihat Semua
-                    <ArrowRightIcon className="ml-2 h-4 w-4" />
+                    <ArrowRightIcon className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                   </Link>
                 </Button>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nama</TableHead>
-                      <TableHead>Departemen</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Bergabung</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {recentUsers.map((userItem) => (
-                      <TableRow key={userItem.id}>
-                        <TableCell>
+                {recentUsers.length === 0 ? (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto mb-4">
+                      <UsersIcon className="h-8 w-8 text-slate-400" />
+                    </div>
+                    <p className="text-slate-500 dark:text-slate-400">
+                      Belum ada user terdaftar
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {recentUsers.map((userItem, idx) => (
+                      <motion.div
+                        key={userItem.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: idx * 0.05 }}
+                        className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-pln-primary to-pln-light text-sm font-semibold text-white">
+                            {getInitials(userItem.name)}
+                          </div>
                           <div>
                             <p className="font-medium text-slate-900 dark:text-white">
                               {userItem.name}
                             </p>
                             <p className="text-sm text-slate-500">
-                              {userItem.email}
+                              {userItem.department || userItem.email}
                             </p>
                           </div>
-                        </TableCell>
-                        <TableCell className="text-slate-600 dark:text-slate-400">
-                          {userItem.department}
-                        </TableCell>
-                        <TableCell>{getStatusBadge(userItem.status)}</TableCell>
-                        <TableCell className="text-slate-500">
-                          {new Date(userItem.joinedAt).toLocaleDateString(
-                            "id-ID",
-                            {
+                        </div>
+                        <div className="text-right">
+                          <Badge
+                            className={
+                              userItem.is_active
+                                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                                : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
+                            }
+                          >
+                            {userItem.is_active ? "Aktif" : "Nonaktif"}
+                          </Badge>
+                          <p className="text-xs text-slate-400 mt-1">
+                            {new Date(userItem.created_at).toLocaleDateString(
+                              "id-ID",
+                              {
+                                day: "numeric",
+                                month: "short",
+                              },
+                            )}
+                          </p>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Recent Announcements */}
+            <Card className="border-slate-200 dark:border-slate-800 shadow-sm mt-6">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <div>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <MegaphoneIcon className="h-5 w-5 text-amber-500" />
+                    Pengumuman Terbaru
+                  </CardTitle>
+                  <CardDescription>
+                    Pengumuman yang dipublikasikan
+                  </CardDescription>
+                </div>
+                <Button variant="outline" size="sm" asChild className="group">
+                  <Link href="/admin/announcements">
+                    Lihat Semua
+                    <ArrowRightIcon className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                  </Link>
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {recentAnnouncements.length === 0 ? (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto mb-4">
+                      <MegaphoneIcon className="h-8 w-8 text-slate-400" />
+                    </div>
+                    <p className="text-slate-500 dark:text-slate-400 mb-3">
+                      Belum ada pengumuman
+                    </p>
+                    <Button asChild variant="outline" size="sm">
+                      <Link href="/admin/announcements">
+                        <PlusCircleIcon className="h-4 w-4 mr-2" />
+                        Buat Pengumuman
+                      </Link>
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {recentAnnouncements.map((announcement, idx) => (
+                      <motion.div
+                        key={announcement.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: idx * 0.05 }}
+                        className="group rounded-xl border border-slate-100 dark:border-slate-800 p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
+                      >
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <p className="font-medium text-slate-900 dark:text-white line-clamp-2 flex-1">
+                            {announcement.title}
+                          </p>
+                          {getPriorityBadge(announcement.priority)}
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-slate-500">
+                          <span className="flex items-center gap-1">
+                            <ClockIcon className="h-3.5 w-3.5" />
+                            {new Date(
+                              announcement.created_at || "",
+                            ).toLocaleDateString("id-ID", {
                               day: "numeric",
                               month: "short",
-                            },
-                          )}
-                        </TableCell>
-                      </TableRow>
+                            })}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <EyeIcon className="h-3.5 w-3.5" />
+                            {announcement.views || 0}
+                          </span>
+                        </div>
+                      </motion.div>
                     ))}
-                  </TableBody>
-                </Table>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </motion.div>
 
-          {/* Recent Announcements */}
-          <motion.div variants={itemVariants}>
-            <Card className="border-slate-200 dark:border-slate-800">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle className="text-lg">Pengumuman</CardTitle>
-                  <CardDescription>Pengumuman terbaru</CardDescription>
-                </div>
-                <Button variant="ghost" size="sm" asChild>
-                  <Link href="/admin/announcements">
-                    <ArrowRightIcon className="h-4 w-4" />
-                  </Link>
-                </Button>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {recentAnnouncements.map((announcement) => (
-                  <div
-                    key={announcement.id}
-                    className="rounded-xl border border-slate-100 p-4 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="font-medium text-slate-900 dark:text-white line-clamp-1">
-                        {announcement.title}
-                      </p>
-                      {getPriorityBadge(announcement.priority)}
-                    </div>
-                    <div className="mt-2 flex items-center gap-4 text-sm text-slate-500">
-                      <span className="flex items-center gap-1">
-                        <ClockIcon className="h-4 w-4" />
-                        {new Date(announcement.created_at).toLocaleDateString(
-                          "id-ID",
-                          {
-                            day: "numeric",
-                            month: "short",
-                          },
-                        )}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <EyeIcon className="h-4 w-4" />
-                        {announcement.views}
-                      </span>
-                      {getStatusBadge(announcement.status)}
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
+          {/* Right Sidebar */}
+          <motion.div variants={itemVariants} className="space-y-6">
             {/* Activity Summary */}
-            <Card className="mt-6 border-slate-200 dark:border-slate-800">
-              <CardHeader>
-                <CardTitle className="text-lg">Aktivitas Hari Ini</CardTitle>
+            <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <ChartBarIcon className="h-5 w-5 text-violet-500" />
+                  Ringkasan
+                </CardTitle>
+                <CardDescription>Statistik sistem saat ini</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/30">
-                      <UserPlusIcon className="h-5 w-5 text-emerald-600" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-slate-900 dark:text-white">
-                        5 user baru terdaftar
-                      </p>
-                      <p className="text-xs text-slate-500">2 jam yang lalu</p>
-                    </div>
+                  {activities.map((activity, idx) => (
+                    <motion.div
+                      key={activity.id}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: idx * 0.1 }}
+                      className="flex items-center gap-3"
+                    >
+                      <div
+                        className={`flex h-10 w-10 items-center justify-center rounded-xl ${activity.bgColor}`}
+                      >
+                        <activity.icon
+                          className={`h-5 w-5 ${activity.color}`}
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-slate-900 dark:text-white truncate">
+                          {activity.message}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          {activity.time}
+                        </p>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Calendar / Schedule */}
+            <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <CalendarDaysIcon className="h-5 w-5 text-pln-light" />
+                  Jadwal Hari Ini
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-8">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-pln-primary/10 to-pln-light/10 flex items-center justify-center mx-auto mb-3">
+                    <CalendarDaysIcon className="h-7 w-7 text-pln-primary" />
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
-                      <MegaphoneIcon className="h-5 w-5 text-blue-600" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-slate-900 dark:text-white">
-                        1 pengumuman dipublikasi
-                      </p>
-                      <p className="text-xs text-slate-500">5 jam yang lalu</p>
-                    </div>
+                  <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                    {new Date().getDate()}
+                  </p>
+                  <p className="text-sm text-slate-500">
+                    {new Date().toLocaleDateString("id-ID", {
+                      month: "long",
+                      year: "numeric",
+                    })}
+                  </p>
+                  <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                    <p className="text-sm text-slate-500">
+                      Tidak ada jadwal khusus
+                    </p>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900/30">
-                      <DocumentChartBarIcon className="h-5 w-5 text-purple-600" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-slate-900 dark:text-white">
-                        Laporan mingguan tersedia
-                      </p>
-                      <p className="text-xs text-slate-500">Hari ini</p>
-                    </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Quick Tips */}
+            <Card className="border-slate-200 dark:border-slate-800 shadow-sm bg-gradient-to-br from-pln-50 to-white dark:from-pln-900/20 dark:to-slate-900">
+              <CardContent className="pt-6">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-pln-primary text-white flex-shrink-0">
+                    <SparklesIcon className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-slate-900 dark:text-white mb-1">
+                      Tips Admin
+                    </h4>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                      Pastikan untuk memeriksa tiket support secara berkala
+                      untuk memberikan respon cepat kepada user.
+                    </p>
                   </div>
                 </div>
               </CardContent>
