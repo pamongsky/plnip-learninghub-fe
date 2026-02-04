@@ -23,6 +23,7 @@ import {
   HomeIcon,
   BoltIcon,
   ArrowRightOnRectangleIcon,
+  ClockIcon,
 } from "@heroicons/react/24/outline";
 import { BellIcon } from "@heroicons/react/24/solid";
 import { useAuth } from "@/contexts/AuthContext";
@@ -46,6 +47,11 @@ const navGroups = [
     label: "Manajemen User",
     items: [
       { href: "/superadmin/users", label: "Kelola User", icon: UsersIcon },
+      {
+        href: "/superadmin/activity-log",
+        label: "Activity Log",
+        icon: ClockIcon,
+      },
       {
         href: "/superadmin/roles",
         label: "Roles & Permissions",

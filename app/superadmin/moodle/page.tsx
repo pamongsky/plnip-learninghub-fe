@@ -62,6 +62,7 @@ export default function SuperadminMoodlePage() {
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
   const [syncHistory, setSyncHistory] = useState<SyncHistoryType[]>([]);
   const [lastSyncResult, setLastSyncResult] = useState<SyncResult | null>(null);
+  const [showAllHistory, setShowAllHistory] = useState(false);
   const { toast, showToast, clearToast } = useToast();
 
   // Load status on mount & every 30 seconds
@@ -433,64 +434,134 @@ export default function SuperadminMoodlePage() {
         <motion.div variants={itemVariants}>
           <Card className="border-0 shadow-lg">
             <CardHeader>
-              <CardTitle>Sync History</CardTitle>
-              <CardDescription>Riwayat sinkronisasi terbaru</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Sync History</CardTitle>
+                  <CardDescription>
+                    Riwayat sinkronisasi terbaru
+                  </CardDescription>
+                </div>
+                {syncHistory.length > 5 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowAllHistory(!showAllHistory)}
+                  >
+                    {showAllHistory ? "Tampilkan Sedikit" : "Lihat Semua"}
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Tipe</TableHead>
-                    <TableHead>Waktu Mulai</TableHead>
-                    <TableHead>Waktu Selesai</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Users</TableHead>
-                    <TableHead className="text-right">Courses</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {syncHistory.map((sync) => (
-                    <TableRow key={sync.id}>
-                      <TableCell className="font-medium">{sync.type}</TableCell>
-                      <TableCell className="text-slate-500">
-                        {new Date(sync.started_at).toLocaleString("id-ID")}
-                      </TableCell>
-                      <TableCell className="text-slate-500">
-                        {new Date(sync.completed_at).toLocaleString("id-ID")}
-                      </TableCell>
-                      <TableCell>{getStatusBadge(sync.status)}</TableCell>
-                      <TableCell className="text-right">
-                        <span className="text-emerald-600">
-                          +{sync.users_added || 0}
-                        </span>
-                        {" / "}
-                        <span className="text-blue-600">
-                          ↻{sync.users_updated || 0}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <span className="text-emerald-600">
-                          +{sync.courses_added || 0}
-                        </span>
-                        {" / "}
-                        <span className="text-blue-600">
-                          ↻{sync.courses_updated || 0}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {syncHistory.length === 0 && (
+              <div
+                className={
+                  showAllHistory
+                    ? "max-h-[600px] overflow-y-auto"
+                    : "max-h-[400px] overflow-y-auto"
+                }
+              >
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell
-                        colSpan={6}
-                        className="text-center text-slate-500"
-                      >
-                        Belum ada history sync
-                      </TableCell>
+                      <TableHead>Tipe</TableHead>
+                      <TableHead>Waktu Mulai</TableHead>
+                      <TableHead>Waktu Selesai</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Users</TableHead>
+                      <TableHead className="text-right">Courses</TableHead>
                     </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {(showAllHistory
+                      ? syncHistory
+                      : syncHistory.slice(0, 5)
+                    ).map((sync) => (
+                      <TableRow key={sync.id}>
+                        <TableCell className="font-medium">
+                          {sync.type}
+                        </TableCell>
+                        <TableCell className="text-slate-500">
+                          <div className="text-xs">
+                            <div>
+                              {new Date(sync.started_at).toLocaleDateString(
+                                "id-ID",
+                                {
+                                  day: "2-digit",
+                                  month: "short",
+                                  year: "numeric",
+                                },
+                              )}
+                            </div>
+                            <div className="font-mono text-[#035B71]">
+                              {new Date(sync.started_at).toLocaleTimeString(
+                                "id-ID",
+                                {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                  second: "2-digit",
+                                },
+                              )}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-slate-500">
+                          <div className="text-xs">
+                            <div>
+                              {new Date(sync.completed_at).toLocaleDateString(
+                                "id-ID",
+                                {
+                                  day: "2-digit",
+                                  month: "short",
+                                  year: "numeric",
+                                },
+                              )}
+                            </div>
+                            <div className="font-mono text-[#035B71]">
+                              {new Date(sync.completed_at).toLocaleTimeString(
+                                "id-ID",
+                                {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                  second: "2-digit",
+                                },
+                              )}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>{getStatusBadge(sync.status)}</TableCell>
+                        <TableCell className="text-right">
+                          <span className="text-emerald-600">
+                            +{sync.users_added || 0}
+                          </span>
+                          {" / "}
+                          <span className="text-blue-600">
+                            ↻{sync.users_updated || 0}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <span className="text-emerald-600">
+                            +{sync.courses_added || 0}
+                          </span>
+                          {" / "}
+                          <span className="text-blue-600">
+                            ↻{sync.courses_updated || 0}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {syncHistory.length === 0 && (
+                      <TableRow>
+                        <TableCell
+                          colSpan={6}
+                          className="text-center text-slate-500"
+                        >
+                          Belum ada history sync
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
         </motion.div>

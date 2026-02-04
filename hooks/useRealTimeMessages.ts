@@ -179,3 +179,58 @@ export function useSupportTicketChannel(
     };
   }, [ticketId]);
 }
+
+// Hook for Escalation Ticket (Admin <-> Super Admin)
+export function useEscalationTicketChannel(
+  ticketId: number | null,
+  onNewReply: (data: any) => void,
+  onStatusUpdate?: (data: any) => void,
+) {
+  const callbackRef = useRef(onNewReply);
+  const statusCallbackRef = useRef(onStatusUpdate);
+  callbackRef.current = onNewReply;
+  statusCallbackRef.current = onStatusUpdate;
+
+  useEffect(() => {
+    if (!ticketId) return;
+
+    const echo = getEcho();
+    if (!echo) {
+      console.warn("Echo not available for escalation ticket channel");
+      return;
+    }
+
+    const channelName = `escalation-ticket.${ticketId}`;
+    console.log("Subscribing to escalation channel:", channelName);
+
+    const channel = echo.private(channelName);
+
+    // Listen for new replies
+    channel.listen(".reply.new", (data: any) => {
+      console.log("Received escalation reply.new event:", data);
+      callbackRef.current(data);
+    });
+
+    // Listen for status updates
+    channel.listen(".status.updated", (data: any) => {
+      console.log("Received escalation status.updated event:", data);
+      if (statusCallbackRef.current) {
+        statusCallbackRef.current(data);
+      }
+    });
+
+    // Debug channel connection
+    channel.subscription.bind("pusher:subscription_succeeded", () => {
+      console.log("Successfully subscribed to:", channelName);
+    });
+
+    channel.subscription.bind("pusher:subscription_error", (status: any) => {
+      console.error("Escalation subscription error:", status);
+    });
+
+    return () => {
+      console.log("Unsubscribing from escalation channel:", channelName);
+      echo.leave(channelName);
+    };
+  }, [ticketId]);
+}

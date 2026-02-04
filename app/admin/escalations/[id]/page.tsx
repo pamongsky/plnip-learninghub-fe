@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
@@ -13,6 +13,7 @@ import {
   ChatBubbleLeftRightIcon,
   ArrowPathIcon,
   LockClosedIcon,
+  DocumentIcon,
 } from "@heroicons/react/24/outline";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +24,7 @@ import {
   EscalationReply,
 } from "@/lib/api/escalation";
 import { useAuth } from "@/contexts/AuthContext";
+import { useEscalationTicketChannel } from "@/hooks/useRealTimeMessages";
 
 const priorityColors: Record<string, string> = {
   low: "bg-slate-100 text-slate-700",
@@ -51,6 +53,7 @@ export default function EscalationDetailPage() {
   const { user } = useAuth();
   const [ticket, setTicket] = useState<EscalationTicket | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [message, setMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -65,15 +68,92 @@ export default function EscalationDetailPage() {
     scrollToBottom();
   }, [ticket?.replies]);
 
-  const loadTicket = async () => {
+  // Real-time: Handle new replies from broadcasting
+  const handleNewReply = useCallback(
+    (data: any) => {
+      console.log("handleNewReply called with escalation data:", data);
+
+      // Skip if this is our own reply (already added via optimistic update)
+      if (user && data.user_id === user.id) {
+        console.log("Skipping own escalation reply:", data.id);
+        return;
+      }
+
+      // Add new reply to the list
+      const newReply: EscalationReply = {
+        id: data.id,
+        escalation_ticket_id: data.escalation_ticket_id,
+        user_id: data.user_id,
+        message: data.message,
+        attachments: data.attachments || null,
+        is_internal: data.is_internal || false,
+        created_at: data.created_at,
+        user: data.user,
+      };
+
+      setTicket((prev) => {
+        if (!prev) return prev;
+
+        // Avoid duplicates
+        const exists = prev.replies?.some((r) => r.id === newReply.id);
+        if (exists) {
+          console.log("Escalation reply already exists:", newReply.id);
+          return prev;
+        }
+
+        console.log("Adding new escalation reply:", newReply.id);
+        return {
+          ...prev,
+          replies: [...(prev.replies || []), newReply],
+        };
+      });
+
+      // Auto scroll to new message
+      setTimeout(() => scrollToBottom(), 100);
+    },
+    [user],
+  );
+
+  // Real-time: Handle status updates from broadcasting
+  const handleStatusUpdate = useCallback((data: any) => {
+    console.log("handleStatusUpdate called:", data);
+
+    setTicket((prev) => {
+      if (!prev) return prev;
+
+      console.log("Updating ticket status to:", data.status);
+      return {
+        ...prev,
+        status: data.status,
+        resolved_at: data.resolved_at || prev.resolved_at,
+        superadmin_id: data.superadmin_id || prev.superadmin_id,
+        updated_at: data.updated_at,
+      };
+    });
+  }, []);
+
+  // Subscribe to real-time escalation ticket channel
+  useEscalationTicketChannel(ticketId, handleNewReply, handleStatusUpdate);
+
+  const loadTicket = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) {
+        setLoading(true);
+        setError(null);
+      }
+      console.log("Loading escalation ticket ID:", ticketId);
       const data = await escalationApi.getTicket(ticketId);
+      console.log("Loaded ticket data:", data);
       setTicket(data);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error loading ticket:", error);
+      console.error("Error response:", error.response?.data);
+      console.error("Error status:", error.response?.status);
+      if (!silent) {
+        setError(error.response?.data?.message || "Gagal memuat tiket");
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -82,18 +162,48 @@ export default function EscalationDetailPage() {
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
+    console.log("handleSendMessage called");
     e.preventDefault();
-    if (!message.trim() || sending) return;
+    e.stopPropagation();
 
+    if (!message.trim() || sending) {
+      console.log("Validation failed or already sending");
+      return;
+    }
+
+    console.log("Starting to send message:", message);
     setSending(true);
+
+    const currentMessage = message;
+
+    // Clear input immediately (optimistic UI)
+    setMessage("");
+
     try {
-      await escalationApi.addReply(ticketId, message);
-      setMessage("");
-      await loadTicket();
+      console.log("Calling API...");
+      const response = await escalationApi.addReply(ticketId, currentMessage);
+      console.log("API call successful - adding reply optimistically");
+
+      // Optimistic update - add our own reply immediately
+      if (response.reply) {
+        setTicket((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            replies: [...(prev.replies || []), response.reply],
+          };
+        });
+      }
+
+      // No need to reload - broadcasting will update for other users
+      setTimeout(() => scrollToBottom(), 100);
     } catch (error) {
       console.error("Error sending message:", error);
+      // Restore message on error
+      setMessage(currentMessage);
     } finally {
       setSending(false);
+      console.log("Send complete");
     }
   };
 
@@ -116,6 +226,11 @@ export default function EscalationDetailPage() {
     });
   };
 
+  const getAttachmentUrl = (attachment: string) => {
+    if (attachment.startsWith("http")) return attachment;
+    return `http://127.0.0.1:8000${attachment.startsWith("/") ? "" : "/"}${attachment}`;
+  };
+
   if (loading) {
     return (
       <div className="p-6 lg:p-8">
@@ -133,8 +248,24 @@ export default function EscalationDetailPage() {
 
   if (!ticket) {
     return (
-      <div className="p-6 lg:p-8 text-center">
-        <p className="text-slate-500">Tiket tidak ditemukan</p>
+      <div className="p-6 lg:p-8">
+        <div className="text-center py-12">
+          <div className="rounded-full bg-red-100 w-16 h-16 flex items-center justify-center mx-auto mb-4">
+            <span className="text-3xl">❌</span>
+          </div>
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+            Tiket Tidak Ditemukan
+          </h2>
+          <p className="text-slate-500 mb-4">
+            {error ||
+              "Tiket dengan ID tersebut tidak ditemukan atau Anda tidak memiliki akses."}
+          </p>
+          <p className="text-sm text-slate-400 mb-4">Ticket ID: {ticketId}</p>
+          <Button onClick={() => router.back()}>
+            <ArrowLeftIcon className="h-4 w-4 mr-2" />
+            Kembali
+          </Button>
+        </div>
       </div>
     );
   }
@@ -192,29 +323,149 @@ export default function EscalationDetailPage() {
                   {ticket.support_ticket.subject}
                 </p>
               </div>
-              <div className="p-4 max-h-64 overflow-y-auto bg-slate-50/50 dark:bg-slate-800/50">
+              <div className="p-4 max-h-96 overflow-y-auto bg-slate-50/50 dark:bg-slate-800/50 space-y-3">
+                {/* Original Ticket Description (First Message) */}
+                <div className="bg-white dark:bg-slate-900 rounded-lg p-3 border border-slate-200 dark:border-slate-700">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="h-6 w-6 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-xs font-medium text-white">
+                      {ticket.support_ticket.user?.name.charAt(0) || "U"}
+                    </div>
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                      {ticket.support_ticket.user?.name || "User"}
+                    </span>
+                    <span className="text-xs text-slate-400">
+                      {formatDate(ticket.support_ticket.created_at)}
+                    </span>
+                    <span className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-0.5 rounded">
+                      Pelaporan Awal
+                    </span>
+                  </div>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 pl-8 whitespace-pre-wrap">
+                    {ticket.support_ticket.description}
+                  </p>
+
+                  {/* Attachments dari ticket description */}
+                  {ticket.support_ticket.attachments &&
+                    ticket.support_ticket.attachments.length > 0 && (
+                      <div className="pl-8 mt-2 space-y-1">
+                        {ticket.support_ticket.attachments.map(
+                          (attachment, idx) => {
+                            const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(
+                              attachment,
+                            );
+                            const attachmentUrl = getAttachmentUrl(attachment);
+                            return (
+                              <div key={idx}>
+                                {isImage ? (
+                                  <a
+                                    href={attachmentUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block"
+                                  >
+                                    <img
+                                      src={attachmentUrl}
+                                      alt="Attachment"
+                                      className="max-w-xs rounded border border-slate-200 hover:opacity-90 transition-opacity"
+                                    />
+                                  </a>
+                                ) : (
+                                  <a
+                                    href={attachmentUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+                                  >
+                                    <DocumentIcon className="h-4 w-4" />
+                                    {attachment.split("/").pop()}
+                                  </a>
+                                )}
+                              </div>
+                            );
+                          },
+                        )}
+                      </div>
+                    )}
+                </div>
+
+                {/* Replies */}
                 {ticket.support_ticket.replies?.map((reply, index) => (
-                  <div key={index} className="mb-3 last:mb-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <div className="h-6 w-6 rounded-full bg-slate-200 flex items-center justify-center text-xs font-medium">
-                        {reply.user.name.charAt(0)}
+                  <div
+                    key={index}
+                    className="bg-white dark:bg-slate-900 rounded-lg p-3 border border-slate-200 dark:border-slate-700"
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <div
+                        className={`h-6 w-6 rounded-full flex items-center justify-center text-xs font-medium text-white ${
+                          reply.is_admin_reply
+                            ? "bg-gradient-to-br from-pln-primary to-pln-light"
+                            : "bg-gradient-to-br from-blue-500 to-blue-600"
+                        }`}
+                      >
+                        {reply.user?.name.charAt(0) || "?"}
                       </div>
                       <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                        {reply.user.name}
+                        {reply.user?.name || "Unknown"}
                       </span>
                       <span className="text-xs text-slate-400">
                         {formatDate(reply.created_at)}
                       </span>
+                      {reply.is_admin_reply && (
+                        <span className="text-xs bg-pln-100 text-pln-700 dark:bg-pln-900/30 dark:text-pln-400 px-2 py-0.5 rounded">
+                          Admin
+                        </span>
+                      )}
                     </div>
-                    <p className="text-sm text-slate-600 dark:text-slate-400 pl-8">
+                    <p className="text-sm text-slate-600 dark:text-slate-400 pl-8 whitespace-pre-wrap">
                       {reply.message}
                     </p>
+
+                    {/* Attachments dari reply */}
+                    {reply.attachments && reply.attachments.length > 0 && (
+                      <div className="pl-8 mt-2 space-y-1">
+                        {reply.attachments.map((attachment, idx) => {
+                          const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(
+                            attachment,
+                          );
+                          const attachmentUrl = getAttachmentUrl(attachment);
+                          return (
+                            <div key={idx}>
+                              {isImage ? (
+                                <a
+                                  href={attachmentUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="block"
+                                >
+                                  <img
+                                    src={attachmentUrl}
+                                    alt="Attachment"
+                                    className="max-w-xs rounded border border-slate-200 hover:opacity-90 transition-opacity"
+                                  />
+                                </a>
+                              ) : (
+                                <a
+                                  href={attachmentUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+                                >
+                                  <DocumentIcon className="h-4 w-4" />
+                                  {attachment.split("/").pop()}
+                                </a>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 ))}
+
                 {(!ticket.support_ticket.replies ||
                   ticket.support_ticket.replies.length === 0) && (
-                  <p className="text-sm text-slate-400 italic">
-                    Tidak ada history percakapan
+                  <p className="text-sm text-slate-400 italic text-center py-2">
+                    Belum ada balasan di tiket asli
                   </p>
                 )}
               </div>
@@ -301,20 +552,26 @@ export default function EscalationDetailPage() {
                     type="text"
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSendMessage(e as any);
+                      }
+                    }}
                     placeholder="Ketik balasan..."
                     className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm focus:border-pln-primary focus:outline-none focus:ring-2 focus:ring-pln-primary/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                   />
-                  <Button
+                  <button
                     type="submit"
                     disabled={!message.trim() || sending}
-                    className="bg-gradient-to-r from-pln-primary to-pln-light"
+                    className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 h-9 px-4 py-2 bg-gradient-to-r from-pln-primary to-pln-light text-white hover:opacity-90"
                   >
                     {sending ? (
                       <ArrowPathIcon className="h-4 w-4 animate-spin" />
                     ) : (
                       <PaperAirplaneIcon className="h-4 w-4" />
                     )}
-                  </Button>
+                  </button>
                 </div>
               </form>
             ) : (

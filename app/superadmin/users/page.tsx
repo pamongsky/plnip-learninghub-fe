@@ -77,13 +77,6 @@ interface User {
   created_at: string;
 }
 
-const roleStats = [
-  { role: "superadmin", count: 2, color: "bg-pln-primary" },
-  { role: "admin", count: 12, color: "bg-pln-600" },
-  { role: "instructor", count: 45, color: "bg-pln-500" },
-  { role: "user", count: 5189, color: "bg-pln-light" },
-];
-
 export default function SuperadminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -97,6 +90,43 @@ export default function SuperadminUsersPage() {
     type: "success" | "error";
     text: string;
   } | null>(null);
+
+  // Calculate role stats from actual user data
+  const roleStats = [
+    {
+      role: "Super-admin",
+      count: users.filter(
+        (u) => u.role === "super-admin" || u.effective_role === "super-admin",
+      ).length,
+      color: "bg-pln-primary",
+    },
+    {
+      role: "Admin",
+      count: users.filter(
+        (u) => u.role === "admin" || u.effective_role === "admin",
+      ).length,
+      color: "bg-pln-600",
+    },
+    {
+      role: "Instructor",
+      count: users.filter(
+        (u) => u.role === "instructor" || u.effective_role === "instructor",
+      ).length,
+      color: "bg-pln-500",
+    },
+    {
+      role: "User",
+      count: users.filter(
+        (u) =>
+          u.role === "employee" ||
+          u.effective_role === "employee" ||
+          u.role === "user" ||
+          u.effective_role === "user" ||
+          (!u.role && !u.effective_role),
+      ).length,
+      color: "bg-pln-light",
+    },
+  ];
 
   // Modal states
   const [detailsModal, setDetailsModal] = useState({ open: false, userId: 0 });

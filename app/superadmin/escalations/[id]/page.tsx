@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
@@ -22,8 +22,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { escalationApi, EscalationTicket } from "@/lib/api/escalation";
+import {
+  escalationApi,
+  EscalationTicket,
+  EscalationReply,
+} from "@/lib/api/escalation";
 import { useAuth } from "@/contexts/AuthContext";
+import { useEscalationTicketChannel } from "@/hooks/useRealTimeMessages";
 import Image from "next/image";
 
 const priorityColors: Record<string, string> = {
@@ -70,15 +75,82 @@ export default function SuperadminEscalationDetailPage() {
     scrollToBottom();
   }, [ticket?.replies]);
 
-  const loadTicket = async () => {
+  // Real-time: Handle new replies from broadcasting
+  const handleNewReply = useCallback(
+    (data: any) => {
+      console.log("handleNewReply called with escalation data:", data);
+
+      // Skip if this is our own reply (already added via optimistic update)
+      if (user && data.user_id === user.id) {
+        console.log("Skipping own escalation reply:", data.id);
+        return;
+      }
+
+      // Add new reply to the list
+      const newReply: EscalationReply = {
+        id: data.id,
+        escalation_ticket_id: data.escalation_ticket_id,
+        user_id: data.user_id,
+        message: data.message,
+        attachments: data.attachments || null,
+        is_internal: data.is_internal || false,
+        created_at: data.created_at,
+        user: data.user,
+      };
+
+      setTicket((prev) => {
+        if (!prev) return prev;
+
+        // Avoid duplicates
+        const exists = prev.replies?.some((r) => r.id === newReply.id);
+        if (exists) {
+          console.log("Escalation reply already exists:", newReply.id);
+          return prev;
+        }
+
+        console.log("Adding new escalation reply:", newReply.id);
+        return {
+          ...prev,
+          replies: [...(prev.replies || []), newReply],
+        };
+      });
+
+      // Auto scroll to new message
+      setTimeout(() => scrollToBottom(), 100);
+    },
+    [user],
+  );
+
+  // Real-time: Handle status updates from broadcasting
+  const handleStatusUpdate = useCallback((data: any) => {
+    console.log("handleStatusUpdate called:", data);
+
+    setTicket((prev) => {
+      if (!prev) return prev;
+
+      console.log("Updating ticket status to:", data.status);
+      return {
+        ...prev,
+        status: data.status,
+        resolved_at: data.resolved_at || prev.resolved_at,
+        superadmin_id: data.superadmin_id || prev.superadmin_id,
+        updated_at: data.updated_at,
+      };
+    });
+  }, []);
+
+  // Subscribe to real-time escalation ticket channel
+  useEscalationTicketChannel(ticketId, handleNewReply, handleStatusUpdate);
+
+  const loadTicket = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const data = await escalationApi.getTicket(ticketId);
       setTicket(data);
     } catch (error) {
       console.error("Error loading ticket:", error);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -98,27 +170,78 @@ export default function SuperadminEscalationDetailPage() {
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
+    console.log("handleSendMessage called");
     e.preventDefault();
-    if ((!message.trim() && attachments.length === 0) || sending) return;
+    e.stopPropagation();
 
+    if ((!message.trim() && attachments.length === 0) || sending) {
+      console.log("Validation failed or already sending");
+      return;
+    }
+
+    console.log("Starting to send message:", message);
     setSending(true);
+
+    const currentMessage = message;
+    const currentAttachments = [...attachments];
+
+    // Clear input immediately (optimistic UI)
+    setMessage("");
+    setAttachments([]);
+
     try {
-      await escalationApi.addReply(ticketId, message, attachments);
-      setMessage("");
-      setAttachments([]);
-      await loadTicket();
+      console.log("Calling API...");
+      const response = await escalationApi.addReply(
+        ticketId,
+        currentMessage,
+        currentAttachments,
+      );
+      console.log("API call successful - adding reply optimistically");
+
+      // Optimistic update - add our own reply immediately
+      if (response.reply) {
+        setTicket((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            replies: [...(prev.replies || []), response.reply],
+          };
+        });
+      }
+
+      // No need to reload - broadcasting will update for other users
+      setTimeout(() => scrollToBottom(), 100);
     } catch (error) {
       console.error("Error sending message:", error);
+      // Restore message on error
+      setMessage(currentMessage);
+      setAttachments(currentAttachments);
     } finally {
       setSending(false);
+      console.log("Send complete");
     }
   };
 
   const handleUpdateStatus = async (newStatus: string) => {
     setUpdatingStatus(true);
     try {
-      await escalationApi.updateStatus(ticketId, newStatus);
-      await loadTicket();
+      const response = await escalationApi.updateStatus(ticketId, newStatus);
+      console.log("Status updated successfully");
+
+      // Optimistic update - update status immediately
+      if (response.ticket) {
+        setTicket((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            status: response.ticket.status,
+            resolved_at: response.ticket.resolved_at || prev.resolved_at,
+            superadmin_id: response.ticket.superadmin_id || prev.superadmin_id,
+          };
+        });
+      }
+
+      // No need to reload - broadcasting will update for other users
     } catch (error) {
       console.error("Error updating status:", error);
     } finally {
@@ -136,26 +259,32 @@ export default function SuperadminEscalationDetailPage() {
     });
   };
 
+  const getAttachmentUrl = (attachment: string) => {
+    if (attachment.startsWith("http")) return attachment;
+    return `http://127.0.0.1:8000${attachment.startsWith("/") ? "" : "/"}${attachment}`;
+  };
+
   const renderAttachments = (urls: string[] | null | undefined) => {
     if (!urls || urls.length === 0) return null;
 
     return (
       <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
         {urls.map((url, index) => {
-          const isImage = url.match(/\.(jpeg|jpg|png|gif)$/i);
+          const attachmentUrl = getAttachmentUrl(url);
+          const isImage = url.match(/\.(jpeg|jpg|png|gif|webp)$/i);
           const fileName = url.split("/").pop();
 
           if (isImage) {
             return (
               <a
                 key={index}
-                href={url}
+                href={attachmentUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="relative aspect-video w-full overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700"
               >
                 <img
-                  src={url}
+                  src={attachmentUrl}
                   alt="Attachment"
                   className="h-full w-full object-cover transition-transform hover:scale-105"
                 />
@@ -166,7 +295,7 @@ export default function SuperadminEscalationDetailPage() {
           return (
             <a
               key={index}
-              href={url}
+              href={attachmentUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2 text-xs text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
@@ -264,10 +393,10 @@ export default function SuperadminEscalationDetailPage() {
                   Anda hanya bisa melihat, tidak bisa membalas langsung ke user
                 </p>
               </div>
-              <div className="p-4 max-h-80 overflow-y-auto">
+              <div className="p-4 max-h-80 overflow-y-auto space-y-3">
                 {/* User info */}
                 {ticket.support_ticket.user && (
-                  <div className="mb-4 p-3 bg-white dark:bg-slate-800 rounded-xl border border-amber-200 dark:border-amber-800">
+                  <div className="p-3 bg-white dark:bg-slate-800 rounded-xl border border-amber-200 dark:border-amber-800">
                     <p className="text-xs text-amber-600 mb-1">
                       User yang mengalami kendala:
                     </p>
@@ -287,31 +416,73 @@ export default function SuperadminEscalationDetailPage() {
                   </div>
                 )}
 
-                {/* Conversation history */}
+                {/* Original Ticket Description (First Message) */}
+                <div className="bg-white dark:bg-slate-800 rounded-xl p-3 border border-amber-200 dark:border-amber-800">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="h-6 w-6 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-xs font-medium text-white">
+                      {ticket.support_ticket.user?.name.charAt(0) || "U"}
+                    </div>
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                      {ticket.support_ticket.user?.name || "User"}
+                    </span>
+                    <Badge
+                      variant="outline"
+                      className="text-xs bg-blue-100 text-blue-700 border-blue-200"
+                    >
+                      Pelaporan Awal
+                    </Badge>
+                    <span className="text-xs text-slate-400">
+                      {formatDate(ticket.support_ticket.created_at)}
+                    </span>
+                  </div>
+                  <div className="pl-8">
+                    <p className="text-sm text-slate-600 dark:text-slate-400 whitespace-pre-wrap">
+                      {ticket.support_ticket.description}
+                    </p>
+                    {ticket.support_ticket.attachments &&
+                      ticket.support_ticket.attachments.length > 0 && (
+                        <div className="mt-2">
+                          {renderAttachments(ticket.support_ticket.attachments)}
+                        </div>
+                      )}
+                  </div>
+                </div>
+
+                {/* Conversation history (Replies) */}
                 {ticket.support_ticket.replies?.map((reply, index) => (
-                  <div key={index} className="mb-4 last:mb-0">
-                    <div className="flex items-center gap-2 mb-1">
+                  <div
+                    key={index}
+                    className="bg-white dark:bg-slate-800 rounded-xl p-3 border border-amber-200 dark:border-amber-800"
+                  >
+                    <div className="flex items-center gap-2 mb-2">
                       <div
                         className={`h-6 w-6 rounded-full flex items-center justify-center text-xs font-medium ${
-                          reply.user.role === "admin"
-                            ? "bg-pln-primary text-white"
-                            : "bg-slate-200 text-slate-700"
+                          reply.is_admin_reply
+                            ? "bg-gradient-to-br from-pln-primary to-pln-light text-white"
+                            : "bg-gradient-to-br from-blue-500 to-blue-600 text-white"
                         }`}
                       >
-                        {reply.user.name.charAt(0)}
+                        {reply.user?.name.charAt(0) || "?"}
                       </div>
                       <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                        {reply.user.name}
+                        {reply.user?.name || "Unknown"}
                       </span>
-                      <Badge variant="outline" className="text-xs">
-                        {reply.user.role === "admin" ? "Admin" : "User"}
+                      <Badge
+                        variant="outline"
+                        className={`text-xs ${
+                          reply.is_admin_reply
+                            ? "bg-pln-100 text-pln-700 border-pln-200"
+                            : "bg-blue-100 text-blue-700 border-blue-200"
+                        }`}
+                      >
+                        {reply.is_admin_reply ? "Admin" : "User"}
                       </Badge>
                       <span className="text-xs text-slate-400">
                         {formatDate(reply.created_at)}
                       </span>
                     </div>
                     <div className="pl-8">
-                      <p className="text-sm text-slate-600 dark:text-slate-400">
+                      <p className="text-sm text-slate-600 dark:text-slate-400 whitespace-pre-wrap">
                         {reply.message}
                       </p>
                       {reply.attachments &&
@@ -321,8 +492,8 @@ export default function SuperadminEscalationDetailPage() {
                 ))}
                 {(!ticket.support_ticket.replies ||
                   ticket.support_ticket.replies.length === 0) && (
-                  <p className="text-sm text-amber-600 italic">
-                    Tidak ada history percakapan
+                  <p className="text-sm text-amber-600 italic text-center py-2">
+                    Belum ada balasan di tiket asli
                   </p>
                 )}
               </div>
@@ -432,6 +603,12 @@ export default function SuperadminEscalationDetailPage() {
                       type="text"
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSendMessage(e as any);
+                        }
+                      }}
                       placeholder="Ketik balasan ke Admin..."
                       className="w-full rounded-xl border border-slate-200 bg-slate-50 pl-4 pr-10 py-2 text-sm focus:border-pln-primary focus:outline-none focus:ring-2 focus:ring-pln-primary/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                     />
@@ -452,19 +629,19 @@ export default function SuperadminEscalationDetailPage() {
                       accept="image/*,.pdf,.doc,.docx"
                     />
                   </div>
-                  <Button
+                  <button
                     type="submit"
                     disabled={
                       (!message.trim() && attachments.length === 0) || sending
                     }
-                    className="bg-gradient-to-r from-pln-primary to-pln-light"
+                    className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 h-9 px-4 py-2 bg-gradient-to-r from-pln-primary to-pln-light text-white hover:opacity-90"
                   >
                     {sending ? (
                       <ArrowPathIcon className="h-4 w-4 animate-spin" />
                     ) : (
                       <PaperAirplaneIcon className="h-4 w-4" />
                     )}
-                  </Button>
+                  </button>
                 </form>
               </div>
             ) : (

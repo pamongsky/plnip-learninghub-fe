@@ -260,12 +260,24 @@ export default function SuperadminDashboardPage() {
     setSyncLoading(true);
     try {
       const response = await api.post("/moodle/sync/full");
+
+      // Show success notification
       showToast({
         type: "success",
         message: response.data?.message || "Sinkronisasi Moodle berhasil!",
       });
-      // Reload data after sync
-      window.location.reload();
+
+      // Reload Moodle status without page refresh
+      const moodleRes = await api.get("/moodle/sync/status");
+      if (moodleRes.data) {
+        setMoodleStatus({
+          connected: moodleRes.data.connection?.connected || false,
+          last_sync: moodleRes.data.last_sync || new Date().toISOString(),
+          users_synced: moodleRes.data.stats?.synced_users || 0,
+          courses_synced: moodleRes.data.stats?.synced_courses || 0,
+          pending_sync: moodleRes.data.stats?.pending_sync || 0,
+        });
+      }
     } catch (error: any) {
       const errorMsg =
         error.response?.data?.message || "Gagal melakukan sinkronisasi";
@@ -291,7 +303,6 @@ export default function SuperadminDashboardPage() {
     {
       title: "Total Users",
       value: stats.total_users,
-      change: "+18%",
       icon: UserGroupIcon,
       gradient: "from-pln-primary to-pln-600",
       iconBg: "bg-pln-100 dark:bg-pln-900/30",
@@ -300,7 +311,6 @@ export default function SuperadminDashboardPage() {
     {
       title: "Admin Aktif",
       value: stats.total_admins,
-      change: `+${Math.min(stats.total_admins, 5)}`,
       icon: ShieldCheckIcon,
       gradient: "from-violet-500 to-purple-500",
       iconBg: "bg-violet-100 dark:bg-violet-900/30",
@@ -309,7 +319,6 @@ export default function SuperadminDashboardPage() {
     {
       title: "Pengumuman",
       value: stats.total_announcements,
-      change: "+12",
       icon: MegaphoneIcon,
       gradient: "from-amber-500 to-orange-500",
       iconBg: "bg-amber-100 dark:bg-amber-900/30",
@@ -318,7 +327,6 @@ export default function SuperadminDashboardPage() {
     {
       title: "Total Kursus",
       value: stats.total_courses,
-      change: "+8",
       icon: AcademicCapIcon,
       gradient: "from-emerald-500 to-teal-500",
       iconBg: "bg-emerald-100 dark:bg-emerald-900/30",
@@ -484,14 +492,9 @@ export default function SuperadminDashboardPage() {
                   <p className="text-sm text-slate-500 dark:text-slate-400">
                     {stat.title}
                   </p>
-                  <div className="flex items-baseline gap-2">
-                    <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                      {stat.value.toLocaleString()}
-                    </p>
-                    <span className="text-xs font-medium text-emerald-600">
-                      {stat.change}
-                    </span>
-                  </div>
+                  <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                    {stat.value.toLocaleString()}
+                  </p>
                 </div>
               </div>
               {/* Gradient line on hover */}
@@ -571,9 +574,19 @@ export default function SuperadminDashboardPage() {
                         </p>
                         <p className="text-sm text-emerald-600 dark:text-emerald-500">
                           Last sync:{" "}
-                          {new Date(moodleStatus.last_sync).toLocaleString(
+                          {new Date(moodleStatus.last_sync).toLocaleDateString(
                             "id-ID",
-                          )}
+                            { day: "2-digit", month: "short", year: "numeric" },
+                          )}{" "}
+                          <span className="font-mono">
+                            {new Date(
+                              moodleStatus.last_sync,
+                            ).toLocaleTimeString("id-ID", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              second: "2-digit",
+                            })}
+                          </span>
                         </p>
                       </div>
                     </div>
@@ -618,7 +631,7 @@ export default function SuperadminDashboardPage() {
                         {moodleStatus.pending_sync}
                       </p>
                       <p className="text-xs text-amber-600 dark:text-amber-500 mt-1">
-                        Enrollmen Pending
+                        User Belum Sync
                       </p>
                     </div>
                   </div>

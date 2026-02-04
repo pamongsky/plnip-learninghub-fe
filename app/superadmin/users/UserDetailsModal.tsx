@@ -38,8 +38,12 @@ interface User {
 interface AuditLog {
   id: number;
   action: string;
+  entity_type?: string;
+  entity_id?: number;
   changes: any;
   reason: string;
+  ip_address?: string;
+  user_agent?: string;
   user: {
     id: number;
     name: string;
@@ -74,7 +78,7 @@ export function UserDetailsModal({
     try {
       const [userRes, auditRes] = await Promise.all([
         axios.get(`/superadmin/users/${userId}`),
-        axios.get(`/superadmin/users/${userId}/audit-history`),
+        axios.get(`/activity-log/users/${userId}`),
       ]);
 
       setUser(userRes.data);
@@ -98,6 +102,41 @@ export function UserDetailsModal({
       hour: "2-digit",
       minute: "2-digit",
     });
+  };
+
+  const formatTime = (dateString: string) => {
+    return new Date(dateString).toLocaleTimeString("id-ID", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    });
+  };
+
+  const formatDateOnly = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("id-ID", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
+
+  const groupLogsByDate = (logs: AuditLog[]) => {
+    const grouped: { [key: string]: AuditLog[] } = {};
+
+    logs.forEach((log) => {
+      const date = new Date(log.created_at).toLocaleDateString("id-ID", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+
+      if (!grouped[date]) {
+        grouped[date] = [];
+      }
+      grouped[date].push(log);
+    });
+
+    return grouped;
   };
 
   if (!user) return null;
@@ -233,36 +272,80 @@ export function UserDetailsModal({
                 <h3 className="font-semibold text-slate-900 dark:text-white">
                   Riwayat Audit ({auditLogs.length})
                 </h3>
-                <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {auditLogs.map((log) => (
-                    <Card
-                      key={log.id}
-                      className="border-0 shadow-sm bg-slate-50 dark:bg-slate-900/20"
-                    >
-                      <CardContent className="p-3">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className="font-mono text-xs px-2 py-1 bg-slate-200 dark:bg-slate-700 rounded">
-                                {log.action}
-                              </span>
-                              <span className="text-xs text-slate-500">
-                                oleh {log.user?.name || "System"}
-                              </span>
-                            </div>
-                            {log.reason && (
-                              <p className="text-sm mt-1 text-slate-600 dark:text-slate-400">
-                                {log.reason}
-                              </p>
-                            )}
-                            <p className="text-xs text-slate-400 mt-1">
-                              {formatDate(log.created_at)}
-                            </p>
+                <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
+                  {Object.entries(groupLogsByDate(auditLogs)).map(
+                    ([date, logs]) => (
+                      <div key={date} className="space-y-2">
+                        {/* Date Header */}
+                        <div className="sticky top-0 bg-white dark:bg-slate-950 py-2 border-b border-slate-200 dark:border-slate-800">
+                          <div className="flex items-center gap-2">
+                            <CalendarIcon className="h-4 w-4 text-pln-primary" />
+                            <h4 className="font-semibold text-sm text-slate-900 dark:text-white">
+                              {date}
+                            </h4>
+                            <span className="text-xs text-slate-500">
+                              ({logs.length} aktivitas)
+                            </span>
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+
+                        {/* Activities for this date */}
+                        <div className="space-y-2 pl-6 border-l-2 border-slate-200 dark:border-slate-700">
+                          {logs.map((log) => (
+                            <div
+                              key={log.id}
+                              className="relative pb-2 last:pb-0"
+                            >
+                              {/* Timeline dot */}
+                              <div className="absolute -left-[25px] top-1 w-2 h-2 rounded-full bg-pln-primary" />
+
+                              <div className="bg-slate-50 dark:bg-slate-900/20 rounded-lg p-3 space-y-1">
+                                {/* Time and Action */}
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-mono text-xs font-semibold text-pln-600 dark:text-pln-400">
+                                    {formatTime(log.created_at)}
+                                  </span>
+                                  <span className="text-xs px-2 py-0.5 bg-slate-200 dark:bg-slate-700 rounded font-medium">
+                                    {log.action}
+                                  </span>
+                                  <span className="text-xs text-slate-500">
+                                    oleh {log.user?.name || "System"}
+                                  </span>
+                                </div>
+
+                                {/* Reason */}
+                                {log.reason && (
+                                  <p className="text-sm text-slate-600 dark:text-slate-400 pl-2 border-l-2 border-slate-300 dark:border-slate-600">
+                                    {log.reason}
+                                  </p>
+                                )}
+
+                                {/* IP Address */}
+                                {log.ip_address && (
+                                  <p className="text-xs text-slate-500">
+                                    IP: {log.ip_address}
+                                  </p>
+                                )}
+
+                                {/* Changes if any */}
+                                {log.changes &&
+                                  Object.keys(log.changes).length > 0 && (
+                                    <details className="text-xs text-slate-500 mt-1">
+                                      <summary className="cursor-pointer hover:text-slate-700 dark:hover:text-slate-300">
+                                        Lihat perubahan
+                                      </summary>
+                                      <pre className="mt-1 p-2 bg-slate-100 dark:bg-slate-800 rounded text-xs overflow-auto">
+                                        {JSON.stringify(log.changes, null, 2)}
+                                      </pre>
+                                    </details>
+                                  )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ),
+                  )}
                 </div>
               </div>
             )}
