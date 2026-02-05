@@ -9,6 +9,7 @@ import {
   ExclamationTriangleIcon,
   XMarkIcon,
   ArrowLeftIcon,
+  PhotoIcon,
 } from "@heroicons/react/24/outline";
 import { CheckCircleIcon as CheckCircleSolid } from "@heroicons/react/24/solid";
 import { classChatApi, type ClassMessage } from "@/lib/api";
@@ -30,6 +31,7 @@ interface Message {
   answered_by?: number;
   answered_at?: string;
   reply_to?: number;
+  image_path?: string;
   replyToMessage?: Message;
   created_at: string;
   user: User;
@@ -51,6 +53,16 @@ export default function ClassGroupChat({
   isInstructor = false,
   onQuestionCountChange,
 }: ClassGroupChatProps) {
+  // Debug: Log props on mount
+  useEffect(() => {
+    console.log("🎯 ClassGroupChat Props:", {
+      classId,
+      currentUserId,
+      currentUserId_type: typeof currentUserId,
+      isInstructor,
+    });
+  }, [classId, currentUserId, isInstructor]);
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [messageType, setMessageType] = useState<"discussion" | "question">(
@@ -59,8 +71,11 @@ export default function ClassGroupChat({
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [replyTo, setReplyTo] = useState<Message | null>(null);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load messages on mount
   useEffect(() => {
@@ -70,20 +85,38 @@ export default function ClassGroupChat({
   // Real-time: Listen for new messages
   const handleNewClassMessage = useCallback(
     (data: any) => {
-      // Only add if not sent by current user (to avoid duplicates)
-      if (data.user_id !== currentUserId) {
-        const newMsg: Message = {
-          id: data.id,
-          class_id: data.class_id,
-          user_id: data.user_id,
-          message: data.message,
-          message_type: data.message_type,
-          is_answered: data.is_answered,
-          created_at: data.created_at,
-          user: data.user,
-        };
-        setMessages((prev) => [...prev, newMsg]);
-      }
+      const newMsg: Message = {
+        id: data.id,
+        class_id: data.class_id,
+        user_id: data.user_id,
+        message: data.message,
+        message_type: data.message_type,
+        is_answered: data.is_answered,
+        image_path: data.image_path,
+        created_at: data.created_at,
+        user: data.user,
+      };
+
+      // Add message only if it doesn't already exist (prevent duplicates)
+      setMessages((prev) => {
+        // Check if message with same ID already exists
+        const existsById = prev.some((msg) => msg.id === newMsg.id);
+        if (existsById) {
+          console.log("⏭️ Skipping duplicate message by ID:", newMsg.id);
+          return prev;
+        }
+
+        // Skip if this is from current user (already handled by optimistic update)
+        if (Number(newMsg.user_id) === Number(currentUserId)) {
+          console.log(
+            "⏭️ Skipping own message from broadcast (optimistic update already handled)",
+          );
+          return prev;
+        }
+
+        console.log("✅ Adding new message from broadcast:", newMsg.id);
+        return [...prev, newMsg];
+      });
     },
     [currentUserId],
   );
@@ -135,37 +168,105 @@ export default function ClassGroupChat({
     onQuestionCountChange?.(unansweredQuestions);
   }, [messages, onQuestionCountChange]);
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && file.type.startsWith("image/")) {
+      setSelectedImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
   const handleSendMessage = async () => {
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() && !selectedImage) return;
 
     setIsSending(true);
+    const messageText = newMessage.trim() || "[Gambar]";
+    const tempId = Date.now(); // Temporary ID for optimistic update
+
+    // Optimistic update - show message immediately
+    const optimisticMessage: Message = {
+      id: tempId,
+      class_id: classId,
+      user_id: currentUserId,
+      message: messageText,
+      message_type: messageType,
+      is_answered: false,
+      created_at: new Date().toISOString(),
+      user: {
+        id: currentUserId,
+        name: "Anda",
+      },
+      image_path: imagePreview || undefined,
+    };
+
+    // Add optimistic message
+    setMessages((prev) => [...prev, optimisticMessage]);
+    console.log("⚡ Optimistic message added:", tempId);
+
+    // Clear input immediately for better UX
+    const currentMessage = newMessage;
+    const currentType = messageType;
+    const currentImage = selectedImage;
+    setNewMessage("");
+    setMessageType("discussion");
+    setReplyTo(null);
+    handleRemoveImage();
 
     try {
-      const response = await classChatApi.sendMessage(classId, {
-        message: newMessage.trim(),
-        message_type: messageType,
+      const formData = new FormData();
+      formData.append("message", messageText);
+      formData.append("message_type", currentType);
+      if (currentImage) {
+        formData.append("image", currentImage);
+      }
+
+      const response = await classChatApi.sendMessage(classId, formData);
+
+      console.log("✅ Server response received, replacing optimistic message");
+      console.log(
+        "🔄 Removing tempId:",
+        tempId,
+        "Adding real ID:",
+        response.data.id,
+      );
+
+      // Remove optimistic message and add real message from server
+      setMessages((prev) => {
+        // Filter out the temp message
+        const withoutTemp = prev.filter((msg) => msg.id !== tempId);
+
+        // Add the real message from server with "Anda" as name for own messages
+        return [
+          ...withoutTemp,
+          {
+            ...response.data,
+            user: {
+              id: currentUserId,
+              name: "Anda", // Keep "Anda" for own messages
+              avatar: response.data.user?.avatar,
+            },
+          },
+        ];
       });
-
-      const apiMessage = response.data;
-      const newMsg: Message = {
-        id: apiMessage.id,
-        class_id: apiMessage.class_id,
-        user_id: apiMessage.user_id,
-        message: apiMessage.message,
-        message_type: apiMessage.message_type,
-        is_answered: false,
-        reply_to: replyTo?.id,
-        replyToMessage: replyTo || undefined,
-        created_at: apiMessage.created_at,
-        user: apiMessage.user || { id: currentUserId, name: "Anda" },
-      };
-
-      setMessages((prev) => [...prev, newMsg]);
-      setNewMessage("");
-      setMessageType("discussion");
-      setReplyTo(null);
     } catch (error) {
-      console.error("Error sending message:", error);
+      console.error("❌ Error sending message:", error);
+      // Remove optimistic message on error
+      setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
+      // Restore input on error
+      setNewMessage(currentMessage);
+      setMessageType(currentType);
     } finally {
       setIsSending(false);
     }
@@ -284,8 +385,22 @@ export default function ClassGroupChat({
         ) : (
           <AnimatePresence>
             {messages.map((msg) => {
-              const isOwnMessage = msg.user_id === currentUserId;
+              // Ensure both IDs are numbers for comparison
+              const msgUserId = Number(msg.user_id);
+              const currentUserIdNum = Number(currentUserId);
+              const isOwnMessage = msgUserId === currentUserIdNum;
               const isQuestion = msg.message_type === "question";
+
+              // Debug log - hapus setelah testing
+              console.log("🔍 Message Comparison:", {
+                message_id: msg.id,
+                msg_user_id: msg.user_id,
+                msg_user_id_converted: msgUserId,
+                currentUserId: currentUserId,
+                currentUserId_converted: currentUserIdNum,
+                isOwnMessage: isOwnMessage,
+                user_name: msg.user?.name,
+              });
 
               return (
                 <motion.div
@@ -334,10 +449,10 @@ export default function ClassGroupChat({
                     <div
                       className={`relative rounded-2xl px-4 py-3 ${
                         isOwnMessage
-                          ? "bg-pln-primary text-white rounded-tr-sm"
+                          ? "bg-gradient-to-r from-pln-primary to-pln-light text-white rounded-tr-sm shadow-md"
                           : isQuestion
                             ? "bg-amber-50 dark:bg-amber-900/30 border-2 border-amber-200 dark:border-amber-700 text-slate-800 dark:text-slate-200 rounded-tl-sm"
-                            : "bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-tl-sm shadow-sm"
+                            : "bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-tl-sm shadow-md border border-slate-200 dark:border-slate-600"
                       }`}
                     >
                       {/* Question badge */}
@@ -365,6 +480,23 @@ export default function ClassGroupChat({
                           <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1">
                             {msg.replyToMessage.message}
                           </p>
+                        </div>
+                      )}
+
+                      {/* Image attachment */}
+                      {msg.image_path && (
+                        <div className="mb-2">
+                          <img
+                            src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/storage/${msg.image_path}`}
+                            alt="Attachment"
+                            className="max-w-full max-h-64 rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                            onClick={() =>
+                              window.open(
+                                `${process.env.NEXT_PUBLIC_API_BASE_URL}/storage/${msg.image_path}`,
+                                "_blank",
+                              )
+                            }
+                          />
                         </div>
                       )}
 
@@ -465,8 +597,41 @@ export default function ClassGroupChat({
           </div>
         )}
 
+        {/* Image preview */}
+        {imagePreview && (
+          <div className="mb-3 relative inline-block">
+            <img
+              src={imagePreview}
+              alt="Preview"
+              className="max-h-40 rounded-lg border-2 border-pln-primary"
+            />
+            <button
+              onClick={handleRemoveImage}
+              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 shadow-lg"
+            >
+              <XMarkIcon className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+
+        {/* Hidden file input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleImageSelect}
+          className="hidden"
+        />
+
         {/* Input field */}
         <div className="flex items-end gap-3">
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="flex-shrink-0 p-3 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+            title="Upload Gambar"
+          >
+            <PhotoIcon className="h-5 w-5" />
+          </button>
           <div className="flex-1 relative">
             <textarea
               value={newMessage}
@@ -490,9 +655,9 @@ export default function ClassGroupChat({
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={handleSendMessage}
-            disabled={!newMessage.trim() || isSending}
+            disabled={(!newMessage.trim() && !selectedImage) || isSending}
             className={`flex h-12 w-12 items-center justify-center rounded-xl transition-all ${
-              newMessage.trim()
+              newMessage.trim() || selectedImage
                 ? "bg-pln-primary text-white hover:bg-pln-dark"
                 : "bg-slate-100 dark:bg-slate-700 text-slate-400 cursor-not-allowed"
             }`}

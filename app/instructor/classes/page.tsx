@@ -255,15 +255,13 @@ export default function InstructorClassesPage() {
 
                   {/* Action */}
                   <div className="flex gap-2 lg:flex-col">
-                    <a
-                      href={cls.moodle_url || "#"}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <Link
+                      href={`/instructor/classes/${cls.id}`}
                       className="flex-1 lg:flex-none px-4 py-2 bg-gradient-to-r from-pln-primary to-pln-light hover:shadow-lg hover:shadow-pln-primary/25 text-white text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-2"
                     >
                       <PlayCircleIcon className="w-4 h-4" />
                       Masuk
-                    </a>
+                    </Link>
                   </div>
                 </div>
               </div>

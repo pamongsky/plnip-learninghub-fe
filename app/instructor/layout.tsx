@@ -1,59 +1,64 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useAuth } from "@/contexts/AuthContext";
-import { useTheme } from "@/contexts/ThemeContext";
-import { getEcho } from "@/lib/echo";
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  HomeIcon,
-  AcademicCapIcon,
-  MegaphoneIcon,
-  UserCircleIcon,
-  BellIcon,
-  SunIcon,
+  Bars3Icon,
   MoonIcon,
-  ChevronRightIcon,
-  ChevronDoubleLeftIcon,
-  ChevronDoubleRightIcon,
+  SunIcon,
+  UserCircleIcon,
+  MegaphoneIcon,
+  AcademicCapIcon,
+  ChevronDownIcon,
   ArrowRightOnRectangleIcon,
   LifebuoyIcon,
-  BookOpenIcon,
-  CheckCircleIcon,
+  HomeIcon,
 } from "@heroicons/react/24/outline";
+import { BellIcon } from "@heroicons/react/24/solid";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 
-const navItems = [
+// Grouped navigation items for Instructor
+const navGroups = [
   {
-    name: "Dashboard",
-    href: "/instructor",
-    icon: HomeIcon,
-    description: "Ringkasan kelas",
+    label: "Overview",
+    items: [{ href: "/instructor", label: "Dashboard", icon: HomeIcon }],
   },
   {
-    name: "Kelas Saya",
-    href: "/instructor/classes",
-    icon: AcademicCapIcon,
-    description: "Kelola kelas",
+    label: "Pembelajaran",
+    items: [
+      {
+        href: "/instructor/classes",
+        label: "Kelas Saya",
+        icon: AcademicCapIcon,
+      },
+    ],
   },
   {
-    name: "Pengumuman",
-    href: "/instructor/announcements",
-    icon: MegaphoneIcon,
-    description: "Info & pengumuman",
+    label: "Informasi",
+    items: [
+      {
+        href: "/instructor/announcements",
+        label: "Pengumuman",
+        icon: MegaphoneIcon,
+      },
+    ],
   },
   {
-    name: "Bantuan",
-    href: "/instructor/support",
-    icon: LifebuoyIcon,
-    description: "Lapor kendala",
-  },
-  {
-    name: "Profil Saya",
-    href: "/instructor/profile",
-    icon: UserCircleIcon,
-    description: "Kelola profil",
+    label: "Support",
+    items: [
+      { href: "/instructor/support", label: "Bantuan", icon: LifebuoyIcon },
+    ],
   },
 ];
 
@@ -63,491 +68,415 @@ export default function InstructorLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
-  const { user, logout } = useAuth();
-  const { darkMode, toggleDarkMode } = useTheme();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [isMobile, setIsMobile] = useState(false);
-  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
-  const [notificationOpen, setNotificationOpen] = useState(false);
+  const { logout, user } = useAuth();
+  const [isDark, setIsDark] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<string[]>(
+    navGroups.map((g) => g.label),
+  );
 
-  const firstName = user?.name?.split(" ")[0] || "Instructor";
+  const initials = user?.name
+    ? user.name
+        .split(" ")
+        .map((part) => part[0])
+        .slice(0, 2)
+        .join("")
+        .toUpperCase()
+    : "IN";
 
-  // Real notifications from WebSocket
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      title: "Kursus Baru Tersedia",
-      message: "Kursus Keselamatan Kerja K3 tela...",
-      time: "5 menit lalu",
-      read: false,
-      type: "course",
-    },
-    {
-      id: 2,
-      title: "Sertifikat Diterbitkan",
-      message: "Sertifikat Dasar Pembangkit Listri...",
-      time: "1 jam lalu",
-      read: false,
-      type: "certificate",
-    },
-    {
-      id: 3,
-      title: "Pengumuman Penting",
-      message: "Townhall Meeting Q1 2026 akan dilak...",
-      time: "2 jam lalu",
-      read: true,
-      type: "announcement",
-    },
-    {
-      id: 4,
-      title: "Reminder",
-      message: "Selesaikan kursus sebelum deadline",
-      time: "1 hari lalu",
-      read: true,
-      type: "reminder",
-    },
-  ]);
+  const avatarUrl = user?.avatar || null;
 
-  // Mock notifications - will be replaced by real notifications from WebSocket
-  const mockNotifications = [
-    {
-      id: 1,
-      title: "Kursus Baru Tersedia",
-      message: "Kursus Keselamatan Kerja K3 tela...",
-      time: "5 menit lalu",
-      read: false,
-      type: "course",
-    },
-    {
-      id: 2,
-      title: "Sertifikat Diterbitkan",
-      message: "Sertifikat Dasar Pembangkit Listri...",
-      time: "1 jam lalu",
-      read: false,
-      type: "certificate",
-    },
-    {
-      id: 3,
-      title: "Pengumuman Penting",
-      message: "Townhall Meeting Q1 2026 akan dilak...",
-      time: "2 jam lalu",
-      read: true,
-      type: "announcement",
-    },
-    {
-      id: 4,
-      title: "Reminder",
-      message: "Selesaikan kursus sebelum deadline",
-      time: "1 hari lalu",
-      read: true,
-      type: "reminder",
-    },
-  ];
-
-  const unreadCount = notifications.filter((n) => !n.read).length;
-
-  // Detect mobile/desktop
   useEffect(() => {
-    const checkMobile = () => {
-      const mobile = window.innerWidth < 1024;
-      setIsMobile(mobile);
-      if (mobile) {
-        setSidebarOpen(false);
-      } else {
-        setSidebarOpen(true);
-      }
-    };
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
+    if (typeof window === "undefined") return;
+    const storedTheme = localStorage.getItem("theme");
+    const prefersDark = window.matchMedia?.(
+      "(prefers-color-scheme: dark)",
+    ).matches;
+    const nextIsDark = storedTheme ? storedTheme === "dark" : prefersDark;
+    document.documentElement.classList.toggle("dark", nextIsDark);
+    setIsDark(nextIsDark);
   }, []);
 
-  // Real-time notifications via WebSocket
-  useEffect(() => {
-    if (!user?.id) return;
+  const toggleTheme = () => {
+    const nextIsDark = !isDark;
+    document.documentElement.classList.toggle("dark", nextIsDark);
+    localStorage.setItem("theme", nextIsDark ? "dark" : "light");
+    setIsDark(nextIsDark);
+  };
 
-    const echo = getEcho();
-    if (!echo) return;
-
-    const channel = echo.private(`users.${user.id}.notifications`);
-
-    // Listen for new notifications
-    channel.listen("NotificationEvent", (data: any) => {
-      const newNotification = {
-        id: Date.now(),
-        title: data.title || "Notifikasi Baru",
-        message: data.message || "",
-        time: "Baru saja",
-        read: false,
-        type: data.type || "announcement",
-      };
-
-      // Add new notification to the beginning
-      setNotifications((prev) => [newNotification, ...prev]);
-    });
-
-    return () => {
-      echo.leaveChannel(`users.${user.id}.notifications`);
-    };
-  }, [user?.id]);
+  const toggleGroup = (label: string) => {
+    setExpandedGroups((prev) =>
+      prev.includes(label) ? prev.filter((g) => g !== label) : [...prev, label],
+    );
+  };
 
   const isActive = (href: string) => {
     if (href === "/instructor") {
       return pathname === "/instructor";
     }
-    return pathname?.startsWith(href);
-  };
-
-  const handleLogout = async () => {
-    await logout();
-    router.push("/login");
+    return pathname.startsWith(href);
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-500">
-      {/* Mobile Sidebar Overlay */}
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+      {/* Sidebar Desktop */}
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-40 hidden flex-col border-r border-slate-200/80 bg-white transition-all duration-300 dark:border-slate-800 dark:bg-slate-900 md:flex",
+          isCollapsed ? "w-[72px]" : "w-72",
+        )}
+      >
+        {/* Logo Header */}
+        <div
+          className={cn(
+            "flex items-center gap-3 border-b border-slate-200/80 dark:border-slate-800 p-4",
+            isCollapsed && "justify-center px-2",
+          )}
+        >
+          <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-pln-primary to-pln-light shadow-lg shadow-pln-primary/25">
+            <AcademicCapIcon className="h-5 w-5 text-white" />
+          </div>
+          {!isCollapsed && (
+            <div className="flex flex-col">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-pln-light">
+                Instructor
+              </span>
+              <span className="text-sm font-bold text-slate-900 dark:text-white">
+                PLN IP Learning Hub
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* User Info */}
+        {!isCollapsed && (
+          <div className="p-3">
+            <div className="flex items-center gap-3 rounded-xl bg-gradient-to-r from-slate-50 to-slate-100 p-3 dark:from-slate-800 dark:to-slate-800/50">
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt={user?.name || "User"}
+                  className="h-10 w-10 rounded-lg object-cover border border-white/60 shadow-sm"
+                />
+              ) : (
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-pln-primary to-pln-light text-sm font-bold text-white">
+                  {initials}
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
+                  {user?.name}
+                </p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Instructor
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Collapse Toggle */}
+        <div className={cn("px-3 py-2", isCollapsed && "px-2")}>
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className={cn(
+              "flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-600 transition-all hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700",
+              isCollapsed && "px-2",
+            )}
+          >
+            <Bars3Icon className="h-4 w-4" />
+            {!isCollapsed && <span>Collapse</span>}
+          </button>
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 overflow-y-auto px-3 py-2">
+          {navGroups.map((group) => (
+            <div key={group.label} className="mb-2">
+              {!isCollapsed && (
+                <button
+                  onClick={() => toggleGroup(group.label)}
+                  className="flex w-full items-center justify-between px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-400 transition-colors"
+                >
+                  <span>{group.label}</span>
+                  <ChevronDownIcon
+                    className={cn(
+                      "h-3 w-3 transition-transform duration-200",
+                      expandedGroups.includes(group.label) && "rotate-180",
+                    )}
+                  />
+                </button>
+              )}
+              <AnimatePresence initial={false}>
+                {(isCollapsed || expandedGroups.includes(group.label)) && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="space-y-0.5 overflow-hidden"
+                  >
+                    {group.items.map((item) => {
+                      const active = isActive(item.href);
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          className={cn(
+                            "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                            isCollapsed && "justify-center px-2",
+                            active
+                              ? "bg-gradient-to-r from-pln-primary to-pln-primary/90 text-white shadow-md shadow-pln-primary/25"
+                              : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800",
+                          )}
+                        >
+                          <item.icon
+                            className={cn(
+                              "h-5 w-5 flex-shrink-0 transition-transform group-hover:scale-110",
+                              active
+                                ? "text-white"
+                                : "text-slate-400 group-hover:text-pln-primary dark:text-slate-500",
+                            )}
+                          />
+                          {!isCollapsed && <span>{item.label}</span>}
+                        </Link>
+                      );
+                    })}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          ))}
+        </nav>
+      </aside>
+
+      {/* Mobile Header */}
+      <header className="fixed top-0 left-0 right-0 z-30 flex h-16 items-center justify-between border-b border-slate-200 bg-white/95 px-4 backdrop-blur dark:border-slate-800 dark:bg-slate-900/95 md:hidden">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+          >
+            <Bars3Icon className="h-6 w-6" />
+          </button>
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-pln-primary to-pln-light">
+            <AcademicCapIcon className="h-5 w-5 text-white" />
+          </div>
+          <span className="font-bold text-slate-900 dark:text-white">
+            Instructor
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button className="relative rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800">
+            <BellIcon className="h-5 w-5" />
+            <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500"></span>
+          </button>
+          <button
+            onClick={toggleTheme}
+            className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+          >
+            {isDark ? (
+              <SunIcon className="h-5 w-5 text-amber-500" />
+            ) : (
+              <MoonIcon className="h-5 w-5" />
+            )}
+          </button>
+        </div>
+      </header>
+
+      {/* Mobile Menu Overlay */}
       <AnimatePresence>
-        {sidebarOpen && isMobile && (
+        {isMobileMenuOpen && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-            onClick={() => setSidebarOpen(false)}
+            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
+            onClick={() => setIsMobileMenuOpen(false)}
           />
         )}
       </AnimatePresence>
 
-      {/* Sidebar */}
-      <aside
-        className={`fixed top-0 left-0 z-50 h-full w-72 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 transform transition-all duration-300 ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
-        <div className="flex flex-col h-full">
-          {/* Logo */}
-          <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-700">
-            <Link href="/instructor" className="flex items-center gap-3 group">
-              <div className="w-10 h-10 bg-gradient-to-br from-pln-primary to-pln-light rounded-xl flex items-center justify-center shadow-lg shadow-pln-primary/20 group-hover:shadow-xl group-hover:shadow-pln-primary/30 transition-all">
-                <AcademicCapIcon className="w-6 h-6 text-white" />
+      {/* Mobile Sidebar */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.aside
+            initial={{ x: "-100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "-100%" }}
+            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+            className="fixed inset-y-0 left-0 z-50 w-72 flex-col border-r border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 md:hidden flex"
+          >
+            {/* Logo */}
+            <div className="flex items-center gap-3 border-b border-slate-200 dark:border-slate-800 p-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-pln-primary to-pln-light shadow-lg">
+                <AcademicCapIcon className="h-5 w-5 text-white" />
               </div>
-              <div>
-                <h1 className="font-bold text-slate-800 dark:text-white">
-                  PLN IP
-                </h1>
-                <p className="text-xs text-pln-primary dark:text-pln-light font-medium">
+              <div className="flex flex-col">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-pln-light">
                   Instructor
-                </p>
-              </div>
-            </Link>
-            <button
-              onClick={() => setSidebarOpen(false)}
-              className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-              title="Tutup Sidebar"
-            >
-              <ChevronDoubleLeftIcon className="w-5 h-5 text-slate-500 dark:text-slate-400" />
-            </button>
-          </div>
-
-          {/* User Quick Info */}
-          <div className="p-4">
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-700 dark:to-slate-700/50">
-              <img
-                src={
-                  user?.avatar ||
-                  "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face"
-                }
-                alt={user?.name}
-                className="w-10 h-10 rounded-full object-cover"
-              />
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-slate-800 dark:text-white text-sm truncate">
-                  {user?.name}
-                </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Instructor
-                </p>
+                </span>
+                <span className="text-sm font-bold text-slate-900 dark:text-white">
+                  PLN IP Learning Hub
+                </span>
               </div>
             </div>
-          </div>
 
-          {/* Navigation */}
-          <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto">
-            <p className="px-3 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-              Menu Utama
-            </p>
-            {navItems.map((item) => {
-              const active = isActive(item.href);
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  onClick={() => isMobile && setSidebarOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group ${
-                    active
-                      ? "bg-pln-primary text-white shadow-lg shadow-pln-primary/30"
-                      : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
-                  }`}
-                >
-                  <item.icon
-                    className={`w-5 h-5 ${active ? "" : "text-slate-400 group-hover:text-slate-600 dark:group-hover:text-white"}`}
-                  />
-                  <div className="flex-1">
-                    <span className="font-medium text-sm">{item.name}</span>
+            {/* Navigation */}
+            <nav className="flex-1 overflow-y-auto p-3">
+              {navGroups.map((group) => (
+                <div key={group.label} className="mb-3">
+                  <p className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                    {group.label}
+                  </p>
+                  <div className="space-y-0.5">
+                    {group.items.map((item) => {
+                      const active = isActive(item.href);
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setIsMobileMenuOpen(false)}
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
+                            active
+                              ? "bg-gradient-to-r from-pln-primary to-pln-primary/90 text-white shadow-md"
+                              : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800",
+                          )}
+                        >
+                          <item.icon
+                            className={cn("h-5 w-5", active && "text-white")}
+                          />
+                          <span>{item.label}</span>
+                        </Link>
+                      );
+                    })}
                   </div>
-                  {active && (
-                    <ChevronRightIcon className="w-4 h-4 opacity-70" />
-                  )}
-                </Link>
-              );
+                </div>
+              ))}
+            </nav>
+
+            {/* Profile Section */}
+            <div className="border-t border-slate-200 dark:border-slate-800 p-3">
+              <Link
+                href="/instructor/profile"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+              >
+                <UserCircleIcon className="h-5 w-5" />
+                <span>Profil Saya</span>
+              </Link>
+              <button
+                onClick={logout}
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-50 dark:hover:bg-red-900/20"
+              >
+                <ArrowRightOnRectangleIcon className="h-5 w-5" />
+                Keluar
+              </button>
+            </div>
+          </motion.aside>
+        )}
+      </AnimatePresence>
+
+      {/* Desktop Header */}
+      <header
+        className={cn(
+          "sticky top-0 z-30 hidden h-16 items-center justify-between border-b border-slate-200 bg-white/95 px-6 backdrop-blur dark:border-slate-800 dark:bg-slate-900/95 md:flex",
+          isCollapsed ? "md:ml-[72px]" : "md:ml-72",
+        )}
+      >
+        <div>
+          <p className="text-sm font-medium text-slate-800 dark:text-slate-200">
+            {new Date().toLocaleDateString("id-ID", {
+              weekday: "long",
+              day: "numeric",
+              month: "long",
+              year: "numeric",
             })}
-          </nav>
+          </p>
         </div>
-      </aside>
+
+        <div className="flex items-center gap-2">
+          {/* Notifications */}
+          <button className="relative rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800">
+            <BellIcon className="h-5 w-5" />
+            <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+              2
+            </span>
+          </button>
+
+          {/* Dark Mode Toggle */}
+          <button
+            onClick={toggleTheme}
+            className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+          >
+            {isDark ? (
+              <SunIcon className="h-5 w-5 text-amber-500" />
+            ) : (
+              <MoonIcon className="h-5 w-5" />
+            )}
+          </button>
+
+          {/* Profile Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex items-center gap-2 rounded-lg p-1.5 pr-3 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+                {avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    alt={user?.name || "User"}
+                    className="h-8 w-8 rounded-lg object-cover border border-white/60 shadow-sm"
+                  />
+                ) : (
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-pln-primary to-pln-light text-xs font-bold text-white">
+                    {initials}
+                  </div>
+                )}
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                  {user?.name?.split(" ")[0] || "Instructor"}
+                </span>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56 rounded-xl">
+              <DropdownMenuLabel className="font-normal">
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium">{user?.name}</p>
+                  <p className="text-xs text-slate-500">{user?.email}</p>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild className="cursor-pointer">
+                <Link
+                  href="/instructor/profile"
+                  className="flex items-center gap-2"
+                >
+                  <UserCircleIcon className="h-4 w-4" />
+                  Profil Saya
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={logout}
+                className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20"
+              >
+                <ArrowRightOnRectangleIcon className="h-4 w-4 mr-2" />
+                Keluar
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </header>
 
       {/* Main Content */}
-      <div
-        className={`transition-all duration-300 ${sidebarOpen ? "lg:ml-72" : "lg:ml-0"}`}
+      <main
+        className={cn(
+          "min-h-screen pt-16 transition-all duration-300 md:pt-0",
+          isCollapsed ? "md:pl-[72px]" : "md:pl-72",
+        )}
       >
-        {/* Top Header */}
-        <header className="sticky top-0 z-30 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-700/80 transition-colors duration-300">
-          <div className="flex items-center justify-between px-4 py-3 lg:px-6">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setSidebarOpen(true)}
-                className={`p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors ${sidebarOpen ? "hidden" : ""}`}
-                title="Buka Sidebar"
-              >
-                <ChevronDoubleRightIcon className="w-6 h-6 text-slate-600 dark:text-slate-300" />
-              </button>
-              <div className="hidden sm:block">
-                <p className="text-sm font-medium text-slate-800 dark:text-slate-200">
-                  {new Date().toLocaleDateString("id-ID", {
-                    weekday: "long",
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                  })}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-1">
-              {/* Dark Mode Toggle */}
-              <motion.button
-                onClick={toggleDarkMode}
-                className="relative p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors overflow-hidden"
-                title={darkMode ? "Mode Terang" : "Mode Gelap"}
-                whileTap={{ scale: 0.9 }}
-              >
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={darkMode ? "sun" : "moon"}
-                    initial={{ y: -20, opacity: 0, rotate: -90 }}
-                    animate={{ y: 0, opacity: 1, rotate: 0 }}
-                    exit={{ y: 20, opacity: 0, rotate: 90 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    {darkMode ? (
-                      <SunIcon className="w-5 h-5 text-amber-400" />
-                    ) : (
-                      <MoonIcon className="w-5 h-5 text-slate-600 dark:text-slate-300" />
-                    )}
-                  </motion.div>
-                </AnimatePresence>
-              </motion.button>
-
-              {/* Notifications */}
-              <div className="relative">
-                <button
-                  onClick={() => {
-                    setNotificationOpen(!notificationOpen);
-                    setProfileDropdownOpen(false);
-                  }}
-                  className="relative p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-all"
-                >
-                  <BellIcon className="w-5 h-5 text-slate-600 dark:text-slate-300" />
-                  {unreadCount > 0 && (
-                    <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 rounded-full text-[10px] text-white font-bold flex items-center justify-center">
-                      {unreadCount}
-                    </span>
-                  )}
-                </button>
-
-                <AnimatePresence>
-                  {notificationOpen && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-40"
-                        onClick={() => setNotificationOpen(false)}
-                      />
-                      <motion.div
-                        initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                        transition={{ duration: 0.15 }}
-                        className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 z-50 overflow-hidden"
-                      >
-                        {/* Header */}
-                        <div className="p-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
-                          <h3 className="font-semibold text-slate-800 dark:text-white">
-                            Notifikasi
-                          </h3>
-                          {unreadCount > 0 && (
-                            <span className="text-xs bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 px-2 py-0.5 rounded-full font-medium">
-                              {unreadCount} baru
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Notification List */}
-                        <div className="max-h-80 overflow-y-auto">
-                          {notifications.length > 0 ? (
-                            notifications.map((notif) => (
-                              <div
-                                key={notif.id}
-                                onClick={() => setNotificationOpen(false)}
-                                className={`p-4 border-b border-slate-50 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer transition-colors ${
-                                  !notif.read
-                                    ? "bg-blue-50/50 dark:bg-blue-500/10"
-                                    : ""
-                                }`}
-                              >
-                                <div className="flex gap-3">
-                                  <div
-                                    className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                                      notif.type === "course"
-                                        ? "bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400"
-                                        : notif.type === "certificate"
-                                          ? "bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-400"
-                                          : notif.type === "announcement"
-                                            ? "bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400"
-                                            : "bg-slate-100 dark:bg-slate-600/20 text-slate-600 dark:text-slate-400"
-                                    }`}
-                                  >
-                                    {notif.type === "course" && (
-                                      <BookOpenIcon className="w-4 h-4" />
-                                    )}
-                                    {notif.type === "certificate" && (
-                                      <CheckCircleIcon className="w-4 h-4" />
-                                    )}
-                                    {notif.type === "announcement" && (
-                                      <MegaphoneIcon className="w-4 h-4" />
-                                    )}
-                                    {notif.type === "reminder" && (
-                                      <BellIcon className="w-4 h-4" />
-                                    )}
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <p
-                                      className={`text-sm ${
-                                        !notif.read
-                                          ? "font-semibold text-slate-800 dark:text-white"
-                                          : "font-medium text-slate-700 dark:text-slate-300"
-                                      }`}
-                                    >
-                                      {notif.title}
-                                    </p>
-                                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">
-                                      {notif.message}
-                                    </p>
-                                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-                                      {notif.time}
-                                    </p>
-                                  </div>
-                                  {!notif.read && (
-                                    <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-2" />
-                                  )}
-                                </div>
-                              </div>
-                            ))
-                          ) : (
-                            <div className="p-8 text-center">
-                              <BellIcon className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-                              <p className="text-slate-500 dark:text-slate-400 text-sm">
-                                Tidak ada notifikasi
-                              </p>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Footer */}
-                        <div className="p-3 border-t border-slate-100 dark:border-slate-700">
-                          <Link
-                            href="#"
-                            onClick={() => setNotificationOpen(false)}
-                            className="block text-center text-sm text-pln-primary dark:text-pln-light hover:text-pln-primary/80 dark:hover:text-pln-light/80 font-medium"
-                          >
-                            Lihat Semua Notifikasi
-                          </Link>
-                        </div>
-                      </motion.div>
-                    </>
-                  )}
-                </AnimatePresence>
-              </div>
-
-              {/* Profile Dropdown */}
-              <div className="relative">
-                <button
-                  onClick={() => {
-                    setProfileDropdownOpen(!profileDropdownOpen);
-                    setNotificationOpen(false);
-                  }}
-                  className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                >
-                  <img
-                    src={
-                      user?.avatar ||
-                      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=32&h=32&fit=crop&crop=face"
-                    }
-                    alt={user?.name}
-                    className="w-8 h-8 rounded-full object-cover"
-                  />
-                </button>
-
-                <AnimatePresence>
-                  {profileDropdownOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden"
-                    >
-                      <div className="p-3 border-b border-slate-100 dark:border-slate-700">
-                        <p className="font-medium text-slate-800 dark:text-white text-sm">
-                          {user?.name}
-                        </p>
-                        <p className="text-xs text-slate-500">{user?.email}</p>
-                      </div>
-                      <div className="p-1">
-                        <Link
-                          href="/instructor/profile"
-                          className="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
-                        >
-                          <UserCircleIcon className="w-4 h-4" />
-                          Profil Saya
-                        </Link>
-                        <button
-                          onClick={handleLogout}
-                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
-                        >
-                          <ArrowRightOnRectangleIcon className="w-4 h-4" />
-                          Keluar
-                        </button>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        {/* Page Content */}
-        <main className="p-4 lg:p-6">{children}</main>
-      </div>
+        <div className="p-4 md:p-6 lg:p-8">{children}</div>
+      </main>
     </div>
   );
 }

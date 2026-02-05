@@ -32,6 +32,9 @@ export interface EscalationTicket {
     id: number;
     ticket_number: string;
     subject: string;
+    description?: string;
+    created_at?: string;
+    attachments?: string[] | null;
     user?: {
       id: number;
       name: string;
@@ -43,6 +46,7 @@ export interface EscalationTicket {
       message: string;
       created_at: string;
       attachments?: string[] | null;
+      is_admin_reply?: boolean;
       user: {
         id: number;
         name: string;

@@ -345,7 +345,7 @@ export default function DashboardLayout({
             )}
           </button>
 
-          {/* Logout */}
+          {/* Keluar */}
           <button
             onClick={logout}
             className={cn(
