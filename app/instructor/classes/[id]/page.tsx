@@ -556,7 +556,7 @@ export default function InstructorClassDetailPage() {
           <div className="h-[600px] overflow-hidden">
             <ClassGroupChat
               classId={parseInt(params.id as string)}
-              currentUserId={1}
+              currentUserId={user?.id || 0}
               isInstructor={true}
               onQuestionCountChange={setUnansweredQuestions}
             />

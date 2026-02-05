@@ -85,7 +85,7 @@ export default function UserClassChatPage() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="h-[800px]"
+        className="h-[600px] overflow-hidden"
       >
         {!loading && classData && (
           <ClassGroupChat

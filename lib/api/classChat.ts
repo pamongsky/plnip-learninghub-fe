@@ -10,17 +10,32 @@ export interface ClassMessage {
   is_answered: boolean;
   answered_by?: number;
   answered_at?: string;
+  reply_to?: number;
+  mentioned_user_id?: number;
   image_path?: string;
   created_at: string;
   updated_at: string;
   user?: {
     id: number;
     name: string;
-    email: string;
+    email?: string;
     role?: string;
     avatar?: string;
   };
   answered_by_user?: {
+    id: number;
+    name: string;
+  };
+  replyToMessage?: {
+    id: number;
+    message: string;
+    image_path?: string;
+    user?: {
+      id: number;
+      name: string;
+    };
+  };
+  mentionedUser?: {
     id: number;
     name: string;
   };
