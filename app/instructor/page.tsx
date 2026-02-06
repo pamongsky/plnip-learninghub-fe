@@ -110,6 +110,7 @@ export default function InstructorDashboardPage() {
   const { user } = useAuth();
   const [dashboardData, setDashboardData] =
     useState<InstructorDashboardData | null>(null);
+  const [questionStats, setQuestionStats] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const displayName = user?.name || "Instruktur";
@@ -126,6 +127,25 @@ export default function InstructorDashboardPage() {
 
   useEffect(() => {
     fetchDashboardData();
+    fetchQuestionStats();
+
+    // Set up real-time listener for question stats
+    const echo = (window as any).Echo;
+    if (echo) {
+      echo
+        .channel("instructor-dashboard")
+        .listen(".question.answered", (data: any) => {
+          console.log("✅ Question answered event received:", data);
+          // Decrement unanswered count
+          setQuestionStats((prev) => Math.max(0, prev - 1));
+        });
+    }
+
+    return () => {
+      if (echo) {
+        echo.leave("instructor-dashboard");
+      }
+    };
   }, []);
 
   const fetchDashboardData = async () => {
@@ -147,6 +167,15 @@ export default function InstructorDashboardPage() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchQuestionStats = async () => {
+    try {
+      const res = await api.get("/instructor/question-stats");
+      setQuestionStats(res.data.data?.unanswered || 0);
+    } catch (error) {
+      console.error("Failed to fetch question stats:", error);
     }
   };
 
@@ -180,7 +209,7 @@ export default function InstructorDashboardPage() {
     },
     {
       label: "Pertanyaan",
-      value: 8,
+      value: questionStats,
       icon: QuestionMarkCircleIcon,
       gradient: "from-amber-500 to-orange-500",
       bgLight: "bg-amber-50 dark:bg-amber-900/20",
