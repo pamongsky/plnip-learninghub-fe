@@ -87,9 +87,15 @@ export default function CreateTicketPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("=== HANDLE SUBMIT CALLED ===");
+    console.log("Form Data:", { selectedCategory, subject, description });
 
-    if (!validate()) return;
+    if (!validate()) {
+      console.log("=== VALIDATION FAILED ===", errors);
+      return;
+    }
 
+    console.log("=== VALIDATION PASSED ===");
     setIsSubmitting(true);
 
     try {

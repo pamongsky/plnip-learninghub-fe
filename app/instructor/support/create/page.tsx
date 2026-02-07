@@ -13,6 +13,7 @@ import {
   PhotoIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
+import { supportApi } from "@/lib/api";
 
 interface Category {
   value: string;
@@ -105,9 +106,28 @@ export default function CreateInstructorTicketPage() {
 
     setIsSubmitting(true);
 
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      const ticketData = {
+        subject: subject.trim(),
+        description: description.trim(),
+        category: selectedCategory,
+        priority: selectedPriority,
+        attachments: attachments,
+      };
 
-    router.push("/instructor/support?created=true");
+      await supportApi.createTicket(ticketData);
+
+      // Redirect to support list with success
+      router.push("/instructor/support?created=true");
+    } catch (err: any) {
+      console.error("Error creating ticket:", err);
+      setErrors({
+        submit:
+          err.response?.data?.message ||
+          "Gagal membuat tiket. Silakan coba lagi.",
+      });
+      setIsSubmitting(false);
+    }
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
