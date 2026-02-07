@@ -30,6 +30,7 @@ import {
 import { Toast } from "@/components/ui/Toast";
 import { useToast } from "@/hooks/useToast";
 import axios from "@/lib/axios";
+import { getImageUrl } from "@/lib/imageUrl";
 
 // Animation vars
 const containerVariants = {
@@ -252,7 +253,7 @@ export default function SuperadminLeadersPage() {
                   <div className="aspect-[3/4] w-full bg-slate-100 relative">
                     {leader.image_path ? (
                       <img
-                        src={leader.image_path}
+                        src={getImageUrl(leader.image_path)}
                         alt={leader.name}
                         className="w-full h-full object-cover"
                       />

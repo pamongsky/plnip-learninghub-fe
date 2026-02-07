@@ -291,8 +291,8 @@ export default function CreateUserPage() {
                       <SelectItem value="instructor">
                         Instructor (Pembuat Kelas)
                       </SelectItem>
-                      <SelectItem value="employee">
-                        Employee (Peserta Belajar)
+                      <SelectItem value="user">
+                        User (Peserta Belajar)
                       </SelectItem>
                     </SelectContent>
                   </Select>

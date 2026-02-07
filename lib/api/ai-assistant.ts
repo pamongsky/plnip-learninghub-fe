@@ -28,7 +28,16 @@ export interface AIChatMessage {
 
 export interface AIChatResponse {
   response: string;
+  conversation_id: string;
   timestamp: string;
+}
+
+export interface AISession {
+  conversation_id: string;
+  title: string;
+  message_count: number;
+  started_at: string;
+  last_message_at: string;
 }
 
 export const aiAssistantApi = {
@@ -49,33 +58,47 @@ export const aiAssistantApi = {
     message: string,
     conversationId?: string,
   ): Promise<AIChatResponse> => {
-    console.log("=== AI Chat API Call ===");
-    console.log("Message:", message);
-    console.log("Conversation ID:", conversationId);
+    const response = await api.post<{ data: AIChatResponse }>(
+      "/ai-assistant/chat",
+      {
+        message,
+        conversation_id: conversationId,
+      },
+    );
 
-    try {
-      const response = await api.post<{ data: AIChatResponse }>(
-        "/ai-assistant/chat",
-        {
-          message,
-          conversation_id: conversationId,
-        },
-      );
-
-      console.log("API Response Status:", response.status);
-      console.log("API Response Data:", response.data);
-
-      if (!response.data.data) {
-        console.error("No data in response!", response.data);
-        throw new Error("No data in API response");
-      }
-
-      return response.data.data;
-    } catch (error: any) {
-      console.error("AI Chat API Error:", error);
-      console.error("Error response:", error.response?.data);
-      throw error;
+    if (!response.data.data) {
+      throw new Error("No data in API response");
     }
+
+    return response.data.data;
+  },
+
+  /**
+   * Get all conversation sessions
+   */
+  getSessions: async (): Promise<AISession[]> => {
+    const response = await api.get<{ data: AISession[] }>(
+      "/ai-assistant/sessions",
+    );
+    return response.data.data;
+  },
+
+  /**
+   * Get conversation history for a session
+   */
+  getHistory: async (conversationId: string): Promise<AIChatMessage[]> => {
+    const response = await api.get<{ data: AIChatMessage[] }>(
+      "/ai-assistant/history",
+      { params: { conversation_id: conversationId } },
+    );
+    return response.data.data;
+  },
+
+  /**
+   * Delete a conversation session
+   */
+  deleteSession: async (conversationId: string): Promise<void> => {
+    await api.delete(`/ai-assistant/sessions/${conversationId}`);
   },
 
   /**

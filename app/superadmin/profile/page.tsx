@@ -42,7 +42,7 @@ const itemVariants = {
   visible: { opacity: 1, y: 0 },
 };
 
-export default function AdminProfilePage() {
+export default function SuperAdminProfilePage() {
   const { user, setUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -83,7 +83,7 @@ export default function AdminProfilePage() {
         .slice(0, 2)
         .join("")
         .toUpperCase()
-    : "AD";
+    : "SA";
 
   const handleUpdateProfile = async () => {
     if (!formData.name || !formData.email) {
@@ -152,7 +152,7 @@ export default function AdminProfilePage() {
         {/* Header */}
         <motion.div variants={itemVariants} className="mb-8">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
-            Admin
+            Super Admin
           </p>
           <h1 className="mt-2 text-2xl font-bold text-slate-900 lg:text-3xl dark:text-white">
             Profil Saya
@@ -172,7 +172,7 @@ export default function AdminProfilePage() {
                     {initials}
                   </div>
                   <h2 className="mt-4 text-xl font-bold text-slate-900 dark:text-white">
-                    {user?.name || "Admin User"}
+                    {user?.name || "Super Admin"}
                   </h2>
                   <p className="text-slate-500">{user?.email}</p>
                   <div className="mt-3 flex gap-2 justify-center flex-wrap">

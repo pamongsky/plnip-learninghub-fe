@@ -1,0 +1,53 @@
+{
+  "name": "PLN IP Learning Hub",
+  "short_name": "PLN Learning",
+  "description": "Enterprise Learning Management System for PLN Indonesia Power",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#009CDE",
+  "theme_color": "#009CDE",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "categories": ["education", "productivity"],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "Open dashboard",
+      "url": "/dashboard",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "My Classes",
+      "short_name": "Classes",
+      "description": "View my classes",
+      "url": "/dashboard/classes",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}

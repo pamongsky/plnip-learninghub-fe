@@ -31,6 +31,7 @@ import { useToast } from "@/hooks/useToast";
 
 // Mock data (temporary, will replace with API)
 import axios from "@/lib/axios";
+import { getImageUrl } from "@/lib/imageUrl";
 
 // ... imports
 
@@ -775,7 +776,7 @@ export default function SuperadminHomePage() {
                       className="relative aspect-video rounded-lg overflow-hidden group border border-slate-200"
                     >
                       <img
-                        src={img.image_path}
+                        src={getImageUrl(img.image_path)}
                         alt={img.title}
                         className="w-full h-full object-cover"
                       />
@@ -944,7 +945,7 @@ export default function SuperadminHomePage() {
                       className="relative aspect-video rounded-lg overflow-hidden group border border-slate-200"
                     >
                       <img
-                        src={img.image_path}
+                        src={getImageUrl(img.image_path)}
                         alt={img.title}
                         className="w-full h-full object-cover"
                       />

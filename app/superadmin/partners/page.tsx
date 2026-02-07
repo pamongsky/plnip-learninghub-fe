@@ -30,6 +30,7 @@ import {
 import { Toast } from "@/components/ui/Toast";
 import { useToast } from "@/hooks/useToast";
 import axios from "@/lib/axios";
+import { getImageUrl } from "@/lib/imageUrl";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -239,7 +240,7 @@ export default function SuperadminPartnersPage() {
                   <div className="flex h-24 w-full items-center justify-center p-2 bg-slate-50 rounded-lg">
                     {partner.logo_path ? (
                       <img
-                        src={partner.logo_path}
+                        src={getImageUrl(partner.logo_path)}
                         alt={partner.name}
                         className="max-h-full max-w-full object-contain"
                       />

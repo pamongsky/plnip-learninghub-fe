@@ -351,7 +351,7 @@ export default function SuperadminUsersPage() {
                       <SelectItem value="super-admin">Super Admin</SelectItem>
                       <SelectItem value="admin">Admin</SelectItem>
                       <SelectItem value="instructor">Instructor</SelectItem>
-                      <SelectItem value="employee">Employee</SelectItem>
+                      <SelectItem value="user">User</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

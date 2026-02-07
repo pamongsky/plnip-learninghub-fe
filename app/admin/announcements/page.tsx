@@ -2,7 +2,10 @@
 
 import { useState, useEffect } from "react";
 // import { useAuth } from "@/contexts/AuthContext"; // Commented out for Admin context
+import api from "@/lib/axios";
 import { motion, AnimatePresence } from "framer-motion";
+import { DateTimePicker } from "@/components/ui/date-time-picker";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import {
   MegaphoneIcon,
   MagnifyingGlassIcon,
@@ -20,7 +23,7 @@ import {
   CheckCircleIcon,
 } from "@heroicons/react/24/outline";
 
-// Priority configuration dengan 4 level
+// Priority configuration dengan 4 level - Same as others
 const priorityConfig = {
   info: {
     label: "Informasi",
@@ -60,78 +63,50 @@ const priorityConfig = {
 
 type PriorityType = keyof typeof priorityConfig;
 
-// Mock pengumuman umum (Masuk ke Admin dari System/SuperAdmin)
-const allAnnouncements = [
-  {
-    id: "a1",
-    title: "Pembaruan Sistem Penilaian Otomatis",
-    content:
-      "Dengan hormat, kami informasikan bahwa mulai 1 Februari 2026, sistem penilaian akan diperbarui dengan fitur grading otomatis untuk quiz.",
-    date: "22 Jan 2026",
-    author: "Super Admin",
-    authorRole: "superadmin",
-    priority: "important" as PriorityType,
-  },
-  {
-    id: "a2",
-    title: "Jadwal Audit ISO 2026",
-    content:
-      "Kepada seluruh Unit, Audit ISO akan dilaksanakan pada tanggal 15-20 Februari 2026. Mohon persiapkan dokumen terkait.",
-    date: "20 Jan 2026",
-    author: "Tim Audit Pusat",
-    authorRole: "superadmin",
-    priority: "urgent" as PriorityType,
-  },
-];
-
-// Mock pengumuman yang dibuat Admin ini (Sent Items)
-const myAnnouncements = [
-  {
-    id: "m1",
-    title: "Pemeliharaan Lokal Server Unit",
-    content:
-      "Server lokal unit akan direstart pada hari Sabtu pukul 23:00 WIB.",
-    date: "24 Jan 2026",
-    targetClass: "Semua User Unit",
-    targetClassId: "all",
-    targetCount: 150,
-    priority: "info" as PriorityType,
-  },
-  {
-    id: "m2",
-    title: "Briefing Instruktur Baru",
-    content:
-      "Mohon kehadiran seluruh instruktur baru di Ruang Rapat Lt. 2 pada Senin, 27 Jan 2026.",
-    date: "21 Jan 2026",
-    targetClass: "Instruktur",
-    targetClassId: "instructors",
-    targetCount: 12,
-    priority: "important" as PriorityType,
-  },
-];
-
-// Mock classes for target selection (Admin sees all courses)
-const adminClasses = [
-  { id: "all", name: "Semua User Unit", participants: 150 },
-  { id: "instructors", name: "Semua Instruktur", participants: 12 },
-  { id: "1", name: "Maintenance Turbin Gas", participants: 32 },
-  { id: "2", name: "Safety Induction", participants: 45 },
-];
-
 export default function AdminAnnouncementsPage() {
   // const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"all" | "mine">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(
+    null,
+  );
+
+  // Data state
+  const [allAnnouncements, setAllAnnouncements] = useState<any[]>([]);
+  const [myAnnouncements, setMyAnnouncements] = useState<any[]>([]);
 
   // Form state
   const [newAnnouncement, setNewAnnouncement] = useState({
     title: "",
     content: "",
-    targetClass: "",
+    target_role: "all" as "all" | "user" | "instructor", // Role targeting
     priority: "normal" as PriorityType,
+    published_at: "", // Optional publish date
+    expires_at: "", // Optional expires date
   });
+
+  useEffect(() => {
+    fetchAnnouncements();
+  }, []);
+
+  const fetchAnnouncements = async () => {
+    setIsLoading(true);
+    try {
+      const response = await api.get("/admin/announcements");
+      if (response.data.success) {
+        setAllAnnouncements(response.data.data.all);
+        setMyAnnouncements(response.data.data.mine);
+      }
+    } catch (error) {
+      console.error("Failed to fetch announcements:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Filter announcements
   const filteredAllAnnouncements = allAnnouncements.filter(
@@ -146,15 +121,104 @@ export default function AdminAnnouncementsPage() {
       a.content.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
-  const handleCreateAnnouncement = () => {
-    // Would send to API
-    console.log("Creating announcement:", newAnnouncement);
+  const handleCreateAnnouncement = async () => {
+    if (!newAnnouncement.title || !newAnnouncement.content) {
+      alert("Mohon lengkapi judul dan konten pengumuman.");
+      return;
+    }
+
+    // Map frontend priority to backend
+    const priorityMap: Record<PriorityType, string> = {
+      info: "low",
+      normal: "normal",
+      important: "high",
+      urgent: "urgent",
+    };
+
+    try {
+      const payload = {
+        title: newAnnouncement.title,
+        content: newAnnouncement.content,
+        priority: priorityMap[newAnnouncement.priority],
+        published_at: newAnnouncement.published_at || undefined,
+        expires_at: newAnnouncement.expires_at || undefined,
+        target_role: newAnnouncement.target_role,
+      };
+
+      if (editingId) {
+        await api.put(`/admin/announcements/${editingId}`, payload);
+        alert("Pengumuman berhasil diperbarui!");
+      } else {
+        await api.post("/admin/announcements", payload);
+        alert("Pengumuman berhasil dibuat!");
+      }
+
+      // Reset form
+      handleCancelEdit();
+
+      // Refresh data
+      fetchAnnouncements();
+    } catch (error: any) {
+      console.error("Failed to save announcement:", error);
+      alert(
+        error.response?.data?.message ||
+          "Gagal menyimpan pengumuman. Silakan coba lagi.",
+      );
+    }
+  };
+
+  const getMappedPriority = (priority: string): PriorityType => {
+    const priorityMapReverse: Record<string, PriorityType> = {
+      low: "info",
+      normal: "normal",
+      medium: "normal", // Legacy fallback
+      high: "important",
+      urgent: "urgent",
+    };
+    return priorityMapReverse[priority] || "normal";
+  };
+
+  const handleEditAnnouncement = (announcement: any) => {
+    setEditingId(announcement.id);
+
+    // Map backend priority back to frontend
+    // This logic is now handled by getPriorityConfig
+    setNewAnnouncement({
+      title: announcement.title,
+      content: announcement.content,
+      target_role: announcement.target_role || "all",
+      priority: getMappedPriority(announcement.priority), // Use the new helper
+      published_at: announcement.published_at || "",
+      expires_at: announcement.expires_at || "",
+    });
+    setShowCreateModal(true);
+    setExpandedId(null);
+  };
+
+  const handleDeleteAnnouncement = async (id: string | null) => {
+    if (!id) return;
+    try {
+      await api.delete(`/admin/announcements/${id}`);
+      fetchAnnouncements();
+      setShowDeleteConfirm(null);
+      setExpandedId(null);
+      alert("Pengumuman berhasil dihapus");
+    } catch (error) {
+      console.error("Failed to delete announcement:", error);
+      alert("Gagal menghapus pengumuman.");
+    }
+  };
+
+  const handleCancelEdit = () => {
     setShowCreateModal(false);
+    setEditingId(null);
     setNewAnnouncement({
       title: "",
       content: "",
-      targetClass: "",
+      target_role: "all",
       priority: "normal",
+      published_at: "",
+      expires_at: "",
     });
   };
 
@@ -245,7 +309,12 @@ export default function AdminAnnouncementsPage() {
       {/* Announcements List - All (Inbox) */}
       {activeTab === "all" && (
         <div className="space-y-4">
-          {filteredAllAnnouncements.length === 0 ? (
+          {isLoading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pln-primary mx-auto mb-4"></div>
+              <p className="text-slate-500">Memuat pengumuman...</p>
+            </div>
+          ) : filteredAllAnnouncements.length === 0 ? (
             <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
               <MegaphoneIcon className="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600" />
               <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
@@ -256,6 +325,14 @@ export default function AdminAnnouncementsPage() {
             filteredAllAnnouncements.map((announcement, index) => {
               const config = getPriorityConfig(announcement.priority);
               const PriorityIcon = config.icon;
+              const date = new Date(announcement.created_at).toLocaleDateString(
+                "id-ID",
+                {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                },
+              );
 
               return (
                 <motion.div
@@ -295,10 +372,13 @@ export default function AdminAnnouncementsPage() {
                         <div className="flex items-center gap-3 mt-2 text-xs text-slate-500 dark:text-slate-400">
                           <span className="flex items-center gap-1">
                             <CalendarIcon className="w-3 h-3" />
-                            {announcement.date}
+                            {date}
                           </span>
                           <span>•</span>
-                          <span>{announcement.author}</span>
+                          <span>
+                            {announcement.creator?.name || "Administrator"} -{" "}
+                            {announcement.creator_role || "Admin"}
+                          </span>
                         </div>
                         <AnimatePresence>
                           {expandedId === announcement.id && (
@@ -308,9 +388,12 @@ export default function AdminAnnouncementsPage() {
                               exit={{ height: 0, opacity: 0 }}
                               className="overflow-hidden"
                             >
-                              <p className="mt-4 text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line">
-                                {announcement.content}
-                              </p>
+                              <div
+                                className="mt-4 text-sm text-slate-600 dark:text-slate-300 leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_h3]:text-lg [&_h3]:font-bold"
+                                dangerouslySetInnerHTML={{
+                                  __html: announcement.content,
+                                }}
+                              />
                             </motion.div>
                           )}
                         </AnimatePresence>
@@ -332,7 +415,12 @@ export default function AdminAnnouncementsPage() {
       {/* Announcements List - My Announcements (Sent) */}
       {activeTab === "mine" && (
         <div className="space-y-4">
-          {filteredMyAnnouncements.length === 0 ? (
+          {isLoading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pln-primary mx-auto mb-4"></div>
+              <p className="text-slate-500">Memuat pengumuman...</p>
+            </div>
+          ) : filteredMyAnnouncements.length === 0 ? (
             <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
               <MegaphoneIcon className="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600" />
               <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
@@ -350,6 +438,14 @@ export default function AdminAnnouncementsPage() {
             filteredMyAnnouncements.map((announcement, index) => {
               const config = getPriorityConfig(announcement.priority);
               const PriorityIcon = config.icon;
+              const date = new Date(announcement.created_at).toLocaleDateString(
+                "id-ID",
+                {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                },
+              );
 
               return (
                 <motion.div
@@ -384,10 +480,11 @@ export default function AdminAnnouncementsPage() {
                           </span>
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium rounded bg-pln-primary/10 dark:bg-pln-primary/20 text-pln-primary">
                             <UserGroupIcon className="w-3 h-3" />
-                            {announcement.targetClass}
-                          </span>
-                          <span className="text-[10px] text-slate-400">
-                            ({announcement.targetCount} penerima)
+                            {announcement.target_role === "all"
+                              ? "User + Instructor"
+                              : announcement.target_role === "user"
+                                ? "User Only"
+                                : "Instructor Only"}
                           </span>
                         </div>
                         <h3 className="font-semibold text-slate-800 dark:text-white">
@@ -396,7 +493,7 @@ export default function AdminAnnouncementsPage() {
                         <div className="flex items-center gap-3 mt-2 text-xs text-slate-500 dark:text-slate-400">
                           <span className="flex items-center gap-1">
                             <CalendarIcon className="w-3 h-3" />
-                            {announcement.date}
+                            {date}
                           </span>
                         </div>
                         <AnimatePresence>
@@ -407,15 +504,30 @@ export default function AdminAnnouncementsPage() {
                               exit={{ height: 0, opacity: 0 }}
                               className="overflow-hidden"
                             >
-                              <p className="mt-4 text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line">
-                                {announcement.content}
-                              </p>
+                              <div
+                                className="mt-4 text-sm text-slate-600 dark:text-slate-300 leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_h3]:text-lg [&_h3]:font-bold"
+                                dangerouslySetInnerHTML={{
+                                  __html: announcement.content,
+                                }}
+                              />
                               <div className="mt-4 flex gap-2">
-                                <button className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleEditAnnouncement(announcement);
+                                  }}
+                                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                                >
                                   <PencilIcon className="w-3 h-3" />
                                   Edit
                                 </button>
-                                <button className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowDeleteConfirm(announcement.id);
+                                  }}
+                                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+                                >
                                   <TrashIcon className="w-3 h-3" />
                                   Hapus
                                 </button>
@@ -446,27 +558,29 @@ export default function AdminAnnouncementsPage() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
-            onClick={() => setShowCreateModal(false)}
+            onClick={handleCancelEdit}
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-lg bg-white dark:bg-slate-800 rounded-2xl shadow-xl overflow-hidden max-h-[90vh] overflow-y-auto"
+              className="w-full max-w-2xl bg-white dark:bg-slate-800 rounded-2xl shadow-xl overflow-hidden max-h-[90vh] overflow-y-auto"
             >
               {/* Modal Header */}
               <div className="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800">
                 <div>
                   <h2 className="text-lg font-semibold text-slate-800 dark:text-white">
-                    Buat Pengumuman Baru
+                    {editingId ? "Edit Pengumuman" : "Buat Pengumuman Baru"}
                   </h2>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    Publikasikan informasi untuk pengguna atau instruktur
+                    {editingId
+                      ? "Perbarui informasi pengumuman"
+                      : "Publikasikan informasi untuk pengguna atau instruktur"}
                   </p>
                 </div>
                 <button
-                  onClick={() => setShowCreateModal(false)}
+                  onClick={handleCancelEdit}
                   className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
                 >
                   <XMarkIcon className="w-5 h-5" />
@@ -475,28 +589,85 @@ export default function AdminAnnouncementsPage() {
 
               {/* Modal Body */}
               <div className="p-5 space-y-5">
-                {/* Target Class */}
+                {/* Target Role Selector */}
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                     Target Penerima <span className="text-red-500">*</span>
                   </label>
-                  <select
-                    value={newAnnouncement.targetClass}
-                    onChange={(e) =>
-                      setNewAnnouncement({
-                        ...newAnnouncement,
-                        targetClass: e.target.value,
-                      })
-                    }
-                    className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pln-primary dark:text-white"
-                  >
-                    <option value="">Pilih target penerima...</option>
-                    {adminClasses.map((cls) => (
-                      <option key={cls.id} value={cls.id}>
-                        {cls.name} ({cls.participants} orang)
-                      </option>
-                    ))}
-                  </select>
+                  <div className="grid grid-cols-3 gap-2">
+                    <label
+                      className={`flex items-center gap-2 p-3 rounded-lg border-2 cursor-pointer transition-all ${newAnnouncement.target_role === "user" ? "border-pln-primary bg-pln-primary/5 dark:bg-pln-primary/10" : "border-slate-200 dark:border-slate-600 hover:border-slate-300"}`}
+                    >
+                      <input
+                        type="radio"
+                        name="target_role"
+                        value="user"
+                        checked={newAnnouncement.target_role === "user"}
+                        onChange={(e) =>
+                          setNewAnnouncement({
+                            ...newAnnouncement,
+                            target_role: e.target
+                              .value as typeof newAnnouncement.target_role,
+                          })
+                        }
+                        className="w-4 h-4 text-pln-primary"
+                      />
+                      <span className="text-sm font-medium text-slate-800 dark:text-white">
+                        👥 User Only
+                      </span>
+                    </label>
+
+                    <label
+                      className={`flex items-center gap-2 p-3 rounded-lg border-2 cursor-pointer transition-all ${newAnnouncement.target_role === "instructor" ? "border-pln-primary bg-pln-primary/5 dark:bg-pln-primary/10" : "border-slate-200 dark:border-slate-600 hover:border-slate-300"}`}
+                    >
+                      <input
+                        type="radio"
+                        name="target_role"
+                        value="instructor"
+                        checked={newAnnouncement.target_role === "instructor"}
+                        onChange={(e) =>
+                          setNewAnnouncement({
+                            ...newAnnouncement,
+                            target_role: e.target
+                              .value as typeof newAnnouncement.target_role,
+                          })
+                        }
+                        className="w-4 h-4 text-pln-primary"
+                      />
+                      <span className="text-sm font-medium text-slate-800 dark:text-white">
+                        👨‍🏫 Instructor Only
+                      </span>
+                    </label>
+
+                    <label
+                      className={`flex items-center gap-2 p-3 rounded-lg border-2 cursor-pointer transition-all ${newAnnouncement.target_role === "all" ? "border-pln-primary bg-pln-primary/5 dark:bg-pln-primary/10" : "border-slate-200 dark:border-slate-600 hover:border-slate-300"}`}
+                    >
+                      <input
+                        type="radio"
+                        name="target_role"
+                        value="all"
+                        checked={newAnnouncement.target_role === "all"}
+                        onChange={(e) =>
+                          setNewAnnouncement({
+                            ...newAnnouncement,
+                            target_role: e.target
+                              .value as typeof newAnnouncement.target_role,
+                          })
+                        }
+                        className="w-4 h-4 text-pln-primary"
+                      />
+                      <span className="text-sm font-medium text-slate-800 dark:text-white">
+                        🌐 User + Instructor
+                      </span>
+                    </label>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-2">
+                    {newAnnouncement.target_role === "user"
+                      ? "Pengumuman hanya akan dikirim ke User"
+                      : newAnnouncement.target_role === "instructor"
+                        ? "Pengumuman hanya akan dikirim ke Instructor"
+                        : "Pengumuman akan dikirim ke User dan Instructor"}
+                  </p>
                 </div>
 
                 {/* Title */}
@@ -518,23 +689,23 @@ export default function AdminAnnouncementsPage() {
                   />
                 </div>
 
-                {/* Content */}
+                {/* Content - Rich Text Editor */}
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
                     Isi Pengumuman <span className="text-red-500">*</span>
                   </label>
-                  <textarea
-                    placeholder="Tulis isi pengumuman..."
+                  <RichTextEditor
                     value={newAnnouncement.content}
-                    onChange={(e) =>
-                      setNewAnnouncement({
-                        ...newAnnouncement,
-                        content: e.target.value,
-                      })
+                    onChange={(value) =>
+                      setNewAnnouncement({ ...newAnnouncement, content: value })
                     }
-                    rows={5}
-                    className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pln-primary dark:text-white resize-none"
+                    placeholder="Tulis pengumuman di sini..."
+                    className="min-h-[200px]"
                   />
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1">
+                    <InformationCircleIcon className="w-3 h-3" />
+                    Tips: Gunakan formatting untuk memperjelas pesan
+                  </p>
                 </div>
 
                 {/* Priority */}
@@ -594,28 +765,112 @@ export default function AdminAnnouncementsPage() {
                     )}
                   </div>
                 </div>
+
+                {/* Scheduling - Publish & Expires Date (Optional) */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                      Tanggal Publish
+                    </label>
+                    <DateTimePicker
+                      value={newAnnouncement.published_at}
+                      onChange={(value) =>
+                        setNewAnnouncement({
+                          ...newAnnouncement,
+                          published_at: value,
+                        })
+                      }
+                      placeholder="Pilih tanggal publish"
+                    />
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      Opsional - Kosongkan untuk publish sekarang
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                      Tanggal Kadaluarsa
+                    </label>
+                    <DateTimePicker
+                      value={newAnnouncement.expires_at}
+                      onChange={(value) =>
+                        setNewAnnouncement({
+                          ...newAnnouncement,
+                          expires_at: value,
+                        })
+                      }
+                      placeholder="Pilih tanggal kadaluarsa"
+                    />
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      Opsional - Pengumuman otomatis hilang setelah tanggal ini
+                    </p>
+                  </div>
+                </div>
               </div>
 
               {/* Modal Footer */}
               <div className="flex justify-end gap-3 p-5 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 sticky bottom-0">
                 <button
-                  onClick={() => setShowCreateModal(false)}
+                  onClick={handleCancelEdit}
                   className="px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-colors"
                 >
                   Batal
                 </button>
                 <button
                   onClick={handleCreateAnnouncement}
-                  disabled={
-                    !newAnnouncement.title ||
-                    !newAnnouncement.content ||
-                    !newAnnouncement.targetClass
-                  }
+                  disabled={!newAnnouncement.title || !newAnnouncement.content}
                   className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-pln-primary to-pln-light text-white text-sm font-medium rounded-xl hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
                   <PaperAirplaneIcon className="w-4 h-4" />
-                  Publikasikan
+                  {editingId ? "Perbarui" : "Publikasikan"}
                 </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {showDeleteConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+            onClick={() => setShowDeleteConfirm(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-xl overflow-hidden"
+            >
+              <div className="p-6">
+                <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-500/20 flex items-center justify-center mx-auto mb-4">
+                  <TrashIcon className="w-6 h-6 text-red-600 dark:text-red-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-slate-800 dark:text-white text-center mb-2">
+                  Hapus Pengumuman?
+                </h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-6">
+                  Pengumuman yang dihapus tidak dapat dikembalikan.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowDeleteConfirm(null)}
+                    className="flex-1 px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-xl transition-colors"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    onClick={() => handleDeleteAnnouncement(showDeleteConfirm)}
+                    className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors"
+                  >
+                    Ya, Hapus
+                  </button>
+                </div>
               </div>
             </motion.div>
           </motion.div>

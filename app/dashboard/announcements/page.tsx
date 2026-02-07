@@ -14,35 +14,77 @@ import {
   ChevronDownIcon,
   ArrowPathIcon,
   ExclamationCircleIcon,
-  BellIcon,
-  BookOpenIcon,
-  TrophyIcon,
+  CheckCircleIcon,
+  ArrowsUpDownIcon,
+  ClockIcon,
 } from "@heroicons/react/24/outline";
 
-// Priority configuration - matches backend: low, medium, high
+// Konfigurasi Prioritas - Skema Baru 4 Level + Fallback Legacy
 const priorityConfig = {
-  low: {
-    label: "Rendah",
+  // Skema Baru (Frontend UI) - Strict Mapping
+  info: {
+    label: "Informasi",
+    color: "bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400",
+    iconBg: "bg-blue-50 dark:bg-blue-500/10",
+    iconColor: "text-blue-600 dark:text-blue-400",
+    icon: InformationCircleIcon,
+    weight: 1,
+  },
+  normal: {
+    label: "Umum",
     color:
       "bg-slate-100 dark:bg-slate-500/20 text-slate-700 dark:text-slate-400",
     iconBg: "bg-slate-50 dark:bg-slate-500/10",
     iconColor: "text-slate-600 dark:text-slate-400",
-    icon: InformationCircleIcon,
+    icon: CheckCircleIcon,
+    weight: 2,
   },
-  medium: {
-    label: "Sedang",
+  important: {
+    label: "Penting",
     color:
       "bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400",
     iconBg: "bg-amber-50 dark:bg-amber-500/10",
     iconColor: "text-amber-600 dark:text-amber-400",
     icon: ExclamationTriangleIcon,
+    weight: 3,
   },
-  high: {
-    label: "Penting",
+  urgent: {
+    label: "Urgent",
     color: "bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400",
     iconBg: "bg-red-50 dark:bg-red-500/10",
     iconColor: "text-red-600 dark:text-red-400",
     icon: BellAlertIcon,
+    weight: 4,
+  },
+
+  // Fallback Data Lama (Backend Legacy)
+  low: {
+    label: "Informasi",
+    color: "bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400",
+    iconBg: "bg-blue-50 dark:bg-blue-500/10",
+    iconColor: "text-blue-600 dark:text-blue-400",
+    icon: InformationCircleIcon,
+    weight: 1,
+  },
+  medium: {
+    // Legacy 'medium' is now 'Normal' (Umum)
+    label: "Umum",
+    color:
+      "bg-slate-100 dark:bg-slate-500/20 text-slate-700 dark:text-slate-400",
+    iconBg: "bg-slate-50 dark:bg-slate-500/10",
+    iconColor: "text-slate-600 dark:text-slate-400",
+    icon: CheckCircleIcon,
+    weight: 2,
+  },
+  high: {
+    // Legacy 'high' is now 'Penting' (Important)
+    label: "Penting",
+    color:
+      "bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400",
+    iconBg: "bg-amber-50 dark:bg-amber-500/10",
+    iconColor: "text-amber-600 dark:text-amber-400",
+    icon: ExclamationTriangleIcon,
+    weight: 3,
   },
 };
 
@@ -53,8 +95,10 @@ interface Announcement {
   title: string;
   content: string;
   priority: PriorityType;
-  published_at: string;
+  created_at: string;
+  published_at: string | null;
   is_active: boolean;
+  creator_role?: string;
   creator?: {
     id: number;
     name: string;
@@ -70,22 +114,15 @@ interface PaginationData {
   total: number;
 }
 
-interface Notification {
-  id: number;
-  title: string;
-  message: string;
-  time: string;
-  read: boolean;
-  type: string;
-}
-
 function AnnouncementsContent() {
   const searchParams = useSearchParams();
-  const tab = searchParams.get("tab") || "announcements";
+  // const tab = searchParams.get("tab") || "announcements"; // Not currently used but kept for ref
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedType, setSelectedType] = useState("all");
-  const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
+  const [sortOrder, setSortOrder] = useState<
+    "newest" | "oldest" | "priority_high" | "priority_low"
+  >("newest");
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [pagination, setPagination] = useState<PaginationData | null>(null);
@@ -93,7 +130,6 @@ function AnnouncementsContent() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Selalu fetch announcements, baik untuk tab announcements maupun notifications
     fetchAnnouncements();
   }, [selectedType, searchQuery]);
 
@@ -103,9 +139,30 @@ function AnnouncementsContent() {
       setError(null);
 
       const params: Record<string, string> = {};
+      // Mapping frontend filter types to backend query if needed
+      // Note: Backend might need updates to handle 'info', 'urgent' strictly if not mapped
       if (selectedType !== "all") {
-        params.priority = selectedType;
+        if (["info", "low"].includes(selectedType)) params.priority = "low";
+        else if (["normal", "medium"].includes(selectedType))
+          params.priority = "medium"; // Backend might treat normal as medium or null
+        else if (["important", "high"].includes(selectedType))
+          params.priority = "medium"; // This mapping is tricky without backend change
+        else if (["urgent"].includes(selectedType)) params.priority = "high";
+        // For now, we rely on client-side filtering if backend doesn't support new keys
+        // OR we just pass the key if backend supports it.
+        // Assuming Backend supports 'low', 'medium', 'high'.
+        // Let's rely on backend returning everything and we filter client side? No, pagination.
+        // Let's send the mapped value.
+        // Simplified mapping for now:
+        const mapToBackend: Record<string, string> = {
+          info: "low",
+          normal: "medium", // assuming normal ~ medium for now
+          important: "medium",
+          urgent: "high",
+        };
+        params.priority = mapToBackend[selectedType] || selectedType;
       }
+
       if (searchQuery) {
         params.search = searchQuery;
       }
@@ -124,7 +181,8 @@ function AnnouncementsContent() {
     }
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return "";
     const date = new Date(dateString);
     return date.toLocaleDateString("id-ID", {
       day: "numeric",
@@ -134,13 +192,27 @@ function AnnouncementsContent() {
   };
 
   const getPriorityConfig = (priority: string) => {
-    return priorityConfig[priority as PriorityType] || priorityConfig.medium;
+    return priorityConfig[priority as PriorityType] || priorityConfig.normal;
   };
 
   const sortedAnnouncements = [...announcements].sort((a, b) => {
-    const aTime = new Date(a.published_at).getTime();
-    const bTime = new Date(b.published_at).getTime();
-    return sortOrder === "newest" ? bTime - aTime : aTime - bTime;
+    const aDate = new Date(a.published_at || a.created_at).getTime();
+    const bDate = new Date(b.published_at || b.created_at).getTime();
+
+    const aWeight = getPriorityConfig(a.priority).weight;
+    const bWeight = getPriorityConfig(b.priority).weight;
+
+    switch (sortOrder) {
+      case "oldest":
+        return aDate - bDate;
+      case "priority_high": // Highest priority first (Urgent -> Info)
+        return bWeight - aWeight || bDate - aDate; // secondary sort by date
+      case "priority_low": // Lowest priority first (Info -> Urgent)
+        return aWeight - bWeight || bDate - aDate;
+      case "newest":
+      default:
+        return bDate - aDate;
+    }
   });
 
   return (
@@ -166,75 +238,99 @@ function AnnouncementsContent() {
         className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-100 dark:border-slate-700 space-y-4"
       >
         <div className="relative">
-          <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
           <input
             type="text"
             placeholder="Cari pengumuman..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg focus:ring-2 focus:ring-pln-primary/20 focus:border-pln-primary transition-all"
+            className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pln-primary dark:text-white"
           />
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => setSelectedType("all")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full transition-all ${
-              selectedType === "all"
-                ? "bg-pln-primary text-white"
-                : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
-            }`}
-          >
-            <MegaphoneIcon className="w-3 h-3" />
-            Semua
-          </button>
-          <button
-            onClick={() => setSelectedType("high")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full transition-all ${
-              selectedType === "high"
-                ? "bg-pln-primary text-white"
-                : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
-            }`}
-          >
-            <BellAlertIcon className="w-3 h-3" />
-            Penting
-          </button>
-          <button
-            onClick={() => setSelectedType("medium")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full transition-all ${
-              selectedType === "medium"
-                ? "bg-pln-primary text-white"
-                : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
-            }`}
-          >
-            <ExclamationTriangleIcon className="w-3 h-3" />
-            Sedang
-          </button>
-          <button
-            onClick={() => setSelectedType("low")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full transition-all ${
-              selectedType === "low"
-                ? "bg-pln-primary text-white"
-                : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
-            }`}
-          >
-            <InformationCircleIcon className="w-3 h-3" />
-            Rendah
-          </button>
-          <div className="ml-auto flex items-center gap-2">
-            <span className="text-xs text-slate-500 dark:text-slate-400">
-              Urutkan
+        <div className="flex flex-wrap gap-2 items-center">
+          {/* Filter Buttons */}
+          <div className="flex flex-wrap gap-2 flex-1">
+            <button
+              onClick={() => setSelectedType("all")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full transition-all ${
+                selectedType === "all"
+                  ? "bg-pln-primary text-white shadow-sm"
+                  : "bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-600"
+              }`}
+            >
+              <MegaphoneIcon className="w-3 h-3" />
+              Semua
+            </button>
+            <button
+              onClick={() => setSelectedType("urgent")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full transition-all ${
+                selectedType === "urgent"
+                  ? "bg-pln-primary text-white shadow-sm"
+                  : "bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-600"
+              }`}
+            >
+              <BellAlertIcon className="w-3 h-3" />
+              Urgent
+            </button>
+            <button
+              onClick={() => setSelectedType("important")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full transition-all ${
+                selectedType === "important"
+                  ? "bg-pln-primary text-white shadow-sm"
+                  : "bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-600"
+              }`}
+            >
+              <ExclamationTriangleIcon className="w-3 h-3" />
+              Penting
+            </button>
+            <button
+              onClick={() => setSelectedType("normal")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full transition-all ${
+                selectedType === "normal"
+                  ? "bg-pln-primary text-white shadow-sm"
+                  : "bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-600"
+              }`}
+            >
+              <CheckCircleIcon className="w-3 h-3" />
+              Umum
+            </button>
+            <button
+              onClick={() => setSelectedType("info")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full transition-all ${
+                selectedType === "info"
+                  ? "bg-pln-primary text-white shadow-sm"
+                  : "bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-600"
+              }`}
+            >
+              <InformationCircleIcon className="w-3 h-3" />
+              Info
+            </button>
+          </div>
+
+          {/* Sort Dropdown */}
+          <div className="flex items-center gap-2 mt-2 sm:mt-0">
+            <span className="text-xs text-slate-500 dark:text-slate-400 hidden sm:inline">
+              Urutkan:
             </span>
             <div className="relative">
               <select
                 value={sortOrder}
                 onChange={(e) =>
-                  setSortOrder(e.target.value as "newest" | "oldest")
+                  setSortOrder(
+                    e.target.value as
+                      | "newest"
+                      | "oldest"
+                      | "priority_high"
+                      | "priority_low",
+                  )
                 }
-                className="appearance-none pl-3 pr-8 py-1.5 text-xs font-medium rounded-full border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-pln-primary/20 focus:border-pln-primary"
+                className="appearance-none pl-3 pr-8 py-1.5 text-xs font-medium rounded-full border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-pln-primary/20 focus:border-pln-primary cursor-pointer"
               >
                 <option value="newest">Terbaru</option>
                 <option value="oldest">Terlama</option>
+                <option value="priority_high">Prioritas Tertinggi</option>
+                <option value="priority_low">Prioritas Terendah</option>
               </select>
               <ChevronDownIcon className="w-4 h-4 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
@@ -293,7 +389,7 @@ function AnnouncementsContent() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 + index * 0.05 }}
-                  className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden hover:shadow-md transition-all"
+                  className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden hover:shadow-md transition-all group"
                 >
                   <div
                     className="p-5 cursor-pointer"
@@ -319,18 +415,24 @@ function AnnouncementsContent() {
                             {config.label}
                           </span>
                         </div>
-                        <h3 className="font-semibold text-slate-800 dark:text-white">
+                        <h3 className="font-semibold text-slate-800 dark:text-white group-hover:text-pln-primary transition-colors">
                           {announcement.title}
                         </h3>
                         <div className="flex items-center gap-3 mt-2 text-xs text-slate-500 dark:text-slate-400">
                           <span className="flex items-center gap-1">
-                            <CalendarIcon className="w-3 h-3" />
-                            {formatDate(announcement.published_at)}
+                            <ClockIcon className="w-3 h-3" />
+                            {formatDate(
+                              announcement.published_at ||
+                                announcement.created_at,
+                            )}
                           </span>
                           {announcement.creator && (
                             <>
                               <span>•</span>
-                              <span>{announcement.creator.name}</span>
+                              <span>
+                                {announcement.creator?.name || "Super Admin"} -{" "}
+                                {announcement.creator_role || "Administrator"}
+                              </span>
                             </>
                           )}
                         </div>
@@ -342,9 +444,12 @@ function AnnouncementsContent() {
                               exit={{ height: 0, opacity: 0 }}
                               className="overflow-hidden"
                             >
-                              <p className="mt-4 text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line">
-                                {announcement.content}
-                              </p>
+                              <div
+                                className="mt-4 text-sm text-slate-600 dark:text-slate-300 leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_h3]:text-lg [&_h3]:font-bold"
+                                dangerouslySetInnerHTML={{
+                                  __html: announcement.content,
+                                }}
+                              />
                             </motion.div>
                           )}
                         </AnimatePresence>

@@ -1,7 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
+import { DateTimePicker } from "@/components/ui/date-time-picker";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import {
   MegaphoneIcon,
   MagnifyingGlassIcon,
@@ -19,8 +22,11 @@ import {
   UserGroupIcon,
   ArrowsUpDownIcon,
   ClockIcon,
+  PencilIcon,
+  TrashIcon,
 } from "@heroicons/react/24/outline";
 import axios from "@/lib/axios";
+import { getEcho, disconnectEcho } from "@/lib/echo";
 
 // Priority configuration - same as admin
 const priorityConfig = {
@@ -67,10 +73,18 @@ interface Announcement {
   title: string;
   content: string;
   priority: string;
+  created_by_id: number | null; // Add this
   created_by: string;
   creator_role: string;
+  creator?: {
+    id: number;
+    name: string;
+    department?: string;
+    position?: string;
+  };
   created_at: string;
   published_at: string | null;
+  expires_at: string | null;
   views: number;
   is_active: boolean;
   status: string;
@@ -88,6 +102,7 @@ interface Stats {
 }
 
 export default function SuperadminAnnouncementsPage() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"all" | "mine">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
@@ -98,6 +113,12 @@ export default function SuperadminAnnouncementsPage() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [myAnnouncements, setMyAnnouncements] = useState<Announcement[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
+
+  // Edit & Delete States
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(
+    null,
+  );
 
   const [formData, setFormData] = useState({
     title: "",
@@ -110,7 +131,35 @@ export default function SuperadminAnnouncementsPage() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+
+    // Real-time listener for new announcements
+    const echo = getEcho();
+    if (echo) {
+      const channel = echo.channel("announcements");
+      channel.listen(".announcement.created", (data: any) => {
+        console.log("New announcement received:", data);
+        fetchData(); // Refresh data
+      });
+    }
+
+    return () => {
+      const echo = getEcho();
+      if (echo) {
+        echo.leaveChannel("announcements");
+      }
+    };
+  }, []); // Remove user dependency to avoid infinite loop if user changes, though fetchData depends on user
+
+  // Add dependency on user to filter correctly when user loads
+  useEffect(() => {
+    if (user && announcements.length > 0) {
+      // Re-filter if user arrives late
+      const mineFiltered = announcements.filter(
+        (ann: Announcement) => ann.created_by_id === user.id,
+      );
+      setMyAnnouncements(mineFiltered);
+    }
+  }, [user, announcements]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -126,10 +175,16 @@ export default function SuperadminAnnouncementsPage() {
       setAnnouncements(allAnnouncements);
 
       // Filter announcements created by super admin
-      const mineFiltered = allAnnouncements.filter(
-        (ann: Announcement) => ann.creator_role === "super-admin",
-      );
-      setMyAnnouncements(mineFiltered);
+      // Note: Use created_by_id if available, fallback to role check if needed (but now we have ID)
+      if (user) {
+        const mineFiltered = allAnnouncements.filter(
+          (ann: Announcement) => ann.created_by_id === user.id,
+        );
+        setMyAnnouncements(mineFiltered);
+      } else {
+        // Fallback or empty if user not loaded yet
+        setMyAnnouncements([]);
+      }
 
       setStats(statsRes.data.data);
     } catch (error) {
@@ -145,38 +200,101 @@ export default function SuperadminAnnouncementsPage() {
       return;
     }
 
-    if (formData.content.length < 20) {
-      alert("Konten minimal 20 karakter");
-      return;
-    }
+    // Map frontend priority to backend
+    const priorityMap: Record<PriorityType, string> = {
+      info: "low",
+      normal: "normal",
+      important: "high",
+      urgent: "urgent",
+    };
 
     setSaving(true);
     try {
-      await axios.post("/superadmin/announcements", formData);
-      alert("Pengumuman berhasil dipublikasikan!");
-      setShowCreateModal(false);
-      setFormData({
-        title: "",
-        content: "",
-        priority: "normal",
-        published_at: "",
-        expires_at: "",
-      });
+      const payload = {
+        title: formData.title,
+        content: formData.content,
+        priority: priorityMap[formData.priority],
+        published_at: formData.published_at || undefined,
+        expires_at: formData.expires_at || undefined,
+      };
+
+      if (editingId) {
+        await axios.put(`/superadmin/announcements/${editingId}`, payload);
+        alert("Pengumuman berhasil diperbarui!");
+      } else {
+        await axios.post("/superadmin/announcements", payload);
+        alert("Pengumuman berhasil dipublikasikan!");
+      }
+
+      handleCancelEdit();
       fetchData();
     } catch (error: any) {
-      alert(error.response?.data?.message || "Gagal membuat pengumuman");
-      console.error("Failed to create announcement:", error);
+      alert(error.response?.data?.message || "Gagal menyimpan pengumuman");
+      console.error("Failed to save announcement:", error);
     } finally {
       setSaving(false);
     }
+  };
+
+  const getMappedPriority = (priority: string): PriorityType => {
+    const priorityMapReverse: Record<string, PriorityType> = {
+      low: "info",
+      normal: "normal",
+      medium: "normal", // Legacy fallback
+      high: "important",
+      urgent: "urgent",
+    };
+    return priorityMapReverse[priority] || "normal";
+  };
+
+  const handleEditAnnouncement = (ann: Announcement) => {
+    setEditingId(ann.id);
+
+    setFormData({
+      title: ann.title,
+      content: ann.content,
+      priority: getMappedPriority(ann.priority),
+      published_at: ann.published_at || "",
+      expires_at: ann.expires_at || "",
+    });
+    setShowCreateModal(true);
+    setExpandedId(null);
+  };
+
+  const handleDeleteAnnouncement = async (id: number | null) => {
+    if (!id) return;
+    try {
+      await axios.delete(`/superadmin/announcements/${id}`);
+      alert("Pengumuman berhasil dihapus");
+      setShowDeleteConfirm(null);
+      setExpandedId(null);
+      fetchData();
+    } catch (error) {
+      console.error("Failed to delete announcement:", error);
+      alert("Gagal menghapus pengumuman");
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setShowCreateModal(false);
+    setEditingId(null);
+    setFormData({
+      title: "",
+      content: "",
+      priority: "normal",
+      published_at: "",
+      expires_at: "",
+    });
   };
 
   const getPriorityConfig = (priority: string) => {
     // Map backend priority to frontend
     const priorityMap: Record<string, PriorityType> = {
       low: "info",
-      medium: "normal",
+      normal: "normal",
+      medium: "normal", // Legacy fallback
       high: "important",
+      urgent: "urgent",
     };
     const mappedPriority = priorityMap[priority] || "normal";
     return priorityConfig[mappedPriority];
@@ -399,27 +517,29 @@ export default function SuperadminAnnouncementsPage() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
-            onClick={() => setShowCreateModal(false)}
+            onClick={handleCancelEdit}
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-lg bg-white dark:bg-slate-800 rounded-2xl shadow-xl overflow-hidden max-h-[90vh] flex flex-col"
+              className="w-full max-w-2xl bg-white dark:bg-slate-800 rounded-2xl shadow-xl overflow-hidden max-h-[90vh] flex flex-col"
             >
               {/* Modal Header - Sticky */}
               <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
                 <div>
                   <h2 className="text-lg font-semibold text-slate-800 dark:text-white">
-                    Buat Pengumuman
+                    {editingId ? "Edit Pengumuman" : "Buat Pengumuman"}
                   </h2>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    Publikasikan untuk seluruh platform
+                    {editingId
+                      ? "Perbarui konten pengumuman"
+                      : "Publikasikan untuk seluruh platform"}
                   </p>
                 </div>
                 <button
-                  onClick={() => setShowCreateModal(false)}
+                  onClick={handleCancelEdit}
                   className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
                 >
                   <XMarkIcon className="w-5 h-5" />
@@ -428,34 +548,79 @@ export default function SuperadminAnnouncementsPage() {
 
               {/* Modal Body - Scrollable */}
               <div className="p-4 space-y-4 overflow-y-auto flex-1">
-                {/* Priority */}
+                {/* Target Audience Info */}
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20">
+                  <UserGroupIcon className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                      Pengumuman Global
+                    </p>
+                    <p className="text-xs text-blue-700 dark:text-blue-300 mt-0.5">
+                      Akan dikirim ke seluruh user platform (Admin, Instructor,
+                      dan Peserta)
+                    </p>
+                  </div>
+                </div>
+
+                {/* Priority - Modern Grid Radio Selector */}
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                     Tingkat Prioritas <span className="text-red-500">*</span>
                   </label>
-                  <select
-                    value={formData.priority}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        priority: e.target.value as PriorityType,
-                      })
-                    }
-                    className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-pln-primary focus:border-pln-primary"
-                  >
-                    <option value="info">
-                      Informasi - Bersifat informatif
-                    </option>
-                    <option value="normal">
-                      Umum - Pengumuman bersifat umum
-                    </option>
-                    <option value="important">
-                      Penting - Perlu diperhatikan
-                    </option>
-                    <option value="urgent">
-                      Urgent - Sangat penting & mendesak
-                    </option>
-                  </select>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(Object.keys(priorityConfig) as PriorityType[]).map(
+                      (key) => {
+                        const config = priorityConfig[key];
+                        const PriorityIcon = config.icon;
+                        const isSelected = formData.priority === key;
+
+                        return (
+                          <label
+                            key={key}
+                            className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                              isSelected
+                                ? "border-pln-primary bg-pln-primary/5 dark:bg-pln-primary/10"
+                                : "border-slate-200 dark:border-slate-600 hover:border-slate-300 dark:hover:border-slate-500"
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name="priority"
+                              value={key}
+                              checked={isSelected}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  priority: e.target.value as PriorityType,
+                                })
+                              }
+                              className="sr-only"
+                            />
+                            <div
+                              className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${config.iconBg}`}
+                            >
+                              <PriorityIcon
+                                className={`w-4 h-4 ${config.iconColor}`}
+                              />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <span
+                                className={`text-sm font-medium ${isSelected ? "text-pln-primary" : "text-slate-700 dark:text-slate-200"}`}
+                              >
+                                {config.label}
+                              </span>
+                              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                {config.description}
+                              </p>
+                            </div>
+                            {isSelected && (
+                              <CheckCircleIcon className="w-5 h-5 text-pln-primary flex-shrink-0" />
+                            )}
+                          </label>
+                        );
+                      },
+                    )}
+                  </div>
                 </div>
 
                 {/* Title */}
@@ -474,64 +639,62 @@ export default function SuperadminAnnouncementsPage() {
                   />
                 </div>
 
-                {/* Content */}
+                {/* Content - Rich Text Editor */}
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
                     Konten Pengumuman <span className="text-red-500">*</span>
                   </label>
-                  <textarea
+                  <RichTextEditor
                     value={formData.content}
-                    onChange={(e) =>
-                      setFormData({ ...formData, content: e.target.value })
+                    onChange={(value) =>
+                      setFormData({ ...formData, content: value })
                     }
-                    placeholder="Jelaskan detail pengumuman secara lengkap..."
-                    rows={6}
-                    className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-pln-primary resize-none"
+                    placeholder="Tulis pengumuman di sini..."
+                    className="min-h-[200px]"
                   />
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                    Minimal 20 karakter
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1">
+                    <InformationCircleIcon className="w-3 h-3" />
+                    Tips: Gunakan formatting untuk memperjelas pesan
                   </p>
                 </div>
 
-                {/* Schedule - 2 columns */}
+                {/* Scheduling - Publish & Expires Date (Optional) */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                      Publish
+                      Tanggal Publish
                     </label>
-                    <input
-                      type="datetime-local"
+                    <DateTimePicker
                       value={formData.published_at}
-                      onChange={(e) =>
+                      onChange={(value) =>
                         setFormData({
                           ...formData,
-                          published_at: e.target.value,
+                          published_at: value,
                         })
                       }
-                      className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-pln-primary"
+                      placeholder="Pilih tanggal publish"
                     />
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                      Kosongkan untuk sekarang
+                      Opsional - Kosongkan untuk publish sekarang
                     </p>
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                      Kadaluarsa
+                      Tanggal Kadaluarsa
                     </label>
-                    <input
-                      type="datetime-local"
+                    <DateTimePicker
                       value={formData.expires_at}
-                      onChange={(e) =>
+                      onChange={(value) =>
                         setFormData({
                           ...formData,
-                          expires_at: e.target.value,
+                          expires_at: value,
                         })
                       }
-                      className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-pln-primary"
+                      placeholder="Pilih tanggal kadaluarsa"
                     />
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                      Opsional
+                      Opsional - Pengumuman otomatis hilang setelah tanggal ini
                     </p>
                   </div>
                 </div>
@@ -540,7 +703,7 @@ export default function SuperadminAnnouncementsPage() {
               {/* Modal Footer - Sticky */}
               <div className="flex items-center justify-end gap-3 p-4 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50">
                 <button
-                  onClick={() => setShowCreateModal(false)}
+                  onClick={handleCancelEdit}
                   className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors"
                   disabled={saving}
                 >
@@ -561,10 +724,59 @@ export default function SuperadminAnnouncementsPage() {
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                       Menyimpan...
                     </>
+                  ) : editingId ? (
+                    "Perbarui"
                   ) : (
                     "Publikasikan"
                   )}
                 </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {showDeleteConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+            onClick={() => setShowDeleteConfirm(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-xl overflow-hidden"
+            >
+              <div className="p-6">
+                <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-500/20 flex items-center justify-center mx-auto mb-4">
+                  <TrashIcon className="w-6 h-6 text-red-600 dark:text-red-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-slate-800 dark:text-white text-center mb-2">
+                  Hapus Pengumuman?
+                </h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-6">
+                  Pengumuman yang dihapus tidak dapat dikembalikan.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowDeleteConfirm(null)}
+                    className="flex-1 px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-xl transition-colors"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    onClick={() => handleDeleteAnnouncement(showDeleteConfirm)}
+                    className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors"
+                  >
+                    Ya, Hapus
+                  </button>
+                </div>
               </div>
             </motion.div>
           </motion.div>
@@ -592,6 +804,9 @@ export default function SuperadminAnnouncementsPage() {
             filteredAllAnnouncements.map((announcement, index) => {
               const config = getPriorityConfig(announcement.priority);
               const PriorityIcon = config.icon;
+              const isMine =
+                announcement.created_by === "Super Admin" ||
+                announcement.creator_role === "super-admin"; // Simple check
 
               return (
                 <motion.div
@@ -609,12 +824,12 @@ export default function SuperadminAnnouncementsPage() {
                       )
                     }
                   >
-                    <div className="flex items-start gap-3">
+                    <div className="flex items-start gap-4">
                       <div
-                        className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${config.iconBg}`}
+                        className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${config.iconBg}`}
                       >
                         <PriorityIcon
-                          className={`w-5 h-5 ${config.iconColor}`}
+                          className={`w-6 h-6 ${config.iconColor}`}
                         />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -624,13 +839,12 @@ export default function SuperadminAnnouncementsPage() {
                           >
                             {config.label}
                           </span>
-                          {announcement.creator_role && (
-                            <span className="inline-block px-2 py-0.5 text-[10px] font-medium rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400">
-                              {announcement.creator_role}
-                            </span>
-                          )}
+                          <span>
+                            {announcement.creator?.name || "Super Admin"} -{" "}
+                            {announcement.creator_role || "Administrator"}
+                          </span>
                         </div>
-                        <h3 className="font-semibold text-slate-800 dark:text-white text-sm">
+                        <h3 className="font-semibold text-slate-800 dark:text-white">
                           {announcement.title}
                         </h3>
                         <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-500 dark:text-slate-400">
@@ -657,9 +871,35 @@ export default function SuperadminAnnouncementsPage() {
                               exit={{ height: 0, opacity: 0 }}
                               className="overflow-hidden"
                             >
-                              <p className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700 text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line">
-                                {announcement.content}
-                              </p>
+                              <div
+                                className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700 text-sm text-slate-600 dark:text-slate-300 leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_h3]:text-lg [&_h3]:font-bold"
+                                dangerouslySetInnerHTML={{
+                                  __html: announcement.content,
+                                }}
+                              />
+                              {/* Admin Actions */}
+                              <div className="mt-4 flex gap-2">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleEditAnnouncement(announcement);
+                                  }}
+                                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                                >
+                                  <PencilIcon className="w-3 h-3" />
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowDeleteConfirm(announcement.id);
+                                  }}
+                                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+                                >
+                                  <TrashIcon className="w-3 h-3" />
+                                  Hapus
+                                </button>
+                              </div>
                             </motion.div>
                           )}
                         </AnimatePresence>
@@ -723,12 +963,12 @@ export default function SuperadminAnnouncementsPage() {
                       )
                     }
                   >
-                    <div className="flex items-start gap-3">
+                    <div className="flex items-start gap-4">
                       <div
-                        className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${config.iconBg}`}
+                        className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${config.iconBg}`}
                       >
                         <PriorityIcon
-                          className={`w-5 h-5 ${config.iconColor}`}
+                          className={`w-6 h-6 ${config.iconColor}`}
                         />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -743,18 +983,13 @@ export default function SuperadminAnnouncementsPage() {
                             {announcement.status}
                           </span>
                         </div>
-                        <h3 className="font-semibold text-slate-800 dark:text-white text-sm">
+                        <h3 className="font-semibold text-slate-800 dark:text-white">
                           {announcement.title}
                         </h3>
                         <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-500 dark:text-slate-400">
                           <span className="flex items-center gap-1">
                             <CalendarIcon className="w-3 h-3" />
                             {formatDate(announcement.created_at)}
-                          </span>
-                          <span>•</span>
-                          <span className="flex items-center gap-1">
-                            <EyeIcon className="w-3 h-3" />
-                            {announcement.views} views
                           </span>
                         </div>
                         <AnimatePresence>
@@ -765,9 +1000,34 @@ export default function SuperadminAnnouncementsPage() {
                               exit={{ height: 0, opacity: 0 }}
                               className="overflow-hidden"
                             >
-                              <p className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700 text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line">
-                                {announcement.content}
-                              </p>
+                              <div
+                                className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700 text-sm text-slate-600 dark:text-slate-300 leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_h3]:text-lg [&_h3]:font-bold"
+                                dangerouslySetInnerHTML={{
+                                  __html: announcement.content,
+                                }}
+                              />
+                              <div className="mt-4 flex gap-2">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleEditAnnouncement(announcement);
+                                  }}
+                                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                                >
+                                  <PencilIcon className="w-3 h-3" />
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowDeleteConfirm(announcement.id);
+                                  }}
+                                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+                                >
+                                  <TrashIcon className="w-3 h-3" />
+                                  Hapus
+                                </button>
+                              </div>
                             </motion.div>
                           )}
                         </AnimatePresence>

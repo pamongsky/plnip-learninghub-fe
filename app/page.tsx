@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import axios from "@/lib/axios";
+import { getImageUrl } from "@/lib/imageUrl";
 import { motion, AnimatePresence } from "framer-motion";
 import { Outfit } from "next/font/google";
 import {
@@ -223,12 +224,12 @@ export default function LandingPage() {
   const heroItems =
     cmsData?.hero_images?.length > 0
       ? cmsData.hero_images.map((img: any) => ({
-          url: img.image_path,
+          url: getImageUrl(img.image_path),
           title: img.title,
         }))
       : heroImages;
 
-  const logoUrl = cmsData?.app_logo || "/images/pln-logo.png";
+  const logoUrl = getImageUrl(cmsData?.app_logo) || "/images/pln-logo.png";
   const appName = cmsData?.app_name || "PLN Learning Hub";
   const heroTitle =
     cmsData?.hero_title || "Menggerakkan Talenta Energi Masa Depan";
@@ -747,7 +748,7 @@ export default function LandingPage() {
                 <div className="flex h-32 w-32 items-center justify-center rounded-full overflow-hidden bg-slate-100 shadow-lg shadow-pln-primary/30">
                   {leader.image_path ? (
                     <img
-                      src={leader.image_path}
+                      src={getImageUrl(leader.image_path)}
                       alt={leader.name}
                       className="h-full w-full object-cover object-top"
                     />
@@ -776,7 +777,7 @@ export default function LandingPage() {
                 <div className="flex h-32 w-32 items-center justify-center rounded-full overflow-hidden bg-slate-100 shadow-lg shadow-pln-primary/30">
                   {leader.image_path ? (
                     <img
-                      src={leader.image_path}
+                      src={getImageUrl(leader.image_path)}
                       alt={leader.name}
                       className="h-full w-full object-cover object-top"
                     />
@@ -941,7 +942,7 @@ export default function LandingPage() {
                 >
                   {partner.logo_path ? (
                     <img
-                      src={partner.logo_path}
+                      src={getImageUrl(partner.logo_path)}
                       alt={partner.name}
                       className="h-20 w-full object-contain"
                     />
@@ -966,7 +967,7 @@ export default function LandingPage() {
                 >
                   {partner.logo_path ? (
                     <img
-                      src={partner.logo_path}
+                      src={getImageUrl(partner.logo_path)}
                       alt={partner.name}
                       className="h-20 w-full object-contain"
                     />
@@ -1210,7 +1211,7 @@ export default function LandingPage() {
                   >
                     <div className="absolute inset-0 bg-gradient-to-br from-pln-primary/50 to-pln-light/50 rounded-3xl blur-3xl opacity-60"></div>
                     <img
-                      src={cmsData.app_logo}
+                      src={getImageUrl(cmsData.app_logo)}
                       alt={cmsData.app_name || "PLN Logo"}
                       className="relative h-40 w-40 object-contain drop-shadow-2xl"
                     />

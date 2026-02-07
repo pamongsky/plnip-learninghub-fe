@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "@/lib/axios";
+import { getImageUrl } from "@/lib/imageUrl";
 import {
   AcademicCapIcon,
   BookOpenIcon,
@@ -78,7 +79,7 @@ export default function LoginPage() {
       if (data.login_backgrounds && data.login_backgrounds.length > 0) {
         setBackgroundImages(
           data.login_backgrounds.map((bg: any) => ({
-            url: bg.image_path,
+            url: getImageUrl(bg.image_path),
             title: bg.title || "Background",
           })),
         );
