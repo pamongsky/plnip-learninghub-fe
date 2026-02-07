@@ -99,8 +99,9 @@ export default function InstructorClassDetailPage() {
 
       // Map participants from enrollments
       if (course.enrollments && course.enrollments.length > 0) {
-        const mappedParticipants: Participant[] = course.enrollments.map(
-          (enrollment: any) => ({
+        const mappedParticipants: Participant[] = course.enrollments
+          .filter((enrollment: any) => enrollment.user) // Skip enrollments without user
+          .map((enrollment: any) => ({
             id: enrollment.user.id,
             name: enrollment.user.name,
             email: enrollment.user.email,
@@ -108,8 +109,7 @@ export default function InstructorClassDetailPage() {
             lastActive: getLastActiveText(enrollment.last_activity_at),
             progress: enrollment.progress || 0,
             status: enrollment.status === "active" ? "active" : "inactive",
-          }),
-        );
+          }));
         setParticipantsData(mappedParticipants);
       }
     } catch (error: any) {
