@@ -19,10 +19,4 @@ export {
   type SendMessageData,
 } from "./classChat";
 export { default as usersApi, type User, type UsersResponse } from "./users";
-export {
-  certificateTemplateApi,
-  certificateApi,
-  type CertificateTemplate,
-  type Certificate,
-  type CertificateStats,
-} from "./certificates";
+export { default as certificateApi, type Certificate } from "./certificates";

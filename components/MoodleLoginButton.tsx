@@ -46,14 +46,8 @@ export default function MoodleLoginButton({
       disabled={isLoading}
       className={`flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
     >
-      {isLoading ? (
+      {isLoading && (
         <div className="w-5 h-5 border-2 border-white/30 border-b-white rounded-full animate-spin" />
-      ) : (
-        <img
-          src="https://upload.wikimedia.org/wikipedia/commons/c/c6/Moodle-logo.svg"
-          alt="Moodle"
-          className="h-5 w-auto brightness-0 invert"
-        />
       )}
       <span>Akses LMS Moodle</span>
       <ArrowRightOnRectangleIcon className="w-4 h-4" />

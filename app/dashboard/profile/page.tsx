@@ -36,7 +36,7 @@ export default function ProfilePage() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordLoading, setPasswordLoading] = useState(false);
-  const [deviceLabel, setDeviceLabel] = useState("Perangkat ini");
+  const [fullName, setFullName] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const profileData = {
@@ -63,17 +63,8 @@ export default function ProfilePage() {
 
   useEffect(() => {
     setPhone(profileData.phone || "");
-  }, [profileData.phone]);
-
-  useEffect(() => {
-    if (typeof navigator !== "undefined") {
-      const ua = navigator.userAgent;
-      if (/windows/i.test(ua)) setDeviceLabel("Chrome di Windows");
-      else if (/mac/i.test(ua)) setDeviceLabel("Safari di macOS");
-      else if (/android/i.test(ua)) setDeviceLabel("Android Device");
-      else if (/iphone|ipad/i.test(ua)) setDeviceLabel("iOS Device");
-    }
-  }, []);
+    setFullName(user?.name || "");
+  }, [profileData.phone, user?.name]);
 
   const handleSaveProfile = async () => {
     if (!user) return;
@@ -83,7 +74,7 @@ export default function ProfilePage() {
 
     try {
       const response = await api.put("/profile", {
-        name: user.name,
+        name: fullName,
         email: user.email,
         phone,
         department: user.department,
@@ -149,6 +140,49 @@ export default function ProfilePage() {
     setPasswordLoading(true);
     setStatusMessage(null);
     setStatusType(null);
+
+    // Validasi frontend
+    if (newPassword.length < 8) {
+      setStatusType("error");
+      setStatusMessage("Password minimal 8 karakter.");
+      setPasswordLoading(false);
+      return;
+    }
+
+    if (!/[a-z]/.test(newPassword)) {
+      setStatusType("error");
+      setStatusMessage("Password harus mengandung huruf kecil.");
+      setPasswordLoading(false);
+      return;
+    }
+
+    if (!/[A-Z]/.test(newPassword)) {
+      setStatusType("error");
+      setStatusMessage("Password harus mengandung huruf besar.");
+      setPasswordLoading(false);
+      return;
+    }
+
+    if (!/[0-9]/.test(newPassword)) {
+      setStatusType("error");
+      setStatusMessage("Password harus mengandung angka.");
+      setPasswordLoading(false);
+      return;
+    }
+
+    if (!/[@$!%*#?&]/.test(newPassword)) {
+      setStatusType("error");
+      setStatusMessage("Password harus mengandung karakter spesial (@$!%*#?&).");
+      setPasswordLoading(false);
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setStatusType("error");
+      setStatusMessage("Konfirmasi password tidak cocok.");
+      setPasswordLoading(false);
+      return;
+    }
 
     try {
       await api.put("/profile/password", {
@@ -350,6 +384,23 @@ export default function ProfilePage() {
                   transition={{ type: "spring", stiffness: 300 }}
                 >
                   <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">
+                    <UserCircleIcon className="w-3 h-3 inline mr-1" />
+                    Nama Lengkap
+                  </label>
+                  <input
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    disabled={!isEditing}
+                    className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-white focus:ring-2 focus:ring-pln-primary/20 focus:border-pln-primary disabled:bg-slate-50 dark:disabled:bg-slate-700/50 disabled:text-slate-500 dark:disabled:text-slate-400 transition-all"
+                    placeholder="Masukkan nama lengkap"
+                  />
+                </motion.div>
+                <motion.div
+                  whileHover={{ y: -2 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                >
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">
                     <EnvelopeIcon className="w-3 h-3 inline mr-1" />
                     Email
                   </label>
@@ -395,7 +446,25 @@ export default function ProfilePage() {
                     className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-white focus:ring-2 focus:ring-pln-primary/20 focus:border-pln-primary disabled:bg-slate-50 dark:disabled:bg-slate-700/50 disabled:text-slate-500 dark:disabled:text-slate-400 transition-all"
                   />
                   <p className="mt-1 text-[10px] text-slate-400">
-                    Unit kerja berasal dari database
+                    Unit kerja berasal dari ITD
+                  </p>
+                </motion.div>
+                <motion.div
+                  whileHover={{ y: -2 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                >
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">
+                    <BuildingOfficeIcon className="w-3 h-3 inline mr-1" />
+                    Posisi
+                  </label>
+                  <input
+                    type="text"
+                    defaultValue={profileData.position}
+                    disabled
+                    className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-white focus:ring-2 focus:ring-pln-primary/20 focus:border-pln-primary disabled:bg-slate-50 dark:disabled:bg-slate-700/50 disabled:text-slate-500 dark:disabled:text-slate-400 transition-all"
+                  />
+                  <p className="mt-1 text-[10px] text-slate-400">
+                    Posisi berasal dari ITD
                   </p>
                 </motion.div>
                 <motion.div
@@ -439,7 +508,7 @@ export default function ProfilePage() {
                         Password
                       </h4>
                       <p className="text-xs text-slate-500 dark:text-slate-400">
-                        Gunakan minimal 8 karakter
+                        Min 8 karakter: huruf besar, kecil, angka, & simbol
                       </p>
                     </div>
                   </div>
@@ -475,31 +544,6 @@ export default function ProfilePage() {
                   >
                     {passwordLoading ? "Menyimpan..." : "Ubah Password"}
                   </button>
-                </div>
-              </motion.div>
-
-              {/* Active Sessions */}
-              <motion.div
-                whileHover={{ scale: 1.01 }}
-                className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-600"
-              >
-                <h4 className="font-medium text-sm text-slate-800 dark:text-white mb-3">
-                  Sesi Aktif
-                </h4>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 bg-white dark:bg-slate-600 rounded-lg">
-                    <div>
-                      <p className="text-sm text-slate-700 dark:text-white">
-                        {deviceLabel}
-                      </p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        Perangkat ini
-                      </p>
-                    </div>
-                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
-                      Aktif
-                    </span>
-                  </div>
                 </div>
               </motion.div>
             </motion.div>

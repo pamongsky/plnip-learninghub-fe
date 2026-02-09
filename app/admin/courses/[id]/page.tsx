@@ -8,10 +8,11 @@ import {
   ArrowLeftIcon,
   UserPlusIcon,
   TrashIcon,
-  AcademicCapIcon,
   CalendarIcon,
   CheckCircleIcon,
-  DocumentTextIcon,
+  EllipsisVerticalIcon,
+  ArrowUpTrayIcon,
+  ArchiveBoxArrowDownIcon,
 } from "@heroicons/react/24/outline";
 import { Button } from "@/components/ui/button";
 import {
@@ -48,30 +49,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import certificateApi from "@/lib/api/certificates";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import axios from "@/lib/axios";
 import { toast } from "sonner";
-import { certificateTemplateApi, type CertificateTemplate } from "@/lib/api";
 
 export default function CourseDetailPage() {
   const params = useParams();
   const router = useRouter();
   const [course, setCourse] = useState<any>(null); // TODO: Type properly
   const [loading, setLoading] = useState(true);
-
-  // Certificate Settings State
-  const [templates, setTemplates] = useState<CertificateTemplate[]>([]);
-  const [certSettings, setCertSettings] = useState({
-    certificate_template_id: null as number | null,
-    passing_grade: 70,
-    certificate_criteria: "final_grade",
-    certificate_quiz_id: null as number | null,
-    auto_issue_certificate: true,
-    certificate_issue_delay_days: 0,
-  });
-  const [savingCert, setSavingCert] = useState(false);
 
   // Enrollment State
   const [isEnrollOpen, setIsEnrollOpen] = useState(false);
@@ -81,40 +76,24 @@ export default function CourseDetailPage() {
   const [selectedRole, setSelectedRole] = useState("5"); // 5=Student
   const [enrolling, setEnrolling] = useState(false);
 
+  // Certificate upload state
+  const [uploadTarget, setUploadTarget] = useState<any>(null);
+  const [uploadingCert, setUploadingCert] = useState(false);
+  const [showZipUpload, setShowZipUpload] = useState(false);
+  const [zipUploading, setZipUploading] = useState(false);
+  const [zipResults, setZipResults] = useState<{ matched: string[]; unmatched: string[]; total_matched: number; total_unmatched: number } | null>(null);
+
   useEffect(() => {
     if (params.id) {
       loadCourse(params.id as string);
-      loadTemplates();
     }
   }, [params.id]);
-
-  const loadTemplates = async () => {
-    try {
-      const data = await certificateTemplateApi.getAll({ active_only: true });
-      setTemplates(data);
-    } catch (error) {
-      console.error("Failed to load templates:", error);
-    }
-  };
 
   const loadCourse = async (id: string) => {
     try {
       setLoading(true);
       const data = await coursesApi.getOne(id);
       setCourse(data);
-
-      // Populate certificate settings from course data
-      setCertSettings({
-        certificate_template_id: data.certificate_template_id || null,
-        passing_grade: data.passing_grade || 70,
-        certificate_criteria: data.certificate_criteria || "final_grade",
-        certificate_quiz_id: data.certificate_quiz_id || null,
-        auto_issue_certificate:
-          data.auto_issue_certificate !== undefined
-            ? data.auto_issue_certificate
-            : true,
-        certificate_issue_delay_days: data.certificate_issue_delay_days || 0,
-      });
     } catch (error) {
       console.error("Error loading course:", error);
       toast.error("Gagal memuat detail kelas");
@@ -173,18 +152,29 @@ export default function CourseDetailPage() {
     }
   };
 
-  const handleSaveCertificateSettings = async () => {
+  const handleUploadCert = async (file: File, student: any) => {
     try {
-      setSavingCert(true);
-      await coursesApi.update(course.id, certSettings);
-      toast.success("Pengaturan sertifikat berhasil disimpan!");
-      loadCourse(course.id.toString());
+      setUploadingCert(true);
+      await certificateApi.uploadForUser(course.id, student.id, file);
+      toast.success(`Sertifikat untuk ${student.name} berhasil diupload!`);
+      setUploadTarget(null);
     } catch (error: any) {
-      toast.error(
-        error.response?.data?.message || "Gagal menyimpan pengaturan",
-      );
+      toast.error(error.response?.data?.message || "Gagal upload sertifikat");
     } finally {
-      setSavingCert(false);
+      setUploadingCert(false);
+    }
+  };
+
+  const handleUploadZip = async (file: File) => {
+    try {
+      setZipUploading(true);
+      const result = await certificateApi.uploadBulkZip(course.id, file);
+      setZipResults(result);
+      toast.success(`Selesai! ${result.total_matched} matched, ${result.total_unmatched} unmatched`);
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Gagal upload ZIP");
+    } finally {
+      setZipUploading(false);
     }
   };
 
@@ -232,7 +222,6 @@ export default function CourseDetailPage() {
             Peserta ({course.enrollments?.length || 0})
           </TabsTrigger>
           <TabsTrigger value="overview">Informasi Kelas</TabsTrigger>
-          <TabsTrigger value="certificate">Pengaturan Sertifikat</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
@@ -272,229 +261,22 @@ export default function CourseDetailPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="certificate">
-          <Card>
-            <CardHeader>
-              <CardTitle>Pengaturan Sertifikat</CardTitle>
-              <CardDescription>
-                Konfigurasi template, kriteria kelulusan, dan penerbitan
-                sertifikat untuk kelas ini
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Template Selection */}
-              <div>
-                <Label htmlFor="template">Template Sertifikat</Label>
-                <Select
-                  value={
-                    certSettings.certificate_template_id?.toString() || "none"
-                  }
-                  onValueChange={(value) =>
-                    setCertSettings({
-                      ...certSettings,
-                      certificate_template_id:
-                        value === "none" ? null : parseInt(value),
-                    })
-                  }
-                >
-                  <SelectTrigger id="template" className="mt-2">
-                    <SelectValue placeholder="Pilih template..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Tidak ada template</SelectItem>
-                    {templates.map((t) => (
-                      <SelectItem key={t.id} value={t.id.toString()}>
-                        {t.name} {t.category && `(${t.category})`}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-slate-500 mt-1">
-                  Template yang digunakan untuk generate sertifikat
-                </p>
-              </div>
-
-              {/* Passing Grade */}
-              <div>
-                <Label htmlFor="passing_grade">Nilai Kelulusan (%)</Label>
-                <Input
-                  id="passing_grade"
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="0.01"
-                  value={certSettings.passing_grade}
-                  onChange={(e) =>
-                    setCertSettings({
-                      ...certSettings,
-                      passing_grade: parseFloat(e.target.value),
-                    })
-                  }
-                  className="mt-2"
-                />
-                <p className="text-xs text-slate-500 mt-1">
-                  Nilai minimum untuk mendapatkan sertifikat
-                </p>
-              </div>
-
-              {/* Certificate Criteria */}
-              <div>
-                <Label htmlFor="criteria">Kriteria Penyelesaian</Label>
-                <Select
-                  value={certSettings.certificate_criteria}
-                  onValueChange={(value: any) =>
-                    setCertSettings({
-                      ...certSettings,
-                      certificate_criteria: value,
-                    })
-                  }
-                >
-                  <SelectTrigger id="criteria" className="mt-2">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="final_grade">
-                      <div>
-                        <p className="font-medium">
-                          Final Grade (Rata-rata Tertimbang)
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          Menggunakan nilai akhir dari semua aktivitas
-                        </p>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="specific_quiz">
-                      <div>
-                        <p className="font-medium">
-                          Specific Quiz (Ujian Tertentu)
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          Berdasarkan nilai dari satu ujian/quiz
-                        </p>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="completion_and_grade">
-                      <div>
-                        <p className="font-medium">
-                          Completion + Grade (Selesai & Lulus)
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          Harus selesai semua materi DAN lulus nilai
-                        </p>
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-slate-500 mt-1">
-                  {certSettings.certificate_criteria === "final_grade" &&
-                    "Sertifikat diterbitkan jika rata-rata tertimbang ≥ passing grade"}
-                  {certSettings.certificate_criteria === "specific_quiz" &&
-                    "Sertifikat diterbitkan jika nilai quiz tertentu ≥ passing grade (isi Quiz ID di bawah)"}
-                  {certSettings.certificate_criteria ===
-                    "completion_and_grade" &&
-                    "Sertifikat diterbitkan jika menyelesaikan 100% materi DAN nilai ≥ passing grade"}
-                </p>
-              </div>
-
-              {/* Quiz ID (only if specific_quiz) */}
-              {certSettings.certificate_criteria === "specific_quiz" && (
-                <div>
-                  <Label htmlFor="quiz_id">Moodle Quiz ID</Label>
-                  <Input
-                    id="quiz_id"
-                    type="number"
-                    value={certSettings.certificate_quiz_id || ""}
-                    onChange={(e) =>
-                      setCertSettings({
-                        ...certSettings,
-                        certificate_quiz_id: e.target.value
-                          ? parseInt(e.target.value)
-                          : null,
-                      })
-                    }
-                    className="mt-2"
-                    placeholder="Masukkan Moodle Quiz ID"
-                  />
-                  <p className="text-xs text-slate-500 mt-1">
-                    ID quiz/exam di Moodle yang akan dijadikan acuan nilai
-                    sertifikat
-                  </p>
-                </div>
-              )}
-
-              {/* Auto Issue */}
-              <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                <div>
-                  <Label htmlFor="auto_issue" className="cursor-pointer">
-                    Auto-Issue Sertifikat
-                  </Label>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Otomatis terbitkan sertifikat saat lulus (via cron job)
-                  </p>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    id="auto_issue"
-                    type="checkbox"
-                    checked={certSettings.auto_issue_certificate}
-                    onChange={(e) =>
-                      setCertSettings({
-                        ...certSettings,
-                        auto_issue_certificate: e.target.checked,
-                      })
-                    }
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-pln-primary/20 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-pln-primary"></div>
-                </label>
-              </div>
-
-              {/* Delay Days */}
-              <div>
-                <Label htmlFor="delay">Delay Penerbitan (Hari)</Label>
-                <Input
-                  id="delay"
-                  type="number"
-                  min="0"
-                  max="30"
-                  value={certSettings.certificate_issue_delay_days}
-                  onChange={(e) =>
-                    setCertSettings({
-                      ...certSettings,
-                      certificate_issue_delay_days:
-                        parseInt(e.target.value) || 0,
-                    })
-                  }
-                  className="mt-2"
-                />
-                <p className="text-xs text-slate-500 mt-1">
-                  Jumlah hari delay setelah lulus sebelum sertifikat diterbitkan
-                  (0-30 hari)
-                </p>
-              </div>
-
-              {/* Save Button */}
-              <div className="pt-4 border-t">
-                <Button
-                  onClick={handleSaveCertificateSettings}
-                  disabled={savingCert}
-                  className="w-full bg-pln-primary hover:bg-pln-primary/90"
-                >
-                  <DocumentTextIcon className="h-4 w-4 mr-2" />
-                  {savingCert ? "Menyimpan..." : "Simpan Pengaturan Sertifikat"}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
         <TabsContent value="enrollments">
           <Card>
-            <CardHeader>
-              <CardTitle>Daftar Peserta</CardTitle>
-              <CardDescription>
-                User yang terdaftar dalam kelas ini di Moodle.
-              </CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Daftar Peserta</CardTitle>
+                <CardDescription>
+                  User yang terdaftar dalam kelas ini di Moodle.
+                </CardDescription>
+              </div>
+              <button
+                onClick={() => { setShowZipUpload(true); setZipResults(null); }}
+                className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg border border-slate-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
+              >
+                <ArchiveBoxArrowDownIcon className="w-4 h-4" />
+                Upload ZIP (Bulk)
+              </button>
             </CardHeader>
             <CardContent>
               <Table>
@@ -563,14 +345,26 @@ export default function CourseDetailPage() {
                             : "-"}
                         </TableCell>
                         <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                            onClick={() => handleUnenroll(student.id)}
-                          >
-                            <TrashIcon className="w-4 h-4" />
-                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <EllipsisVerticalIcon className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => setUploadTarget(student)}>
+                                <ArrowUpTrayIcon className="w-4 h-4 mr-2" />
+                                Upload Sertifikat
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="text-red-600"
+                                onClick={() => handleUnenroll(student.id)}
+                              >
+                                <TrashIcon className="w-4 h-4 mr-2" />
+                                Hapus Peserta
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </TableCell>
                       </TableRow>
                     ))
@@ -581,6 +375,83 @@ export default function CourseDetailPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Single Certificate Upload Dialog */}
+      <Dialog open={!!uploadTarget} onOpenChange={(o) => !o && setUploadTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Upload Sertifikat</DialogTitle>
+            <DialogDescription>
+              Upload file PDF sertifikat untuk <strong>{uploadTarget?.name}</strong>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <input
+              type="file"
+              accept=".pdf"
+              disabled={uploadingCert}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file && uploadTarget) handleUploadCert(file, uploadTarget);
+              }}
+              className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-pln-primary file:text-white hover:file:bg-pln-primary/90"
+            />
+            {uploadingCert && <p className="text-sm text-slate-500 mt-2">Mengupload...</p>}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUploadTarget(null)}>Tutup</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ZIP Bulk Upload Dialog */}
+      <Dialog open={showZipUpload} onOpenChange={setShowZipUpload}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Upload Sertifikat Massal (ZIP)</DialogTitle>
+            <DialogDescription>
+              Upload file ZIP berisi PDF sertifikat. Nama file harus NIP atau nama peserta.
+              Matching: NIP tepat → nama tepat → nama sebagian.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <input
+              type="file"
+              accept=".zip"
+              disabled={zipUploading}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleUploadZip(file);
+              }}
+              className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-pln-primary file:text-white hover:file:bg-pln-primary/90"
+            />
+            {zipUploading && <p className="text-sm text-slate-500">Memproses ZIP...</p>}
+            {zipResults && (
+              <div className="space-y-2 text-sm">
+                <p className="font-medium text-emerald-700 dark:text-emerald-400">
+                  ✓ Matched ({zipResults.total_matched}):
+                </p>
+                {zipResults.matched.map((m, i) => (
+                  <p key={i} className="pl-3 text-slate-600 dark:text-slate-400">{m}</p>
+                ))}
+                {zipResults.unmatched.length > 0 && (
+                  <>
+                    <p className="font-medium text-red-600 mt-2">
+                      ✗ Tidak cocok ({zipResults.total_unmatched}):
+                    </p>
+                    {zipResults.unmatched.map((u, i) => (
+                      <p key={i} className="pl-3 text-slate-600 dark:text-slate-400">{u}</p>
+                    ))}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowZipUpload(false)}>Tutup</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Enroll Dialog */}
       <Dialog open={isEnrollOpen} onOpenChange={setIsEnrollOpen}>

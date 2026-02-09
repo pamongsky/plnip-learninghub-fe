@@ -25,7 +25,6 @@ import {
   ArrowRightOnRectangleIcon,
   ClockIcon,
 } from "@heroicons/react/24/outline";
-import { BellIcon } from "@heroicons/react/24/solid";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   DropdownMenu,
@@ -370,10 +369,6 @@ export default function SuperadminShell({
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <button className="relative rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800">
-            <BellIcon className="h-5 w-5" />
-            <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500"></span>
-          </button>
           <button
             onClick={toggleTheme}
             className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"

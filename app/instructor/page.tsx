@@ -14,13 +14,22 @@ import {
   ChartBarIcon,
   ClockIcon,
   QuestionMarkCircleIcon,
-  CalendarDaysIcon,
   SparklesIcon,
   ArrowTrendingUpIcon,
   BookOpenIcon,
+  MegaphoneIcon,
 } from "@heroicons/react/24/outline";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/button";
+
+interface Announcement {
+  id: number;
+  title: string;
+  content: string;
+  priority: string;
+  created_by: string;
+  published_at: string;
+}
 
 interface InstructorDashboardData {
   stats: {
@@ -29,15 +38,7 @@ interface InstructorDashboardData {
     completed_classes: number;
     average_attendance: number;
   };
-  announcements: Array<{
-    id: number;
-    title: string;
-    priority: string;
-    published_at: string;
-    creator?: {
-      name: string;
-    };
-  }>;
+  announcements: Announcement[];
   classes: Array<{
     id: number;
     title: string;
@@ -162,7 +163,7 @@ export default function InstructorDashboardPage() {
           completed_classes: 0,
           average_attendance: 87,
         },
-        announcements: [],
+        announcements: [] as Announcement[],
         classes: [],
       });
     } finally {
@@ -224,19 +225,6 @@ export default function InstructorDashboardPage() {
       textColor: "text-emerald-600 dark:text-emerald-400",
     },
   ];
-
-  // Filter today's announcements
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-
-  const todaysAnnouncements = (dashboardData?.announcements || [])
-    .filter((a) => {
-      const pubDate = new Date(a.published_at);
-      return pubDate >= today && pubDate < tomorrow;
-    })
-    .slice(0, 3);
 
   const myClasses = (dashboardData?.classes || []).slice(0, 4);
 
@@ -441,6 +429,63 @@ export default function InstructorDashboardPage() {
 
         {/* Right Column */}
         <div className="space-y-6">
+          {/* Pengumuman Hari Ini */}
+          <motion.div
+            variants={itemVariants}
+            className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 overflow-hidden shadow-sm"
+          >
+            <div className="p-4 border-b border-slate-200/50 dark:border-slate-800/50 flex items-center gap-2">
+              <MegaphoneIcon className="w-5 h-5 text-pln-primary dark:text-pln-light" />
+              <h3 className="font-semibold text-slate-800 dark:text-white text-sm">
+                Pengumuman Hari Ini
+              </h3>
+            </div>
+            {(dashboardData?.announcements?.length ?? 0) === 0 ? (
+              <div className="p-6 text-center">
+                <MegaphoneIcon className="w-8 h-8 mx-auto text-slate-300 dark:text-slate-600 mb-2" />
+                <p className="text-xs text-slate-400 dark:text-slate-500">
+                  Belum ada pengumuman hari ini
+                </p>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100 dark:divide-slate-800/50">
+                {dashboardData?.announcements?.map((ann) => (
+                  <Link key={ann.id} href="/instructor/announcements" className="block p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all cursor-pointer">
+                    <div className="flex items-start gap-2">
+                      <div className={`mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${
+                        ann.priority === "urgent" ? "bg-red-500" :
+                        ann.priority === "high" ? "bg-orange-500" :
+                        "bg-blue-500"
+                      }`} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-medium text-sm text-slate-800 dark:text-white truncate">
+                            {ann.title}
+                          </h4>
+                          {(ann.priority === "urgent" || ann.priority === "high") && (
+                            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ${
+                              ann.priority === "urgent"
+                                ? "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400"
+                                : "bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400"
+                            }`}>
+                              {ann.priority === "urgent" ? "Urgent" : "Penting"}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
+                          {ann.content?.replace(/<[^>]*>/g, "")}
+                        </p>
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">
+                          oleh {ann.created_by}
+                        </p>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </motion.div>
+
           {/* Attendance Stats */}
           <motion.div
             variants={itemVariants}
@@ -478,76 +523,6 @@ export default function InstructorDashboardPage() {
               <p className="text-xs text-white/50 mt-3">
                 Tingkat kehadiran peserta di semua kelas Anda
               </p>
-            </div>
-          </motion.div>
-
-          {/* Announcements */}
-          <motion.div
-            variants={itemVariants}
-            className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 overflow-hidden shadow-sm"
-          >
-            <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800/50">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50 dark:bg-amber-900/20">
-                  <CalendarDaysIcon className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-                </div>
-                <h3 className="font-semibold text-slate-800 dark:text-white text-sm">
-                  Pengumuman Hari Ini
-                </h3>
-              </div>
-              <Link
-                href="/instructor/announcements"
-                className="text-xs text-pln-primary dark:text-pln-light hover:underline font-medium"
-              >
-                Lihat Semua
-              </Link>
-            </div>
-
-            <div className="divide-y divide-slate-100 dark:divide-slate-800/50">
-              {loading ? (
-                <div className="p-4 space-y-3">
-                  {Array(2)
-                    .fill(0)
-                    .map((_, i) => (
-                      <Skeleton key={i} className="h-12" />
-                    ))}
-                </div>
-              ) : todaysAnnouncements.length === 0 ? (
-                <div className="p-6 text-center">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 mx-auto mb-3">
-                    <CalendarDaysIcon className="h-6 w-6 text-slate-400" />
-                  </div>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Belum ada pengumuman hari ini
-                  </p>
-                </div>
-              ) : (
-                todaysAnnouncements.map((announcement) => (
-                  <Link
-                    key={announcement.id}
-                    href="/instructor/announcements"
-                    className="block p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div
-                        className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
-                          announcement.priority === "high"
-                            ? "bg-red-500"
-                            : "bg-blue-500"
-                        }`}
-                      />
-                      <div className="min-w-0">
-                        <p className="font-medium text-slate-800 dark:text-white text-sm line-clamp-1">
-                          {announcement.title}
-                        </p>
-                        <p className="text-xs text-slate-400 mt-1">
-                          {announcement.creator?.name || "Admin"}
-                        </p>
-                      </div>
-                    </div>
-                  </Link>
-                ))
-              )}
             </div>
           </motion.div>
 

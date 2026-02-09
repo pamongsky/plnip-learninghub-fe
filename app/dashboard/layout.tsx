@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { motion, AnimatePresence } from "framer-motion";
-import { getEcho } from "@/lib/echo";
 import {
   HomeIcon,
   BookOpenIcon,
@@ -22,7 +21,6 @@ import {
   Bars3Icon,
   BoltIcon,
 } from "@heroicons/react/24/outline";
-import { BellIcon } from "@heroicons/react/24/solid";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -84,45 +82,6 @@ export default function DashboardLayout({
   const [expandedGroups, setExpandedGroups] = useState<string[]>(
     navGroups.map((g) => g.label),
   );
-  const [notificationOpen, setNotificationOpen] = useState(false);
-  const [notifications, setNotifications] = useState<
-    Array<{
-      id: number;
-      title: string;
-      message: string;
-      time: string;
-      read: boolean;
-      type: string;
-    }>
-  >([
-    {
-      id: 1,
-      title: "Kursus Baru Tersedia",
-      message: "Kursus Keselamatan Kerja K3 telah ditambahkan",
-      time: "5 menit lalu",
-      read: false,
-      type: "course",
-    },
-    {
-      id: 2,
-      title: "Sertifikat Diterbitkan",
-      message: "Sertifikat Dasar Pembangkit Listrik siap diunduh",
-      time: "1 jam lalu",
-      read: false,
-      type: "certificate",
-    },
-    {
-      id: 3,
-      title: "Pengumuman Penting",
-      message: "Townhall Meeting Q1 2026 akan dilaksanakan",
-      time: "2 jam lalu",
-      read: true,
-      type: "announcement",
-    },
-  ]);
-
-  const unreadCount = notifications.filter((n) => !n.read).length;
-
   const firstName = user?.name?.split(" ")[0] || "User";
   const initials = user?.name
     ? user.name
@@ -147,33 +106,6 @@ export default function DashboardLayout({
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
-
-  // Subscribe to real-time notifications
-  useEffect(() => {
-    if (!user?.id) return;
-
-    const echo = getEcho();
-    if (!echo) return;
-
-    const channel = echo.private(`users.${user.id}.notifications`);
-
-    channel.listen("NotificationEvent", (data: any) => {
-      const newNotification = {
-        id: Date.now(),
-        title: data.title || "Notifikasi Baru",
-        message: data.message || "",
-        time: "Baru saja",
-        read: false,
-        type: data.type || "announcement",
-      };
-
-      setNotifications((prev) => [newNotification, ...prev]);
-    });
-
-    return () => {
-      echo.leaveChannel(`users.${user.id}.notifications`);
-    };
-  }, [user?.id]);
 
   const toggleGroup = (label: string) => {
     setExpandedGroups((prev) =>
@@ -319,44 +251,6 @@ export default function DashboardLayout({
             </div>
           ))}
         </nav>
-
-        {/* Bottom Section */}
-        <div
-          className={cn(
-            "border-t border-slate-200/80 dark:border-slate-800 p-3 space-y-2",
-            isCollapsed && "px-2",
-          )}
-        >
-          {/* Theme Toggle */}
-          <button
-            onClick={toggleDarkMode}
-            className={cn(
-              "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 transition-all hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800",
-              isCollapsed && "justify-center px-2",
-            )}
-          >
-            {darkMode ? (
-              <SunIcon className="h-5 w-5 text-amber-500" />
-            ) : (
-              <MoonIcon className="h-5 w-5 text-slate-500" />
-            )}
-            {!isCollapsed && (
-              <span>{darkMode ? "Light Mode" : "Dark Mode"}</span>
-            )}
-          </button>
-
-          {/* Keluar */}
-          <button
-            onClick={logout}
-            className={cn(
-              "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-red-600 transition-all hover:bg-red-50 dark:hover:bg-red-900/20",
-              isCollapsed && "justify-center px-2",
-            )}
-          >
-            <ArrowRightOnRectangleIcon className="h-5 w-5" />
-            {!isCollapsed && <span>Keluar</span>}
-          </button>
-        </div>
       </aside>
 
       {/* Mobile Header */}
@@ -376,67 +270,6 @@ export default function DashboardLayout({
           </span>
         </div>
         <div className="flex items-center gap-2">
-          {/* Notifications */}
-          <div className="relative">
-            <button
-              onClick={() => setNotificationOpen(!notificationOpen)}
-              className="relative rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
-            >
-              <BellIcon className="h-5 w-5" />
-              {unreadCount > 0 && (
-                <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
-                  {unreadCount}
-                </span>
-              )}
-            </button>
-
-            {/* Notification Dropdown */}
-            <AnimatePresence>
-              {notificationOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setNotificationOpen(false)}
-                  />
-                  <motion.div
-                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                    transition={{ duration: 0.15 }}
-                    className="absolute right-0 mt-2 w-80 rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800 z-50 overflow-hidden"
-                  >
-                    <div className="border-b border-slate-100 p-4 dark:border-slate-700">
-                      <h3 className="font-semibold text-slate-800 dark:text-white">
-                        Notifikasi
-                      </h3>
-                    </div>
-                    <div className="max-h-80 overflow-y-auto">
-                      {notifications.map((notif) => (
-                        <div
-                          key={notif.id}
-                          className={cn(
-                            "border-b border-slate-50 p-4 dark:border-slate-700/50",
-                            !notif.read && "bg-blue-50/50 dark:bg-blue-500/10",
-                          )}
-                        >
-                          <p className="text-sm font-medium text-slate-800 dark:text-white">
-                            {notif.title}
-                          </p>
-                          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                            {notif.message}
-                          </p>
-                          <p className="mt-1 text-[11px] text-slate-400">
-                            {notif.time}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  </motion.div>
-                </>
-              )}
-            </AnimatePresence>
-          </div>
-
           <button
             onClick={toggleDarkMode}
             className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
@@ -580,132 +413,17 @@ export default function DashboardLayout({
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Notifications */}
-          <div className="relative">
-            <button
-              onClick={() => setNotificationOpen(!notificationOpen)}
-              className="relative rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
-            >
-              <BellIcon className="h-5 w-5" />
-              {unreadCount > 0 && (
-                <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
-                  {unreadCount}
-                </span>
-              )}
-            </button>
-
-            {/* Notification Dropdown */}
-            <AnimatePresence>
-              {notificationOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setNotificationOpen(false)}
-                  />
-                  <motion.div
-                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                    transition={{ duration: 0.15 }}
-                    className="absolute right-0 mt-2 w-80 rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800 z-50 overflow-hidden"
-                  >
-                    <div className="border-b border-slate-100 p-4 dark:border-slate-700 flex items-center justify-between">
-                      <h3 className="font-semibold text-slate-800 dark:text-white">
-                        Notifikasi
-                      </h3>
-                      {unreadCount > 0 && (
-                        <span className="text-xs bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 px-2 py-0.5 rounded-full font-medium">
-                          {unreadCount} baru
-                        </span>
-                      )}
-                    </div>
-                    <div className="max-h-80 overflow-y-auto">
-                      {notifications.map((notif) => (
-                        <Link
-                          key={notif.id}
-                          href={
-                            notif.type === "announcement"
-                              ? "/dashboard/announcements"
-                              : notif.type === "certificate"
-                                ? "/dashboard/certificates"
-                                : notif.type === "course"
-                                  ? "/dashboard/classes"
-                                  : "/dashboard"
-                          }
-                          onClick={() => {
-                            setNotificationOpen(false);
-                            setNotifications((prev) =>
-                              prev.map((n) =>
-                                n.id === notif.id ? { ...n, read: true } : n,
-                              ),
-                            );
-                          }}
-                          className={cn(
-                            "block border-b border-slate-50 p-4 hover:bg-slate-50 dark:border-slate-700/50 dark:hover:bg-slate-700/50 transition-colors",
-                            !notif.read && "bg-blue-50/50 dark:bg-blue-500/10",
-                          )}
-                        >
-                          <div className="flex gap-3">
-                            <div
-                              className={cn(
-                                "flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full",
-                                notif.type === "course" &&
-                                  "bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400",
-                                notif.type === "certificate" &&
-                                  "bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-400",
-                                notif.type === "announcement" &&
-                                  "bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400",
-                              )}
-                            >
-                              {notif.type === "course" && (
-                                <BookOpenIcon className="h-4 w-4" />
-                              )}
-                              {notif.type === "certificate" && (
-                                <TrophyIcon className="h-4 w-4" />
-                              )}
-                              {notif.type === "announcement" && (
-                                <MegaphoneIcon className="h-4 w-4" />
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p
-                                className={cn(
-                                  "text-sm",
-                                  !notif.read
-                                    ? "font-semibold text-slate-800 dark:text-white"
-                                    : "font-medium text-slate-700 dark:text-slate-300",
-                                )}
-                              >
-                                {notif.title}
-                              </p>
-                              <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400 truncate">
-                                {notif.message}
-                              </p>
-                              <p className="mt-1 text-[11px] text-slate-400">
-                                {notif.time}
-                              </p>
-                            </div>
-                            {!notif.read && (
-                              <div className="mt-2 h-2 w-2 flex-shrink-0 rounded-full bg-blue-500" />
-                            )}
-                          </div>
-                        </Link>
-                      ))}
-                    </div>
-                    <div className="border-t border-slate-100 p-3 dark:border-slate-700">
-                      <Link
-                        href="/dashboard/announcements"
-                        onClick={() => setNotificationOpen(false)}
-                        className="block text-center text-sm font-medium text-pln-primary hover:text-pln-dark dark:text-pln-light"
-                      >
-                        Lihat Semua Notifikasi
-                      </Link>
-                    </div>
-                  </motion.div>
-                </>
-              )}
-            </AnimatePresence>
-          </div>
+          {/* Dark Mode Toggle */}
+          <button
+            onClick={toggleDarkMode}
+            className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+          >
+            {darkMode ? (
+              <SunIcon className="h-5 w-5 text-amber-500" />
+            ) : (
+              <MoonIcon className="h-5 w-5" />
+            )}
+          </button>
 
           {/* Profile Dropdown */}
           <DropdownMenu>

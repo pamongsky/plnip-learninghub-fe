@@ -13,6 +13,7 @@ import {
   PlayCircleIcon,
 } from "@heroicons/react/24/outline";
 import api from "@/lib/axios";
+import { formatDate } from "@/lib/utils";
 
 type ClassStatus = "active" | "upcoming" | "completed";
 
@@ -230,7 +231,10 @@ export default function UserClassesPage() {
                       {(cls.startDate || cls.endDate) && (
                         <span className="flex items-center gap-1">
                           <CalendarIcon className="w-4 h-4" />
-                          {cls.startDate || "-"} s/d {cls.endDate || "-"}
+                          {cls.startDate
+                            ? formatDate(cls.startDate)
+                            : "-"} s/d{" "}
+                          {cls.endDate ? formatDate(cls.endDate) : "-"}
                         </span>
                       )}
                     </div>

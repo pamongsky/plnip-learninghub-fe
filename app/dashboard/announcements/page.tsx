@@ -304,7 +304,7 @@ function AnnouncementsContent() {
               }`}
             >
               <InformationCircleIcon className="w-3 h-3" />
-              Info
+              Informasi
             </button>
           </div>
 

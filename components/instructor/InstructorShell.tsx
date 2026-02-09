@@ -16,7 +16,6 @@ import {
   ChevronRightIcon,
   ArrowRightOnRectangleIcon,
   HomeIcon,
-  BellIcon,
   ChevronLeftIcon,
 } from "@heroicons/react/24/outline";
 import { Button } from "@/components/ui/button";
@@ -376,12 +375,6 @@ export default function InstructorShell({
             ) : (
               <MoonIcon className="h-5 w-5" />
             )}
-          </button>
-
-          {/* Notifications */}
-          <button className="relative rounded-xl p-2.5 text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 transition-all">
-            <BellIcon className="h-5 w-5" />
-            <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white dark:ring-slate-900" />
           </button>
 
           {/* User Menu */}

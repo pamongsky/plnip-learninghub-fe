@@ -16,6 +16,15 @@ import {
 } from "@heroicons/react/24/outline";
 import MoodleLoginButton from "@/components/MoodleLoginButton";
 
+interface Announcement {
+  id: number;
+  title: string;
+  content: string;
+  priority: string;
+  created_by: string;
+  published_at: string;
+}
+
 interface DashboardData {
   stats: {
     total_courses: number;
@@ -25,12 +34,7 @@ interface DashboardData {
     total_learning_hours: number;
     completion_rate: number;
   };
-  announcements: Array<{
-    id: number;
-    title: string;
-    priority: string;
-    published_at: string;
-  }>;
+  announcements: Announcement[];
   course_progress: Array<{
     id: number;
     title: string;
@@ -100,10 +104,6 @@ export default function DashboardPage() {
     fetchDashboardData();
   }, []);
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
-
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
@@ -163,23 +163,6 @@ export default function DashboardPage() {
     },
   ];
 
-  // Filter announcements for today only
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-
-  const todaysAnnouncements = (dashboardData?.announcements || [])
-    .filter((a) => {
-      const pubDate = new Date(a.published_at);
-      return pubDate >= today && pubDate < tomorrow;
-    })
-    .sort((a, b) => {
-      const aTime = new Date(a.published_at).getTime();
-      const bTime = new Date(b.published_at).getTime();
-      return bTime - aTime;
-    });
-
   const courseProgress = dashboardData?.course_progress || [];
 
   return (
@@ -192,31 +175,12 @@ export default function DashboardPage() {
       >
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(255,255,255,0.1),transparent_50%)]" />
         <div className="relative">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-2xl">👋</span>
-            <p className="text-white/80 text-sm">{getGreeting()}</p>
-          </div>
+          <p className="text-white/80 text-sm mb-2">{getGreeting()}</p>
           <h1 className="text-2xl font-bold mb-2">{displayName}!</h1>
           <p className="text-white/70 text-sm mb-4">
             Lanjutkan perjalanan belajarmu dan raih sertifikasi baru
           </p>
-          <div className="flex flex-wrap gap-3">
-            <MoodleLoginButton className="bg-white/20 hover:bg-white/30 text-white" />
-            <Link
-              href="/dashboard/classes"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-medium transition-all"
-            >
-              <PlayCircleIcon className="w-4 h-4" />
-              Lihat Kelas
-            </Link>
-            <Link
-              href="/dashboard/certificates"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-white text-pln-primary rounded-lg text-sm font-medium hover:shadow-lg transition-all"
-            >
-              <TrophyIcon className="w-4 h-4" />
-              Lihat Sertifikat
-            </Link>
-          </div>
+          <MoodleLoginButton className="bg-white/20 hover:bg-white/30 text-white" />
         </div>
       </motion.div>
 
@@ -251,9 +215,9 @@ export default function DashboardPage() {
         ))}
       </motion.div>
 
-      {/* Main Grid */}
+      {/* Main Content Grid */}
       <div className="grid lg:grid-cols-3 gap-6">
-        {/* Courses In Progress */}
+        {/* Courses In Progress - 2 columns */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -339,65 +303,64 @@ export default function DashboardPage() {
 
         {/* Right Column */}
         <div className="space-y-6">
-          {/* Announcements */}
+          {/* Pengumuman Hari Ini */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden"
+            transition={{ delay: 0.15 }}
           >
-            <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-700">
-              <h3 className="font-semibold text-slate-800 dark:text-white text-sm">
-                Pengumuman
-              </h3>
-              <Link
-                href="/dashboard/announcements"
-                className="text-[10px] text-pln-primary dark:text-pln-light hover:text-pln-dark font-medium"
-              >
-                Lihat Semua
-              </Link>
-            </div>
-
-            {todaysAnnouncements.length === 0 ? (
-              <div className="p-6 text-center">
-                <MegaphoneIcon className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-600 mb-2" />
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Belum ada pengumuman hari ini
-                </p>
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
+              <div className="p-4 border-b border-slate-100 dark:border-slate-700 flex items-center gap-2">
+                <MegaphoneIcon className="w-5 h-5 text-pln-primary" />
+                <h3 className="font-semibold text-slate-800 dark:text-white text-sm">
+                  Pengumuman Hari Ini
+                </h3>
               </div>
-            ) : (
-              <div className="divide-y divide-slate-100 dark:divide-slate-700">
-                {todaysAnnouncements.slice(0, 3).map((announcement) => (
-                  <Link
-                    key={announcement.id}
-                    href={`/dashboard/announcements`}
-                    className="block p-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all"
-                  >
-                    <div className="flex items-start gap-2">
-                      <div
-                        className={`w-1.5 h-1.5 rounded-full mt-1.5 ${
-                          announcement.priority === "high"
-                            ? "bg-red-500"
-                            : announcement.priority === "medium"
-                              ? "bg-amber-500"
-                              : "bg-blue-500"
-                        }`}
-                      />
-                      <div>
-                        <p className="font-medium text-slate-800 dark:text-white text-xs line-clamp-1">
-                          {announcement.title}
-                        </p>
-                        <p className="text-[10px] text-slate-400 mt-0.5">
-                          {new Date(
-                            announcement.published_at,
-                          ).toLocaleDateString("id-ID")}
-                        </p>
+              {(dashboardData?.announcements?.length ?? 0) === 0 ? (
+                <div className="p-6 text-center">
+                  <MegaphoneIcon className="w-8 h-8 mx-auto text-slate-300 dark:text-slate-600 mb-2" />
+                  <p className="text-xs text-slate-400 dark:text-slate-500">
+                    Belum ada pengumuman hari ini
+                  </p>
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-100 dark:divide-slate-700">
+                  {dashboardData?.announcements?.map((ann) => (
+                    <Link key={ann.id} href="/dashboard/announcements" className="block p-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all cursor-pointer">
+                      <div className="flex items-start gap-2">
+                        <div className={`mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${
+                          ann.priority === "urgent" ? "bg-red-500" :
+                          ann.priority === "high" ? "bg-orange-500" :
+                          "bg-blue-500"
+                        }`} />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <h4 className="font-medium text-sm text-slate-800 dark:text-white truncate">
+                              {ann.title}
+                            </h4>
+                            {(ann.priority === "urgent" || ann.priority === "high") && (
+                              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ${
+                                ann.priority === "urgent"
+                                  ? "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400"
+                                  : "bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400"
+                              }`}>
+                                {ann.priority === "urgent" ? "Urgent" : "Penting"}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
+                            {ann.content?.replace(/<[^>]*>/g, "")}
+                          </p>
+                          <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">
+                            oleh {ann.created_by}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
           </motion.div>
         </div>
       </div>
