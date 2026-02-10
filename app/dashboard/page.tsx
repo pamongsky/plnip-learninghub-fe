@@ -326,25 +326,29 @@ export default function DashboardPage() {
               ) : (
                 <div className="divide-y divide-slate-100 dark:divide-slate-700">
                   {dashboardData?.announcements?.map((ann) => (
-                    <Link key={ann.id} href="/dashboard/announcements" className="block p-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all cursor-pointer">
+                    <Link
+                      key={ann.id}
+                      href="/dashboard/announcements"
+                      className="block p-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all cursor-pointer"
+                    >
                       <div className="flex items-start gap-2">
-                        <div className={`mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${
-                          ann.priority === "urgent" ? "bg-red-500" :
-                          ann.priority === "high" ? "bg-orange-500" :
-                          "bg-blue-500"
-                        }`} />
+                        <div
+                          className={`mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${
+                            ann.priority === "penting"
+                              ? "bg-orange-500"
+                              : ann.priority === "umum"
+                                ? "bg-slate-500"
+                                : "bg-blue-500"
+                          }`}
+                        />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5">
                             <h4 className="font-medium text-sm text-slate-800 dark:text-white truncate">
                               {ann.title}
                             </h4>
-                            {(ann.priority === "urgent" || ann.priority === "high") && (
-                              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ${
-                                ann.priority === "urgent"
-                                  ? "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400"
-                                  : "bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400"
-                              }`}>
-                                {ann.priority === "urgent" ? "Urgent" : "Penting"}
+                            {ann.priority === "penting" && (
+                              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400">
+                                Penting
                               </span>
                             )}
                           </div>

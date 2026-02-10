@@ -29,7 +29,7 @@ import {
 import axios from "@/lib/axios";
 import { getEcho, disconnectEcho } from "@/lib/echo";
 
-// Priority configuration - same as admin
+// Priority configuration - 3 levels only
 const priorityConfig = {
   info: {
     label: "Informasi",
@@ -56,14 +56,6 @@ const priorityConfig = {
     iconBg: "bg-amber-50 dark:bg-amber-500/10",
     iconColor: "text-amber-600 dark:text-amber-400",
     icon: ExclamationTriangleIcon,
-  },
-  urgent: {
-    label: "Urgent",
-    description: "Pengumuman sangat penting & mendesak",
-    color: "bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400",
-    iconBg: "bg-red-50 dark:bg-red-500/10",
-    iconColor: "text-red-600 dark:text-red-400",
-    icon: BellAlertIcon,
   },
 };
 
@@ -105,6 +97,9 @@ interface Stats {
 export default function SuperadminAnnouncementsPage() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"all" | "mine">("all");
+  const [activePriority, setActivePriority] = useState<
+    "all" | "info" | "normal" | "important"
+  >("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -120,7 +115,6 @@ export default function SuperadminAnnouncementsPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(
     null,
   );
-
   const [formData, setFormData] = useState({
     title: "",
     content: "",
@@ -129,6 +123,15 @@ export default function SuperadminAnnouncementsPage() {
     expires_at: "",
   });
   const [saving, setSaving] = useState(false);
+
+  const getMappedPriority = (priority: string): PriorityType => {
+    const priorityMapReverse: Record<string, PriorityType> = {
+      informasi: "info",
+      umum: "normal",
+      penting: "important",
+    };
+    return priorityMapReverse[priority] || "normal";
+  };
 
   useEffect(() => {
     fetchData();
@@ -201,12 +204,11 @@ export default function SuperadminAnnouncementsPage() {
       return;
     }
 
-    // Map frontend priority to backend
+    // Map frontend priority to backend values
     const priorityMap: Record<PriorityType, string> = {
-      info: "low",
-      normal: "normal",
-      important: "high",
-      urgent: "urgent",
+      info: "informasi",
+      normal: "umum",
+      important: "penting",
     };
 
     setSaving(true);
@@ -230,22 +232,13 @@ export default function SuperadminAnnouncementsPage() {
       handleCancelEdit();
       fetchData();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Gagal menyimpan pengumuman");
+      toast.error(
+        error.response?.data?.message || "Gagal menyimpan pengumuman",
+      );
       console.error("Failed to save announcement:", error);
     } finally {
       setSaving(false);
     }
-  };
-
-  const getMappedPriority = (priority: string): PriorityType => {
-    const priorityMapReverse: Record<string, PriorityType> = {
-      low: "info",
-      normal: "normal",
-      medium: "normal", // Legacy fallback
-      high: "important",
-      urgent: "urgent",
-    };
-    return priorityMapReverse[priority] || "normal";
   };
 
   const handleEditAnnouncement = (ann: Announcement) => {
@@ -291,11 +284,9 @@ export default function SuperadminAnnouncementsPage() {
   const getPriorityConfig = (priority: string) => {
     // Map backend priority to frontend
     const priorityMap: Record<string, PriorityType> = {
-      low: "info",
-      normal: "normal",
-      medium: "normal", // Legacy fallback
-      high: "important",
-      urgent: "urgent",
+      informasi: "info",
+      umum: "normal",
+      penting: "important",
     };
     const mappedPriority = priorityMap[priority] || "normal";
     return priorityConfig[mappedPriority];
@@ -312,11 +303,16 @@ export default function SuperadminAnnouncementsPage() {
 
   // Filter and sort announcements
   const filterAndSort = (announcements: Announcement[]) => {
-    let filtered = announcements.filter(
-      (ann) =>
+    let filtered = announcements.filter((ann) => {
+      const matchesSearch =
         ann.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        ann.content.toLowerCase().includes(searchQuery.toLowerCase()),
-    );
+        ann.content.toLowerCase().includes(searchQuery.toLowerCase());
+
+      if (activePriority === "all") return matchesSearch;
+
+      const mapped = getMappedPriority(ann.priority);
+      return matchesSearch && mapped === activePriority;
+    });
 
     // Sort by date
     filtered.sort((a, b) => {
@@ -397,7 +393,7 @@ export default function SuperadminAnnouncementsPage() {
             </div>
           </div>
 
-          {/* Urgent */}
+          {/* Penting */}
           <div className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950 dark:to-red-900 border border-red-200 dark:border-red-800 rounded-xl p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -469,7 +465,7 @@ export default function SuperadminAnnouncementsPage() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15 }}
-        className="flex flex-col sm:flex-row gap-3"
+        className="flex flex-col xl:flex-row gap-3"
       >
         {/* Search */}
         <div className="relative flex-1">
@@ -483,30 +479,80 @@ export default function SuperadminAnnouncementsPage() {
           />
         </div>
 
-        {/* Sort Order */}
-        <div className="flex gap-2">
-          <button
-            onClick={() => setSortOrder("newest")}
-            className={`inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl transition-all ${
-              sortOrder === "newest"
-                ? "bg-pln-primary text-white shadow-sm"
-                : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:border-pln-primary dark:hover:border-pln-primary"
-            }`}
-          >
-            <ClockIcon className="w-4 h-4" />
-            Terbaru
-          </button>
-          <button
-            onClick={() => setSortOrder("oldest")}
-            className={`inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl transition-all ${
-              sortOrder === "oldest"
-                ? "bg-pln-primary text-white shadow-sm"
-                : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:border-pln-primary dark:hover:border-pln-primary"
-            }`}
-          >
-            <ArrowsUpDownIcon className="w-4 h-4" />
-            Terlama
-          </button>
+        <div className="flex flex-col sm:flex-row gap-3">
+          {/* Priority Filters */}
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setActivePriority("all")}
+              className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-all ${
+                activePriority === "all"
+                  ? "bg-pln-primary text-white shadow-sm"
+                  : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
+              }`}
+            >
+              <MegaphoneIcon className="w-3 h-3" />
+              Semua
+            </button>
+            <button
+              onClick={() => setActivePriority("important")}
+              className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-all ${
+                activePriority === "important"
+                  ? "bg-pln-primary text-white shadow-sm"
+                  : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
+              }`}
+            >
+              <ExclamationTriangleIcon className="w-3 h-3" />
+              Penting
+            </button>
+            <button
+              onClick={() => setActivePriority("normal")}
+              className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-all ${
+                activePriority === "normal"
+                  ? "bg-pln-primary text-white shadow-sm"
+                  : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
+              }`}
+            >
+              <CheckCircleIcon className="w-3 h-3" />
+              Umum
+            </button>
+            <button
+              onClick={() => setActivePriority("info")}
+              className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-all ${
+                activePriority === "info"
+                  ? "bg-pln-primary text-white shadow-sm"
+                  : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
+              }`}
+            >
+              <InformationCircleIcon className="w-3 h-3" />
+              Informasi
+            </button>
+          </div>
+
+          {/* Sort Order */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => setSortOrder("newest")}
+              className={`inline-flex items-center gap-2 px-4 py-2 text-xs font-medium rounded-lg transition-all ${
+                sortOrder === "newest"
+                  ? "bg-pln-primary text-white shadow-sm"
+                  : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:border-pln-primary dark:hover:border-pln-primary"
+              }`}
+            >
+              <ClockIcon className="w-3 h-3" />
+              Terbaru
+            </button>
+            <button
+              onClick={() => setSortOrder("oldest")}
+              className={`inline-flex items-center gap-2 px-4 py-2 text-xs font-medium rounded-lg transition-all ${
+                sortOrder === "oldest"
+                  ? "bg-pln-primary text-white shadow-sm"
+                  : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:border-pln-primary dark:hover:border-pln-primary"
+              }`}
+            >
+              <ArrowsUpDownIcon className="w-3 h-3" />
+              Terlama
+            </button>
+          </div>
         </div>
       </motion.div>
 
@@ -803,7 +849,9 @@ export default function SuperadminAnnouncementsPage() {
             </div>
           ) : (
             filteredAllAnnouncements.map((announcement, index) => {
-              const config = getPriorityConfig(announcement.priority);
+              const mappedPriority = getMappedPriority(announcement.priority);
+
+              const config = getPriorityConfig(mappedPriority);
               const PriorityIcon = config.icon;
               const isMine =
                 announcement.created_by === "Super Admin" ||
@@ -945,7 +993,9 @@ export default function SuperadminAnnouncementsPage() {
             </div>
           ) : (
             filteredMyAnnouncements.map((announcement, index) => {
-              const config = getPriorityConfig(announcement.priority);
+              const mappedPriority = getMappedPriority(announcement.priority);
+
+              const config = getPriorityConfig(mappedPriority);
               const PriorityIcon = config.icon;
 
               return (

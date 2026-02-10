@@ -24,7 +24,7 @@ import {
   CheckCircleIcon,
 } from "@heroicons/react/24/outline";
 
-// Priority configuration dengan 4 level - Same as others
+// Priority configuration - 3 levels only
 const priorityConfig = {
   info: {
     label: "Informasi",
@@ -52,14 +52,6 @@ const priorityConfig = {
     iconColor: "text-amber-600 dark:text-amber-400",
     icon: ExclamationTriangleIcon,
   },
-  urgent: {
-    label: "Urgent",
-    description: "Pengumuman sangat penting & mendesak",
-    color: "bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400",
-    iconBg: "bg-red-50 dark:bg-red-500/10",
-    iconColor: "text-red-600 dark:text-red-400",
-    icon: BellAlertIcon,
-  },
 };
 
 type PriorityType = keyof typeof priorityConfig;
@@ -67,6 +59,9 @@ type PriorityType = keyof typeof priorityConfig;
 export default function AdminAnnouncementsPage() {
   // const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"all" | "mine">("all");
+  const [activePriority, setActivePriority] = useState<
+    "all" | "info" | "normal" | "important"
+  >("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -109,18 +104,37 @@ export default function AdminAnnouncementsPage() {
     }
   };
 
-  // Filter announcements
-  const filteredAllAnnouncements = allAnnouncements.filter(
-    (a) =>
-      a.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      a.content.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+  const getMappedPriority = (priority: string): PriorityType => {
+    const priorityMapReverse: Record<string, PriorityType> = {
+      informasi: "info",
+      umum: "normal",
+      penting: "important",
+    };
+    return priorityMapReverse[priority] || "normal";
+  };
 
-  const filteredMyAnnouncements = myAnnouncements.filter(
-    (a) =>
+  // Filter announcements
+  const filteredAllAnnouncements = allAnnouncements.filter((a) => {
+    const matchesSearch =
       a.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      a.content.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+      a.content.toLowerCase().includes(searchQuery.toLowerCase());
+
+    if (activePriority === "all") return matchesSearch;
+
+    const mapped = getMappedPriority(a.priority);
+    return matchesSearch && mapped === activePriority;
+  });
+
+  const filteredMyAnnouncements = myAnnouncements.filter((a) => {
+    const matchesSearch =
+      a.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      a.content.toLowerCase().includes(searchQuery.toLowerCase());
+
+    if (activePriority === "all") return matchesSearch;
+
+    const mapped = getMappedPriority(a.priority);
+    return matchesSearch && mapped === activePriority;
+  });
 
   const handleCreateAnnouncement = async () => {
     if (!newAnnouncement.title || !newAnnouncement.content) {
@@ -128,12 +142,11 @@ export default function AdminAnnouncementsPage() {
       return;
     }
 
-    // Map frontend priority to backend
+    // Map frontend priority to backend values
     const priorityMap: Record<PriorityType, string> = {
-      info: "low",
-      normal: "normal",
-      important: "high",
-      urgent: "urgent",
+      info: "informasi",
+      normal: "umum",
+      important: "penting",
     };
 
     try {
@@ -166,17 +179,6 @@ export default function AdminAnnouncementsPage() {
           "Gagal menyimpan pengumuman. Silakan coba lagi.",
       );
     }
-  };
-
-  const getMappedPriority = (priority: string): PriorityType => {
-    const priorityMapReverse: Record<string, PriorityType> = {
-      low: "info",
-      normal: "normal",
-      medium: "normal", // Legacy fallback
-      high: "important",
-      urgent: "urgent",
-    };
-    return priorityMapReverse[priority] || "normal";
   };
 
   const handleEditAnnouncement = (announcement: any) => {
@@ -290,21 +292,69 @@ export default function AdminAnnouncementsPage() {
         </button>
       </motion.div>
 
-      {/* Search */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="relative"
+        className="flex flex-col sm:flex-row gap-4"
       >
-        <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-        <input
-          type="text"
-          placeholder="Cari pengumuman..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pln-primary dark:text-white"
-        />
+        <div className="relative flex-1">
+          <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Cari pengumuman..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pln-primary dark:text-white"
+          />
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setActivePriority("all")}
+            className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-all ${
+              activePriority === "all"
+                ? "bg-pln-primary text-white shadow-sm"
+                : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
+            }`}
+          >
+            <MegaphoneIcon className="w-3 h-3" />
+            Semua
+          </button>
+          <button
+            onClick={() => setActivePriority("important")}
+            className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-all ${
+              activePriority === "important"
+                ? "bg-pln-primary text-white shadow-sm"
+                : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
+            }`}
+          >
+            <ExclamationTriangleIcon className="w-3 h-3" />
+            Penting
+          </button>
+          <button
+            onClick={() => setActivePriority("normal")}
+            className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-all ${
+              activePriority === "normal"
+                ? "bg-pln-primary text-white shadow-sm"
+                : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
+            }`}
+          >
+            <CheckCircleIcon className="w-3 h-3" />
+            Umum
+          </button>
+          <button
+            onClick={() => setActivePriority("info")}
+            className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-all ${
+              activePriority === "info"
+                ? "bg-pln-primary text-white shadow-sm"
+                : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
+            }`}
+          >
+            <InformationCircleIcon className="w-3 h-3" />
+            Informasi
+          </button>
+        </div>
       </motion.div>
 
       {/* Announcements List - All (Inbox) */}
@@ -324,7 +374,9 @@ export default function AdminAnnouncementsPage() {
             </div>
           ) : (
             filteredAllAnnouncements.map((announcement, index) => {
-              const config = getPriorityConfig(announcement.priority);
+              const mappedPriority = getMappedPriority(announcement.priority);
+
+              const config = getPriorityConfig(mappedPriority);
               const PriorityIcon = config.icon;
               const date = new Date(announcement.created_at).toLocaleDateString(
                 "id-ID",
@@ -437,7 +489,8 @@ export default function AdminAnnouncementsPage() {
             </div>
           ) : (
             filteredMyAnnouncements.map((announcement, index) => {
-              const config = getPriorityConfig(announcement.priority);
+              const mappedPriority = getMappedPriority(announcement.priority);
+              const config = getPriorityConfig(mappedPriority);
               const PriorityIcon = config.icon;
               const date = new Date(announcement.created_at).toLocaleDateString(
                 "id-ID",

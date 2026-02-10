@@ -54,44 +54,6 @@ const priorityConfig = {
     icon: ExclamationTriangleIcon,
     weight: 3,
   },
-  urgent: {
-    label: "Urgent",
-    color: "bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400",
-    iconBg: "bg-red-50 dark:bg-red-500/10",
-    iconColor: "text-red-600 dark:text-red-400",
-    icon: BellAlertIcon,
-    weight: 4,
-  },
-
-  // Fallback for Legacy Backend Data
-  low: {
-    label: "Informasi",
-    color: "bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400",
-    iconBg: "bg-blue-50 dark:bg-blue-500/10",
-    iconColor: "text-blue-600 dark:text-blue-400",
-    icon: InformationCircleIcon,
-    weight: 1,
-  },
-  medium: {
-    // Legacy 'medium' becomes 'Normal' (Umum)
-    label: "Umum",
-    color:
-      "bg-slate-100 dark:bg-slate-500/20 text-slate-700 dark:text-slate-400",
-    iconBg: "bg-slate-50 dark:bg-slate-500/10",
-    iconColor: "text-slate-600 dark:text-slate-400",
-    icon: CheckCircleIcon,
-    weight: 2,
-  },
-  high: {
-    // Legacy 'high' becomes 'Penting' (Important)
-    label: "Penting",
-    color:
-      "bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400",
-    iconBg: "bg-amber-50 dark:bg-amber-500/10",
-    iconColor: "text-amber-600 dark:text-amber-400",
-    icon: ExclamationTriangleIcon,
-    weight: 3,
-  },
 };
 
 type PriorityType = keyof typeof priorityConfig;
@@ -120,6 +82,9 @@ interface Announcement {
 export default function InstructorAnnouncementsPage() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"all" | "mine">("all");
+  const [activePriority, setActivePriority] = useState<
+    "all" | "info" | "normal" | "important"
+  >("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortOrder, setSortOrder] = useState<
     "newest" | "oldest" | "priority_high" | "priority_low"
@@ -178,6 +143,15 @@ export default function InstructorAnnouncementsPage() {
     return priorityConfig[priority as PriorityType] || priorityConfig.normal;
   };
 
+  const getMappedPriority = (priority: string): PriorityType => {
+    const priorityMapReverse: Record<string, PriorityType> = {
+      informasi: "info",
+      umum: "normal",
+      penting: "important",
+    };
+    return priorityMapReverse[priority] || "normal";
+  };
+
   // Filter & Sort announcements
   const filteredAndSortedAnnouncements = announcements
     .filter((a) => {
@@ -185,11 +159,13 @@ export default function InstructorAnnouncementsPage() {
         a.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (a.content || "").toLowerCase().includes(searchQuery.toLowerCase());
 
-      if (activeTab === "mine") {
-        // Fallback check for created_by id string/number comparison
-        return matchesSearch && String(a.created_by) === String(user?.id);
-      }
-      return matchesSearch;
+      const matchesTab =
+        activeTab === "all" || String(a.created_by) === String(user?.id);
+
+      if (activePriority === "all") return matchesSearch && matchesTab;
+
+      const mapped = getMappedPriority(a.priority);
+      return matchesSearch && matchesTab && mapped === activePriority;
     })
     .sort((a, b) => {
       const aDate = new Date(a.published_at || a.created_at).getTime();
@@ -201,9 +177,9 @@ export default function InstructorAnnouncementsPage() {
       switch (sortOrder) {
         case "oldest":
           return aDate - bDate;
-        case "priority_high": // Highest priority first (Urgent -> Info)
+        case "priority_high": // Highest priority first (Important -> Info)
           return bWeight - aWeight || bDate - aDate;
-        case "priority_low": // Lowest priority first (Info -> Urgent)
+        case "priority_low": // Lowest priority first (Info -> Important)
           return aWeight - bWeight || bDate - aDate;
         case "newest":
         default:
@@ -219,13 +195,9 @@ export default function InstructorAnnouncementsPage() {
 
     // Map frontend priority to backend
     const priorityMap: Record<PriorityType, string> = {
-      info: "low",
-      normal: "normal",
-      important: "high",
-      urgent: "urgent",
-      low: "low",
-      medium: "normal",
-      high: "high",
+      info: "informasi",
+      normal: "umum",
+      important: "penting",
     };
 
     const payload = {
@@ -398,15 +370,64 @@ export default function InstructorAnnouncementsPage() {
           </div>
         </div>
 
-        <div className="relative">
-          <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Cari pengumuman..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pln-primary dark:text-white"
-          />
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="relative flex-1">
+            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Cari pengumuman..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pln-primary dark:text-white"
+            />
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setActivePriority("all")}
+              className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-all ${
+                activePriority === "all"
+                  ? "bg-pln-primary text-white shadow-sm"
+                  : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
+              }`}
+            >
+              <MegaphoneIcon className="w-3 h-3" />
+              Semua
+            </button>
+            <button
+              onClick={() => setActivePriority("important")}
+              className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-all ${
+                activePriority === "important"
+                  ? "bg-pln-primary text-white shadow-sm"
+                  : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
+              }`}
+            >
+              <ExclamationTriangleIcon className="w-3 h-3" />
+              Penting
+            </button>
+            <button
+              onClick={() => setActivePriority("normal")}
+              className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-all ${
+                activePriority === "normal"
+                  ? "bg-pln-primary text-white shadow-sm"
+                  : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
+              }`}
+            >
+              <CheckCircleIcon className="w-3 h-3" />
+              Umum
+            </button>
+            <button
+              onClick={() => setActivePriority("info")}
+              className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-all ${
+                activePriority === "info"
+                  ? "bg-pln-primary text-white shadow-sm"
+                  : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
+              }`}
+            >
+              <InformationCircleIcon className="w-3 h-3" />
+              Informasi
+            </button>
+          </div>
         </div>
       </motion.div>
 
@@ -442,7 +463,8 @@ export default function InstructorAnnouncementsPage() {
         ) : (
           <div className="grid gap-4">
             {filteredAndSortedAnnouncements.map((announcement, index) => {
-              const config = getPriorityConfig(announcement.priority);
+              const mappedPriority = getMappedPriority(announcement.priority);
+              const config = getPriorityConfig(mappedPriority);
               const PriorityIcon = config.icon;
               const isMyAnnouncement =
                 String(announcement.created_by) === String(user?.id);

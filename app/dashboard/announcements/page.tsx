@@ -19,9 +19,8 @@ import {
   ClockIcon,
 } from "@heroicons/react/24/outline";
 
-// Konfigurasi Prioritas - Skema Baru 4 Level + Fallback Legacy
+// Priority configuration - 3 levels only
 const priorityConfig = {
-  // Skema Baru (Frontend UI) - Strict Mapping
   info: {
     label: "Informasi",
     color: "bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400",
@@ -48,17 +47,8 @@ const priorityConfig = {
     icon: ExclamationTriangleIcon,
     weight: 3,
   },
-  urgent: {
-    label: "Urgent",
-    color: "bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400",
-    iconBg: "bg-red-50 dark:bg-red-500/10",
-    iconColor: "text-red-600 dark:text-red-400",
-    icon: BellAlertIcon,
-    weight: 4,
-  },
-
-  // Fallback Data Lama (Backend Legacy)
-  low: {
+  // Legacy fallbacks for old data
+  informasi: {
     label: "Informasi",
     color: "bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400",
     iconBg: "bg-blue-50 dark:bg-blue-500/10",
@@ -66,8 +56,7 @@ const priorityConfig = {
     icon: InformationCircleIcon,
     weight: 1,
   },
-  medium: {
-    // Legacy 'medium' is now 'Normal' (Umum)
+  umum: {
     label: "Umum",
     color:
       "bg-slate-100 dark:bg-slate-500/20 text-slate-700 dark:text-slate-400",
@@ -76,8 +65,7 @@ const priorityConfig = {
     icon: CheckCircleIcon,
     weight: 2,
   },
-  high: {
-    // Legacy 'high' is now 'Penting' (Important)
+  penting: {
     label: "Penting",
     color:
       "bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400",
@@ -139,26 +127,12 @@ function AnnouncementsContent() {
       setError(null);
 
       const params: Record<string, string> = {};
-      // Mapping frontend filter types to backend query if needed
-      // Note: Backend might need updates to handle 'info', 'urgent' strictly if not mapped
       if (selectedType !== "all") {
-        if (["info", "low"].includes(selectedType)) params.priority = "low";
-        else if (["normal", "medium"].includes(selectedType))
-          params.priority = "medium"; // Backend might treat normal as medium or null
-        else if (["important", "high"].includes(selectedType))
-          params.priority = "medium"; // This mapping is tricky without backend change
-        else if (["urgent"].includes(selectedType)) params.priority = "high";
-        // For now, we rely on client-side filtering if backend doesn't support new keys
-        // OR we just pass the key if backend supports it.
-        // Assuming Backend supports 'low', 'medium', 'high'.
-        // Let's rely on backend returning everything and we filter client side? No, pagination.
-        // Let's send the mapped value.
-        // Simplified mapping for now:
+        // Map frontend types to backend priority values
         const mapToBackend: Record<string, string> = {
-          info: "low",
-          normal: "medium", // assuming normal ~ medium for now
-          important: "medium",
-          urgent: "high",
+          info: "informasi",
+          normal: "umum",
+          important: "penting",
         };
         params.priority = mapToBackend[selectedType] || selectedType;
       }
@@ -205,9 +179,9 @@ function AnnouncementsContent() {
     switch (sortOrder) {
       case "oldest":
         return aDate - bDate;
-      case "priority_high": // Highest priority first (Urgent -> Info)
+      case "priority_high": // Highest priority first (Penting -> Informasi)
         return bWeight - aWeight || bDate - aDate; // secondary sort by date
-      case "priority_low": // Lowest priority first (Info -> Urgent)
+      case "priority_low": // Lowest priority first (Informasi -> Penting)
         return aWeight - bWeight || bDate - aDate;
       case "newest":
       default:
@@ -261,17 +235,6 @@ function AnnouncementsContent() {
             >
               <MegaphoneIcon className="w-3 h-3" />
               Semua
-            </button>
-            <button
-              onClick={() => setSelectedType("urgent")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full transition-all ${
-                selectedType === "urgent"
-                  ? "bg-pln-primary text-white shadow-sm"
-                  : "bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-600"
-              }`}
-            >
-              <BellAlertIcon className="w-3 h-3" />
-              Urgent
             </button>
             <button
               onClick={() => setSelectedType("important")}
