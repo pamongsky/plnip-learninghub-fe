@@ -440,18 +440,14 @@ export default function SuperadminDashboardPage() {
 
             <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
               <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <CalendarDaysIcon className="h-5 w-5 text-pln-100" />
-                  <span className="text-sm font-medium text-pln-100">
-                    {getCurrentDate()}
-                  </span>
-                </div>
+                <p className="text-white/80 text-sm mb-2">
+                  {getGreeting()}
+                </p>
                 <h1 className="text-2xl lg:text-3xl font-bold mb-2">
-                  {getGreeting()}, {user?.name?.split(" ")[0] || "Super Admin"}!
+                  {user?.name || "Super Admin"}
                 </h1>
-                <p className="text-pln-100 max-w-lg">
-                  Kelola seluruh sistem PLN IP Learning Hub. Pantau aktivitas
-                  platform, kelola admin, dan pastikan sistem berjalan optimal.
+                <p className="text-white/70 text-sm mb-4">
+                  Kelola seluruh sistem PLN IP Learning Hub. Pantau aktivitas platform, kelola admin, dan pastikan sistem berjalan optimal.
                 </p>
               </div>
 

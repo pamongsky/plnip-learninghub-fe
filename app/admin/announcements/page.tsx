@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 // import { useAuth } from "@/contexts/AuthContext"; // Commented out for Admin context
 import api from "@/lib/axios";
 import { motion, AnimatePresence } from "framer-motion";
@@ -123,7 +124,7 @@ export default function AdminAnnouncementsPage() {
 
   const handleCreateAnnouncement = async () => {
     if (!newAnnouncement.title || !newAnnouncement.content) {
-      alert("Mohon lengkapi judul dan konten pengumuman.");
+      toast.error("Mohon lengkapi judul dan konten pengumuman.");
       return;
     }
 
@@ -147,10 +148,10 @@ export default function AdminAnnouncementsPage() {
 
       if (editingId) {
         await api.put(`/admin/announcements/${editingId}`, payload);
-        alert("Pengumuman berhasil diperbarui!");
+        toast.success("Pengumuman berhasil diperbarui!");
       } else {
         await api.post("/admin/announcements", payload);
-        alert("Pengumuman berhasil dibuat!");
+        toast.success("Pengumuman berhasil dibuat!");
       }
 
       // Reset form
@@ -160,7 +161,7 @@ export default function AdminAnnouncementsPage() {
       fetchAnnouncements();
     } catch (error: any) {
       console.error("Failed to save announcement:", error);
-      alert(
+      toast.error(
         error.response?.data?.message ||
           "Gagal menyimpan pengumuman. Silakan coba lagi.",
       );
@@ -202,10 +203,10 @@ export default function AdminAnnouncementsPage() {
       fetchAnnouncements();
       setShowDeleteConfirm(null);
       setExpandedId(null);
-      alert("Pengumuman berhasil dihapus");
+      toast.success("Pengumuman berhasil dihapus");
     } catch (error) {
       console.error("Failed to delete announcement:", error);
-      alert("Gagal menghapus pengumuman.");
+      toast.error("Gagal menghapus pengumuman.");
     }
   };
 

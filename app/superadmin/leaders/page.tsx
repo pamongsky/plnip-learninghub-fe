@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useConfirm } from "@/hooks/use-confirm";
 import { motion } from "framer-motion";
 import {
   PlusIcon,
@@ -55,6 +56,7 @@ interface Leader {
 }
 
 export default function SuperadminLeadersPage() {
+  const { confirm, ConfirmDialog } = useConfirm();
   const [leaders, setLeaders] = useState<Leader[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -105,7 +107,8 @@ export default function SuperadminLeadersPage() {
   };
 
   const handleDeleteLeader = async (id: number) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus pimpinan ini?")) return;
+    const confirmed = await confirm({ title: "Hapus Pimpinan", description: "Apakah Anda yakin ingin menghapus pimpinan ini?", confirmText: "Ya, Hapus", variant: "destructive" });
+    if (!confirmed) return;
     try {
       await axios.delete(`/cms/leaders/${id}`);
       setLeaders((prev) => prev.filter((p) => p.id !== id));
@@ -309,6 +312,7 @@ export default function SuperadminLeadersPage() {
           )}
         </motion.div>
       </motion.div>
+      <ConfirmDialog />
     </>
   );
 }

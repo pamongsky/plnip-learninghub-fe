@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChatBubbleLeftRightIcon,
@@ -378,7 +379,7 @@ export default function DirectMessageChat({
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 10 * 1024 * 1024) {
-        alert("File terlalu besar. Maksimal 10MB");
+        toast.error("File terlalu besar. Maksimal 10MB");
         return;
       }
       setAttachment(file);

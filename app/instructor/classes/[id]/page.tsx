@@ -16,10 +16,28 @@ import {
   PlayCircleIcon,
   ChatBubbleLeftRightIcon,
   InformationCircleIcon,
+  EllipsisVerticalIcon,
 } from "@heroicons/react/24/outline";
 import ClassGroupChat from "@/components/chat/ClassGroupChat";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { coursesApi } from "@/lib/api/courses";
 import api from "@/lib/axios";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 interface Participant {
   id: number;
@@ -54,6 +72,11 @@ export default function InstructorClassDetailPage() {
   const [loading, setLoading] = useState(true);
   const [classData, setClassData] = useState<ClassData | null>(null);
   const [participantsData, setParticipantsData] = useState<Participant[]>([]);
+
+  // Progress tracking state
+  const [progressTarget, setProgressTarget] = useState<Participant | null>(null);
+  const [progressData, setProgressData] = useState<any>(null);
+  const [progressLoading, setProgressLoading] = useState(false);
 
   useEffect(() => {
     fetchClassDetails();
@@ -138,6 +161,47 @@ export default function InstructorClassDetailPage() {
     if (diffDays < 7) return `${diffDays} hari lalu`;
     if (diffDays < 30) return `${Math.floor(diffDays / 7)} minggu lalu`;
     return `${Math.floor(diffDays / 30)} bulan lalu`;
+  };
+
+  const handleViewProgress = async (participant: Participant) => {
+    if (!classData) return;
+    setProgressTarget(participant);
+    setProgressData(null);
+    setProgressLoading(true);
+    try {
+      const data = await coursesApi.getUserProgress(classData.id, participant.id);
+      setProgressData(data);
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Gagal memuat data progress");
+      setProgressTarget(null);
+    } finally {
+      setProgressLoading(false);
+    }
+  };
+
+  const getCompletionLabel = (status: number) => {
+    switch (status) {
+      case 1: return { text: "Selesai", color: "text-emerald-600", bg: "bg-emerald-100 dark:bg-emerald-500/20" };
+      case 2: return { text: "Lulus", color: "text-emerald-600", bg: "bg-emerald-100 dark:bg-emerald-500/20" };
+      case 3: return { text: "Tidak Lulus", color: "text-red-600", bg: "bg-red-100 dark:bg-red-500/20" };
+      default: return { text: "Belum", color: "text-slate-500", bg: "bg-slate-100 dark:bg-slate-700" };
+    }
+  };
+
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case "quiz": return "📝";
+      case "assign": return "📋";
+      case "resource": return "📄";
+      case "url": return "🔗";
+      case "page": return "📃";
+      case "forum": return "💬";
+      case "book": return "📚";
+      case "lesson": return "📖";
+      case "feedback": return "📊";
+      case "scorm": return "🎓";
+      default: return "📌";
+    }
   };
 
   const filteredParticipants = participantsData.filter((p) => {
@@ -443,6 +507,7 @@ export default function InstructorClassDetailPage() {
                     <th className="text-left px-4 py-3 text-xs font-semibold text-slate-600 dark:text-slate-300 hidden sm:table-cell">
                       Terakhir Aktif
                     </th>
+                    <th className="w-[50px]"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
@@ -518,6 +583,21 @@ export default function InstructorClassDetailPage() {
                           {participant.lastActive}
                         </p>
                       </td>
+                      <td className="px-4 py-3">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                              <EllipsisVerticalIcon className="w-4 h-4 text-slate-500" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleViewProgress(participant)}>
+                              <ChartBarIcon className="w-4 h-4 mr-2" />
+                              Lihat Progress
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -534,6 +614,113 @@ export default function InstructorClassDetailPage() {
           </motion.div>
         </>
       )}
+
+      {/* Progress Dialog */}
+      <Dialog open={!!progressTarget} onOpenChange={(o) => { if (!o) { setProgressTarget(null); setProgressData(null); } }}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Progress Peserta</DialogTitle>
+            <DialogDescription>
+              {progressTarget?.name} — {progressTarget?.email}
+            </DialogDescription>
+          </DialogHeader>
+
+          {progressLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="w-8 h-8 border-4 border-pln-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : progressData ? (
+            <div className="space-y-4">
+              {/* Progress Summary */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-3 text-center">
+                  <p className="text-2xl font-bold text-pln-primary">{progressData.progress}%</p>
+                  <p className="text-xs text-slate-500">Progress</p>
+                </div>
+                <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-3 text-center">
+                  <p className="text-2xl font-bold text-slate-800 dark:text-white">
+                    {progressData.completed_activities}/{progressData.total_with_completion}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {progressData.progress_mode === "grades" ? "Dinilai" : "Aktivitas Selesai"}
+                  </p>
+                </div>
+                <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-3 text-center">
+                  <p className="text-2xl font-bold text-slate-800 dark:text-white">
+                    {progressData.course_grade !== null ? `${progressData.course_grade}` : "-"}
+                  </p>
+                  <p className="text-xs text-slate-500">Nilai Akhir</p>
+                </div>
+              </div>
+
+              {/* Progress Bar */}
+              <div>
+                <div className="flex justify-between text-xs text-slate-500 mb-1">
+                  <span>Progress Keseluruhan{progressData.progress_mode === "grades" ? " (berdasarkan nilai)" : ""}</span>
+                  <span>{progressData.progress}%</span>
+                </div>
+                <div className="w-full h-2.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${
+                      progressData.progress >= 70 ? "bg-emerald-500" :
+                      progressData.progress >= 40 ? "bg-amber-500" : "bg-red-500"
+                    }`}
+                    style={{ width: `${progressData.progress}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Last Access */}
+              <p className="text-xs text-slate-500">
+                Terakhir diakses: {progressData.last_access
+                  ? new Date(progressData.last_access).toLocaleString("id-ID")
+                  : "Belum pernah"}
+              </p>
+
+              {/* Activities List */}
+              <div>
+                <h4 className="font-semibold text-sm text-slate-700 dark:text-slate-300 mb-2">
+                  Daftar Aktivitas ({progressData.total_activities})
+                </h4>
+                <div className="border border-slate-200 dark:border-slate-700 rounded-lg divide-y divide-slate-200 dark:divide-slate-700">
+                  {progressData.activities.map((activity: any, idx: number) => {
+                    const completion = getCompletionLabel(activity.completion_status);
+                    return (
+                      <div key={idx} className="flex items-center justify-between px-3 py-2.5 text-sm">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <span className="flex-shrink-0">{getActivityIcon(activity.type)}</span>
+                          <div className="min-w-0">
+                            <p className="truncate text-slate-800 dark:text-white">{activity.name}</p>
+                            <p className="text-[10px] text-slate-400 capitalize">{activity.type}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 flex-shrink-0 ml-3">
+                          {activity.grade !== null && (
+                            <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
+                              {activity.grade_raw}/{activity.grade_max}
+                            </span>
+                          )}
+                          {activity.has_completion && (
+                            <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${completion.bg} ${completion.color}`}>
+                              {completion.text}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setProgressTarget(null); setProgressData(null); }}>
+              Tutup
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Tab Content - Chat */}
       {activeTab === "chat" && (

@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
+import { useConfirm } from "@/hooks/use-confirm";
 import { motion, AnimatePresence } from "framer-motion";
 import api from "@/lib/axios";
 import {
@@ -47,6 +49,7 @@ interface Suggestion {
 }
 
 export default function AIFAQsPage() {
+  const { confirm, ConfirmDialog } = useConfirm();
   const [faqs, setFaqs] = useState<FAQ[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
@@ -116,12 +119,13 @@ export default function AIFAQsPage() {
       loadData();
     } catch (error) {
       console.error("Failed to save FAQ:", error);
-      alert("Gagal menyimpan FAQ");
+      toast.error("Gagal menyimpan FAQ");
     }
   };
 
   const handleDeleteFaq = async (id: number) => {
-    if (!confirm("Yakin ingin menghapus FAQ ini?")) return;
+    const confirmed = await confirm({ title: "Hapus FAQ", description: "Yakin ingin menghapus FAQ ini?", confirmText: "Ya, Hapus", variant: "destructive" });
+    if (!confirmed) return;
     try {
       await api.delete(`/admin/ai-faqs/${id}`);
       loadData();
@@ -468,6 +472,7 @@ export default function AIFAQsPage() {
           />
         )}
       </AnimatePresence>
+      <ConfirmDialog />
     </div>
   );
 }

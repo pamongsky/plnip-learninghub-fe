@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useConfirm } from "@/hooks/use-confirm";
 import { motion } from "framer-motion";
 import {
   BuildingOffice2Icon,
@@ -60,6 +61,7 @@ const companyData = {
 // ... imports
 
 export default function SuperadminHomePage() {
+  const { confirm, ConfirmDialog } = useConfirm();
   const [formData, setFormData] = useState(companyData);
   const [heroImages, setHeroImages] = useState<any[]>([]);
   const [loginBackgrounds, setLoginBackgrounds] = useState<any[]>([]);
@@ -303,7 +305,8 @@ export default function SuperadminHomePage() {
   };
 
   const handleDeleteHeroImage = async (id: number) => {
-    if (!confirm("Hapus foto ini?")) return;
+    const confirmed = await confirm({ title: "Hapus Foto", description: "Yakin ingin menghapus foto ini?", confirmText: "Ya, Hapus", variant: "destructive" });
+    if (!confirmed) return;
     try {
       await axios.delete(`/cms/hero-images/${id}`);
       setHeroImages((prev) => prev.filter((img) => img.id !== id));
@@ -363,7 +366,8 @@ export default function SuperadminHomePage() {
   };
 
   const handleDeleteLoginBackground = async (id: number) => {
-    if (!confirm("Hapus background ini?")) return;
+    const confirmed = await confirm({ title: "Hapus Background", description: "Yakin ingin menghapus background ini?", confirmText: "Ya, Hapus", variant: "destructive" });
+    if (!confirmed) return;
     try {
       await axios.delete(`/cms/login-backgrounds/${id}`);
       setLoginBackgrounds((prev) => prev.filter((img) => img.id !== id));
@@ -456,7 +460,8 @@ export default function SuperadminHomePage() {
   };
 
   const handleDeletePartner = async (id: number) => {
-    if (!confirm("Hapus partner ini?")) return;
+    const confirmed = await confirm({ title: "Hapus Partner", description: "Yakin ingin menghapus partner ini?", confirmText: "Ya, Hapus", variant: "destructive" });
+    if (!confirmed) return;
     try {
       await axios.delete(`/cms/partners/${id}`);
       setPartners((prev) => prev.filter((p) => p.id !== id));
@@ -1158,6 +1163,7 @@ export default function SuperadminHomePage() {
           </TabsContent>
         </Tabs>
       </div>
+      <ConfirmDialog />
     </>
   );
 }

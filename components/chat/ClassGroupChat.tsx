@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   PaperAirplaneIcon,
@@ -376,9 +377,9 @@ export default function ClassGroupChat({
 
       // Show user-friendly error message
       if (error instanceof Error) {
-        alert(`Gagal mengirim pesan: ${error.message}. Silakan coba lagi.`);
+        toast.error(`Gagal mengirim pesan: ${error.message}. Silakan coba lagi.`);
       } else {
-        alert(
+        toast.error(
           "Gagal mengirim pesan. Silakan periksa koneksi internet Anda dan coba lagi.",
         );
       }

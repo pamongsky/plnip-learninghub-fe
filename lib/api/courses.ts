@@ -69,4 +69,17 @@ export const coursesApi = {
     );
     return response.data;
   },
+  updateEnrollmentRole: async (courseId: number | string, userId: number, roleId: number) => {
+    const response = await axios.patch(
+      `/courses/${courseId}/enroll/${userId}/role`,
+      { role_id: roleId },
+    );
+    return response.data;
+  },
+  getUserProgress: async (courseId: number | string, userId: number) => {
+    const response = await axios.get(
+      `/courses/${courseId}/progress/${userId}`,
+    );
+    return response.data;
+  },
 };

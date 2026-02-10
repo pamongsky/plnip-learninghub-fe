@@ -14,15 +14,13 @@ import {
   CameraIcon,
   ShieldCheckIcon,
   KeyIcon,
-  BellIcon,
-  GlobeAltIcon,
   CheckCircleIcon,
 } from "@heroicons/react/24/outline";
 
 export default function ProfilePage() {
   const { user, setUser } = useAuth();
   const [activeTab, setActiveTab] = useState<
-    "profile" | "security" | "preferences"
+    "profile" | "security"
   >("profile");
   const [isEditing, setIsEditing] = useState(false);
   const [phone, setPhone] = useState("");
@@ -58,7 +56,6 @@ export default function ProfilePage() {
   const tabs = [
     { id: "profile", label: "Profil", icon: UserCircleIcon },
     { id: "security", label: "Keamanan", icon: ShieldCheckIcon },
-    { id: "preferences", label: "Preferensi", icon: BellIcon },
   ];
 
   useEffect(() => {
@@ -230,28 +227,6 @@ export default function ProfilePage() {
       >
         {/* Banner */}
         <div className="h-24 bg-gradient-to-r from-pln-primary via-pln-light to-cyan-500 relative">
-          <div className="absolute inset-0 opacity-20">
-            <svg
-              className="w-full h-full"
-              viewBox="0 0 100 100"
-              preserveAspectRatio="none"
-            >
-              <pattern
-                id="profile-grid"
-                width="8"
-                height="8"
-                patternUnits="userSpaceOnUse"
-              >
-                <path
-                  d="M 8 0 L 0 0 0 8"
-                  fill="none"
-                  stroke="white"
-                  strokeWidth="0.5"
-                />
-              </pattern>
-              <rect width="100" height="100" fill="url(#profile-grid)" />
-            </svg>
-          </div>
         </div>
 
         {/* Avatar & Basic Info */}
@@ -546,91 +521,6 @@ export default function ProfilePage() {
                   </button>
                 </div>
               </motion.div>
-            </motion.div>
-          )}
-
-          {activeTab === "preferences" && (
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ type: "spring", stiffness: 200 }}
-              className="space-y-4"
-            >
-              {/* Notifications */}
-              <motion.div
-                whileHover={{ scale: 1.01 }}
-                className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-600"
-              >
-                <h4 className="font-medium text-sm text-slate-800 dark:text-white mb-3">
-                  Notifikasi
-                </h4>
-                <div className="space-y-3">
-                  {[
-                    {
-                      label: "Email Kursus Baru",
-                      description: "Notifikasi saat ada kursus baru",
-                      enabled: true,
-                    },
-                    {
-                      label: "Email Pengingat",
-                      description: "Pengingat untuk melanjutkan pembelajaran",
-                      enabled: true,
-                    },
-                    {
-                      label: "Push Notification",
-                      description: "Notifikasi di browser",
-                      enabled: false,
-                    },
-                  ].map((pref, i) => (
-                    <div key={i} className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-slate-700 dark:text-white">
-                          {pref.label}
-                        </p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                          {pref.description}
-                        </p>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          defaultChecked={pref.enabled}
-                          className="sr-only peer"
-                        />
-                        <div className="w-9 h-5 bg-slate-300 dark:bg-slate-600 peer-focus:ring-2 peer-focus:ring-pln-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-pln-primary"></div>
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-
-              {/* Language */}
-              <motion.div
-                whileHover={{ scale: 1.01 }}
-                className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-600"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-white dark:bg-slate-600 rounded-lg flex items-center justify-center shadow-sm">
-                      <GlobeAltIcon className="w-5 h-5 text-slate-600 dark:text-slate-300" />
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-sm text-slate-800 dark:text-white">
-                        Bahasa
-                      </h4>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        Pilih bahasa tampilan
-                      </p>
-                    </div>
-                  </div>
-                  <select className="px-3 py-1.5 text-xs border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-white focus:ring-2 focus:ring-pln-primary/20">
-                    <option>Bahasa Indonesia</option>
-                    <option>English</option>
-                  </select>
-                </div>
-              </motion.div>
-
-              {/* Danger zone removed per product decision */}
             </motion.div>
           )}
         </div>

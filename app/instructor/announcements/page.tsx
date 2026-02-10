@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import api from "@/lib/axios";
 import { motion, AnimatePresence } from "framer-motion";
@@ -212,7 +213,7 @@ export default function InstructorAnnouncementsPage() {
 
   const handleCreateAnnouncement = async () => {
     if (!newAnnouncement.title || !newAnnouncement.content) {
-      alert("Mohon lengkapi judul dan konten pengumuman.");
+      toast.error("Mohon lengkapi judul dan konten pengumuman.");
       return;
     }
 
@@ -237,11 +238,11 @@ export default function InstructorAnnouncementsPage() {
       if (editingId) {
         // Update existing announcement
         await api.put(`/instructor/announcements/${editingId}`, payload);
-        alert("Pengumuman berhasil diperbarui!");
+        toast.success("Pengumuman berhasil diperbarui!");
       } else {
         // Create new announcement
         await api.post("/instructor/announcements", payload);
-        alert("Pengumuman berhasil dibuat!");
+        toast.success("Pengumuman berhasil dibuat!");
       }
 
       // Reset & Refresh
@@ -249,7 +250,7 @@ export default function InstructorAnnouncementsPage() {
       fetchData();
     } catch (error) {
       console.error("Failed to save announcement:", error);
-      alert("Gagal menyimpan pengumuman. Silakan coba lagi.");
+      toast.error("Gagal menyimpan pengumuman. Silakan coba lagi.");
     }
   };
 
@@ -272,13 +273,13 @@ export default function InstructorAnnouncementsPage() {
 
     try {
       await api.delete(`/instructor/announcements/${id}`);
-      alert("Pengumuman berhasil dihapus");
+      toast.success("Pengumuman berhasil dihapus");
       setShowDeleteConfirm(null);
       setExpandedId(null);
       fetchData();
     } catch (error) {
       console.error("Failed to delete announcement:", error);
-      alert("Gagal menghapus pengumuman");
+      toast.error("Gagal menghapus pengumuman");
     }
   };
 

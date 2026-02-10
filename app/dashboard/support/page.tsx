@@ -281,10 +281,6 @@ export default function UserSupportPage() {
             <span className="text-pln-primary">•</span>
             Sertakan screenshot jika diperlukan untuk memperjelas kendala
           </li>
-          <li className="flex items-start gap-2">
-            <span className="text-pln-primary">•</span>
-            Cek notifikasi untuk update terbaru dari tiket Anda
-          </li>
         </ul>
       </motion.div>
     </div>

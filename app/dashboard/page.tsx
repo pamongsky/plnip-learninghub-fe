@@ -176,7 +176,7 @@ export default function DashboardPage() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(255,255,255,0.1),transparent_50%)]" />
         <div className="relative">
           <p className="text-white/80 text-sm mb-2">{getGreeting()}</p>
-          <h1 className="text-2xl font-bold mb-2">{displayName}!</h1>
+          <h1 className="text-2xl font-bold mb-2">{displayName}</h1>
           <p className="text-white/70 text-sm mb-4">
             Lanjutkan perjalanan belajarmu dan raih sertifikasi baru
           </p>

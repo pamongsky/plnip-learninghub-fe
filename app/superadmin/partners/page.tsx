@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useConfirm } from "@/hooks/use-confirm";
 import { motion } from "framer-motion";
 import {
   PlusIcon,
@@ -52,6 +53,7 @@ interface Partner {
 }
 
 export default function SuperadminPartnersPage() {
+  const { confirm, ConfirmDialog } = useConfirm();
   const [partners, setPartners] = useState<Partner[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -100,7 +102,8 @@ export default function SuperadminPartnersPage() {
   };
 
   const handleDeletePartner = async (id: number) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus partner ini?")) return;
+    const confirmed = await confirm({ title: "Hapus Partner", description: "Apakah Anda yakin ingin menghapus partner ini?", confirmText: "Ya, Hapus", variant: "destructive" });
+    if (!confirmed) return;
     try {
       await axios.delete(`/cms/partners/${id}`);
       setPartners((prev) => prev.filter((p) => p.id !== id));
@@ -288,6 +291,7 @@ export default function SuperadminPartnersPage() {
           )}
         </motion.div>
       </motion.div>
+      <ConfirmDialog />
     </>
   );
 }

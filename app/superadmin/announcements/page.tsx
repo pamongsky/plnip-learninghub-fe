@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
@@ -196,7 +197,7 @@ export default function SuperadminAnnouncementsPage() {
 
   const handleCreateAnnouncement = async () => {
     if (!formData.title || !formData.content) {
-      alert("Judul dan konten harus diisi");
+      toast.error("Judul dan konten harus diisi");
       return;
     }
 
@@ -220,16 +221,16 @@ export default function SuperadminAnnouncementsPage() {
 
       if (editingId) {
         await axios.put(`/superadmin/announcements/${editingId}`, payload);
-        alert("Pengumuman berhasil diperbarui!");
+        toast.success("Pengumuman berhasil diperbarui!");
       } else {
         await axios.post("/superadmin/announcements", payload);
-        alert("Pengumuman berhasil dipublikasikan!");
+        toast.success("Pengumuman berhasil dipublikasikan!");
       }
 
       handleCancelEdit();
       fetchData();
     } catch (error: any) {
-      alert(error.response?.data?.message || "Gagal menyimpan pengumuman");
+      toast.error(error.response?.data?.message || "Gagal menyimpan pengumuman");
       console.error("Failed to save announcement:", error);
     } finally {
       setSaving(false);
@@ -265,13 +266,13 @@ export default function SuperadminAnnouncementsPage() {
     if (!id) return;
     try {
       await axios.delete(`/superadmin/announcements/${id}`);
-      alert("Pengumuman berhasil dihapus");
+      toast.success("Pengumuman berhasil dihapus");
       setShowDeleteConfirm(null);
       setExpandedId(null);
       fetchData();
     } catch (error) {
       console.error("Failed to delete announcement:", error);
-      alert("Gagal menghapus pengumuman");
+      toast.error("Gagal menghapus pengumuman");
     }
   };
 

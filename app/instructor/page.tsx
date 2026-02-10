@@ -247,16 +247,14 @@ export default function InstructorDashboardPage() {
         </div>
 
         <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <span className="text-white/70 text-sm font-medium">
-                {getGreeting()}
-              </span>
-            </div>
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-              Halo, {firstName}!
+          <div>
+            <p className="text-white/80 text-sm mb-2">
+              {getGreeting()}
+            </p>
+            <h1 className="text-2xl md:text-3xl font-bold mb-2">
+              {displayName}
             </h1>
-            <p className="text-white/80 text-sm md:text-base max-w-md">
+            <p className="text-white/70 text-sm mb-4">
               Kelola kelas dan pantau perkembangan peserta Anda dengan mudah
             </p>
           </div>

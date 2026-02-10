@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import {
   ShieldCheckIcon,
   PlusIcon,
@@ -86,7 +87,7 @@ export default function SuperadminRolesPage() {
 
   const handleCreateRole = async () => {
     if (!newRole.name || !newRole.display_name) {
-      alert("Nama role dan display name harus diisi");
+      toast.error("Nama role dan display name harus diisi");
       return;
     }
 
@@ -98,13 +99,13 @@ export default function SuperadminRolesPage() {
         permissions: selectedDefaultPerms,
       });
 
-      alert("Role berhasil dibuat!");
+      toast.success("Role berhasil dibuat!");
       setNewRole({ name: "", display_name: "" });
       setSelectedDefaultPerms([]);
       setShowCreateForm(false);
       await fetchData();
     } catch (error: any) {
-      alert(error.response?.data?.message || "Gagal membuat role");
+      toast.error(error.response?.data?.message || "Gagal membuat role");
       console.error("Failed to create role:", error);
     } finally {
       setSaving(false);

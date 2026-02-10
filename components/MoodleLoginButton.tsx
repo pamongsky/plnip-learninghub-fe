@@ -1,6 +1,7 @@
 import { ArrowRightOnRectangleIcon } from "@heroicons/react/24/outline";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState } from "react";
+import { toast } from "sonner";
 import api from "@/lib/axios";
 
 export default function MoodleLoginButton({
@@ -30,8 +31,8 @@ export default function MoodleLoginButton({
       }
     } catch (error: any) {
       console.error("Moodle SSO error:", error);
-      alert(
-        `Gagal menghubungkan ke Moodle otomatis: ${
+      toast.error(
+        `Gagal menghubungkan ke Moodle: ${
           error.response?.data?.message || error.message
         }. Pastikan akun Anda sudah terdaftar di Moodle.`,
       );

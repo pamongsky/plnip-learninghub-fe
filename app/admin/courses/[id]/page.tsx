@@ -13,6 +13,7 @@ import {
   EllipsisVerticalIcon,
   ArrowUpTrayIcon,
   ArchiveBoxArrowDownIcon,
+  ChartBarIcon,
 } from "@heroicons/react/24/outline";
 import { Button } from "@/components/ui/button";
 import {
@@ -59,12 +60,16 @@ import certificateApi from "@/lib/api/certificates";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Check } from "lucide-react";
 import axios from "@/lib/axios";
 import { toast } from "sonner";
+import { useConfirm } from "@/hooks/use-confirm";
 
 export default function CourseDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const { confirm, ConfirmDialog } = useConfirm();
   const [course, setCourse] = useState<any>(null); // TODO: Type properly
   const [loading, setLoading] = useState(true);
 
@@ -72,9 +77,14 @@ export default function CourseDetailPage() {
   const [isEnrollOpen, setIsEnrollOpen] = useState(false);
   const [searchUser, setSearchUser] = useState("");
   const [users, setUsers] = useState<any[]>([]);
-  const [selectedUser, setSelectedUser] = useState<string>("");
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [selectedUsers, setSelectedUsers] = useState<any[]>([]);
   const [selectedRole, setSelectedRole] = useState("5"); // 5=Student
   const [enrolling, setEnrolling] = useState(false);
+
+  // Change role state
+  const [roleTarget, setRoleTarget] = useState<any>(null);
+  const [newRole, setNewRole] = useState("");
 
   // Certificate upload state
   const [uploadTarget, setUploadTarget] = useState<any>(null);
@@ -82,6 +92,11 @@ export default function CourseDetailPage() {
   const [showZipUpload, setShowZipUpload] = useState(false);
   const [zipUploading, setZipUploading] = useState(false);
   const [zipResults, setZipResults] = useState<{ matched: string[]; unmatched: string[]; total_matched: number; total_unmatched: number } | null>(null);
+
+  // Progress tracking state
+  const [progressTarget, setProgressTarget] = useState<any>(null);
+  const [progressData, setProgressData] = useState<any>(null);
+  const [progressLoading, setProgressLoading] = useState(false);
 
   useEffect(() => {
     if (params.id) {
@@ -102,37 +117,51 @@ export default function CourseDetailPage() {
     }
   };
 
-  // Search users for enrollment
+  // Search users for enrollment with debounce
   useEffect(() => {
-    if (isEnrollOpen) {
-      // Fetch users (simple implementation, ideally specific search API)
-      // Mocking or using existing endpoint
-      const fetchUsers = async () => {
-        try {
-          const res = await axios.get("/users"); // Ensure this endpoint exists or use similar
-          // Filter locally for now or backend search
-          setUsers(res.data.data || res.data);
-        } catch (e) {
-          console.error(e);
-        }
-      };
-      fetchUsers();
+    if (!isEnrollOpen) return;
+    if (searchUser.length < 2) {
+      setUsers([]);
+      return;
     }
-  }, [isEnrollOpen]);
+    const timer = setTimeout(async () => {
+      try {
+        setSearchLoading(true);
+        const res = await axios.get(`/users?search=${encodeURIComponent(searchUser)}`);
+        setUsers(res.data.data || res.data);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchUser, isEnrollOpen]);
 
   const handleEnroll = async () => {
-    if (!selectedUser) return;
+    if (selectedUsers.length === 0) return;
 
     try {
       setEnrolling(true);
-      await coursesApi.enrollUser(
-        course.id,
-        parseInt(selectedUser),
-        parseInt(selectedRole),
-      );
-      toast.success("User berhasil didaftarkan!");
+      let success = 0;
+      let failed = 0;
+      for (const u of selectedUsers) {
+        try {
+          await coursesApi.enrollUser(course.id, u.id, parseInt(selectedRole));
+          success++;
+        } catch {
+          failed++;
+        }
+      }
+      if (failed > 0) {
+        toast.warning(`${success} berhasil, ${failed} gagal didaftarkan`);
+      } else {
+        toast.success(`${success} user berhasil didaftarkan!`);
+      }
       setIsEnrollOpen(false);
-      loadCourse(course.id.toString()); // Reload list
+      setSelectedUsers([]);
+      setSearchUser("");
+      loadCourse(course.id.toString());
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Gagal enroll user");
     } finally {
@@ -140,8 +169,21 @@ export default function CourseDetailPage() {
     }
   };
 
+  const handleChangeRole = async () => {
+    if (!roleTarget || !newRole) return;
+    try {
+      await coursesApi.updateEnrollmentRole(course.id, roleTarget.id, parseInt(newRole));
+      toast.success("Role berhasil diubah!");
+      setRoleTarget(null);
+      loadCourse(course.id.toString());
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Gagal mengubah role");
+    }
+  };
+
   const handleUnenroll = async (userId: number) => {
-    if (!confirm("Yakin ingin mengeluarkan user ini?")) return;
+    const confirmed = await confirm({ title: "Hapus Peserta", description: "Yakin ingin mengeluarkan user ini dari kelas?", confirmText: "Ya, Hapus", variant: "destructive" });
+    if (!confirmed) return;
 
     try {
       await coursesApi.unenrollUser(course.id, userId);
@@ -149,6 +191,46 @@ export default function CourseDetailPage() {
       loadCourse(course.id.toString());
     } catch (error) {
       toast.error("Gagal unenroll");
+    }
+  };
+
+  const handleViewProgress = async (student: any) => {
+    setProgressTarget(student);
+    setProgressData(null);
+    setProgressLoading(true);
+    try {
+      const data = await coursesApi.getUserProgress(course.id, student.id);
+      setProgressData(data);
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Gagal memuat data progress");
+      setProgressTarget(null);
+    } finally {
+      setProgressLoading(false);
+    }
+  };
+
+  const getCompletionLabel = (status: number) => {
+    switch (status) {
+      case 1: return { text: "Selesai", color: "text-emerald-600", bg: "bg-emerald-100" };
+      case 2: return { text: "Lulus", color: "text-emerald-600", bg: "bg-emerald-100" };
+      case 3: return { text: "Tidak Lulus", color: "text-red-600", bg: "bg-red-100" };
+      default: return { text: "Belum", color: "text-slate-500", bg: "bg-slate-100" };
+    }
+  };
+
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case "quiz": return "📝";
+      case "assign": return "📋";
+      case "resource": return "📄";
+      case "url": return "🔗";
+      case "page": return "📃";
+      case "forum": return "💬";
+      case "book": return "📚";
+      case "lesson": return "📖";
+      case "feedback": return "📊";
+      case "scorm": return "🎓";
+      default: return "📌";
     }
   };
 
@@ -283,6 +365,7 @@ export default function CourseDetailPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Nama Peserta</TableHead>
+                    <TableHead>NIP</TableHead>
                     <TableHead>Role</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Tanggal Join</TableHead>
@@ -293,7 +376,7 @@ export default function CourseDetailPage() {
                   {course.students?.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={5}
+                        colSpan={6}
                         className="text-center py-8 text-slate-500"
                       >
                         Belum ada peserta. Silakan Enroll Siswa baru.
@@ -311,12 +394,17 @@ export default function CourseDetailPage() {
                           </div>
                         </TableCell>
                         <TableCell>
+                          <span className="text-sm text-slate-600 font-mono">
+                            {student.employee_id || "-"}
+                          </span>
+                        </TableCell>
+                        <TableCell>
                           <Badge variant="outline">
                             {Number(student.pivot?.moodle_role_id) === 5
                               ? "Student"
-                              : Number(student.pivot?.moodle_role_id) === 4
+                              : Number(student.pivot?.moodle_role_id) === 3
                                 ? "Editing Teacher"
-                                : Number(student.pivot?.moodle_role_id) === 3
+                                : Number(student.pivot?.moodle_role_id) === 4
                                   ? "Non-Editing Teacher"
                                   : Number(student.pivot?.moodle_role_id) === 2
                                     ? "Course Creator"
@@ -352,6 +440,14 @@ export default function CourseDetailPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleViewProgress(student)}>
+                                <ChartBarIcon className="w-4 h-4 mr-2" />
+                                Lihat Progress
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => { setRoleTarget(student); setNewRole(String(student.pivot?.moodle_role_id || 5)); }}>
+                                <UserPlusIcon className="w-4 h-4 mr-2" />
+                                Ubah Role
+                              </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => setUploadTarget(student)}>
                                 <ArrowUpTrayIcon className="w-4 h-4 mr-2" />
                                 Upload Sertifikat
@@ -453,32 +549,177 @@ export default function CourseDetailPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Progress Dialog */}
+      <Dialog open={!!progressTarget} onOpenChange={(o) => { if (!o) { setProgressTarget(null); setProgressData(null); } }}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Progress Peserta</DialogTitle>
+            <DialogDescription>
+              {progressTarget?.name} — {progressTarget?.email}
+            </DialogDescription>
+          </DialogHeader>
+
+          {progressLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="w-8 h-8 border-4 border-pln-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : progressData ? (
+            <div className="space-y-4">
+              {/* Progress Summary */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-3 text-center">
+                  <p className="text-2xl font-bold text-pln-primary">{progressData.progress}%</p>
+                  <p className="text-xs text-slate-500">Progress</p>
+                </div>
+                <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-3 text-center">
+                  <p className="text-2xl font-bold text-slate-800 dark:text-white">
+                    {progressData.completed_activities}/{progressData.total_with_completion}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {progressData.progress_mode === "grades" ? "Dinilai" : "Aktivitas Selesai"}
+                  </p>
+                </div>
+                <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-3 text-center">
+                  <p className="text-2xl font-bold text-slate-800 dark:text-white">
+                    {progressData.course_grade !== null ? `${progressData.course_grade}` : "-"}
+                  </p>
+                  <p className="text-xs text-slate-500">Nilai Akhir</p>
+                </div>
+              </div>
+
+              {/* Progress Bar */}
+              <div>
+                <div className="flex justify-between text-xs text-slate-500 mb-1">
+                  <span>Progress Keseluruhan{progressData.progress_mode === "grades" ? " (berdasarkan nilai)" : ""}</span>
+                  <span>{progressData.progress}%</span>
+                </div>
+                <div className="w-full h-2.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${
+                      progressData.progress >= 70 ? "bg-emerald-500" :
+                      progressData.progress >= 40 ? "bg-amber-500" : "bg-red-500"
+                    }`}
+                    style={{ width: `${progressData.progress}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Last Access */}
+              <p className="text-xs text-slate-500">
+                Terakhir diakses: {progressData.last_access
+                  ? new Date(progressData.last_access).toLocaleString("id-ID")
+                  : "Belum pernah"}
+              </p>
+
+              {/* Activities List */}
+              <div>
+                <h4 className="font-semibold text-sm text-slate-700 dark:text-slate-300 mb-2">
+                  Daftar Aktivitas ({progressData.total_activities})
+                </h4>
+                <div className="border border-slate-200 dark:border-slate-700 rounded-lg divide-y divide-slate-200 dark:divide-slate-700">
+                  {progressData.activities.map((activity: any, idx: number) => {
+                    const completion = getCompletionLabel(activity.completion_status);
+                    return (
+                      <div key={idx} className="flex items-center justify-between px-3 py-2.5 text-sm">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <span className="flex-shrink-0">{getActivityIcon(activity.type)}</span>
+                          <div className="min-w-0">
+                            <p className="truncate text-slate-800 dark:text-white">{activity.name}</p>
+                            <p className="text-[10px] text-slate-400 capitalize">{activity.type}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 flex-shrink-0 ml-3">
+                          {activity.grade !== null && (
+                            <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
+                              {activity.grade_raw}/{activity.grade_max}
+                            </span>
+                          )}
+                          {activity.has_completion && (
+                            <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${completion.bg} ${completion.color}`}>
+                              {completion.text}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setProgressTarget(null); setProgressData(null); }}>
+              Tutup
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Enroll Dialog */}
-      <Dialog open={isEnrollOpen} onOpenChange={setIsEnrollOpen}>
-        <DialogContent>
+      <Dialog open={isEnrollOpen} onOpenChange={(open) => { setIsEnrollOpen(open); if (!open) { setSearchUser(""); setSelectedUsers([]); setUsers([]); } }}>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Enroll Peserta Baru</DialogTitle>
             <DialogDescription>
-              Pilih user untuk didaftarkan ke kelas ini. User akan otomatis
+              Cari dan pilih beberapa user sekaligus. User akan otomatis
               dibuatkan akun Moodle jika belum ada.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Pilih User</Label>
-              {/* Simple Select for MVP - Replace with Combobox for large user base */}
-              <Select value={selectedUser} onValueChange={setSelectedUser}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Pilih user..." />
-                </SelectTrigger>
-                <SelectContent className="max-h-[200px]">
-                  {users.map((u) => (
-                    <SelectItem key={u.id} value={u.id.toString()}>
-                      {u.name} ({u.email})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Cari User</Label>
+              <Command className="border rounded-md" shouldFilter={false}>
+                <CommandInput
+                  placeholder="Ketik nama, email, atau NIP..."
+                  value={searchUser}
+                  onValueChange={setSearchUser}
+                />
+                <CommandList>
+                  {searchUser.length >= 2 && !searchLoading && users.filter((u) => !selectedUsers.some((s) => s.id === u.id)).length === 0 && (
+                    <CommandEmpty>Tidak ditemukan user</CommandEmpty>
+                  )}
+                  {searchUser.length >= 2 && users.filter((u) => !selectedUsers.some((s) => s.id === u.id)).length > 0 && (
+                    <CommandGroup heading="Hasil Pencarian">
+                      {users.filter((u) => !selectedUsers.some((s) => s.id === u.id)).map((u) => (
+                        <CommandItem
+                          key={u.id}
+                          value={u.id.toString()}
+                          onSelect={() => { setSelectedUsers((prev) => [...prev, u]); setSearchUser(""); setUsers([]); }}
+                          className="cursor-pointer"
+                        >
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">{u.name}</p>
+                            <p className="text-xs text-muted-foreground">{u.email} {u.employee_id ? `| NIP: ${u.employee_id}` : ""}</p>
+                          </div>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  )}
+                  {searchLoading && (
+                    <div className="py-4 text-center text-sm text-muted-foreground">Mencari...</div>
+                  )}
+                </CommandList>
+              </Command>
+              {/* Selected users chips */}
+              {selectedUsers.length > 0 && (
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">Dipilih ({selectedUsers.length} user)</Label>
+                  <div className="flex flex-wrap gap-1.5 max-h-[120px] overflow-y-auto p-2 bg-muted/50 rounded-md border">
+                    {selectedUsers.map((u) => (
+                      <Badge key={u.id} variant="secondary" className="flex items-center gap-1 py-1 px-2 pr-1">
+                        <span className="text-xs">{u.name}</span>
+                        <button
+                          onClick={() => setSelectedUsers((prev) => prev.filter((s) => s.id !== u.id))}
+                          className="ml-0.5 rounded-full p-0.5 hover:bg-destructive/20 hover:text-destructive transition-colors"
+                        >
+                          <TrashIcon className="w-3 h-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
             <div className="space-y-2">
               <Label>Role Moodle</Label>
@@ -488,12 +729,8 @@ export default function CourseDetailPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="5">Student (Siswa)</SelectItem>
-                  <SelectItem value="4">
-                    Editing Teacher (Instruktur Penuh)
-                  </SelectItem>
-                  <SelectItem value="3">
-                    Non-Editing Teacher (Asisten)
-                  </SelectItem>
+                  <SelectItem value="3">Editing Teacher (Instruktur Penuh)</SelectItem>
+                  <SelectItem value="4">Non-Editing Teacher (Asisten)</SelectItem>
                   <SelectItem value="2">Course Creator (Admin)</SelectItem>
                   <SelectItem value="1">Manager (Super Admin)</SelectItem>
                 </SelectContent>
@@ -506,13 +743,51 @@ export default function CourseDetailPage() {
             </Button>
             <Button
               onClick={handleEnroll}
-              disabled={enrolling || !selectedUser}
+              disabled={enrolling || selectedUsers.length === 0}
             >
-              {enrolling ? "Processing..." : "Enroll Sekarang"}
+              {enrolling ? "Processing..." : `Enroll ${selectedUsers.length > 0 ? `(${selectedUsers.length})` : ""} Sekarang`}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Change Role Dialog */}
+      <Dialog open={!!roleTarget} onOpenChange={(open) => { if (!open) setRoleTarget(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Ubah Role Moodle</DialogTitle>
+            <DialogDescription>
+              Ubah role untuk <span className="font-semibold">{roleTarget?.name}</span> di kelas ini.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Role Baru</Label>
+              <Select value={newRole} onValueChange={setNewRole}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5">Student (Siswa)</SelectItem>
+                  <SelectItem value="3">Editing Teacher (Instruktur Penuh)</SelectItem>
+                  <SelectItem value="4">Non-Editing Teacher (Asisten)</SelectItem>
+                  <SelectItem value="2">Course Creator (Admin)</SelectItem>
+                  <SelectItem value="1">Manager (Super Admin)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRoleTarget(null)}>
+              Batal
+            </Button>
+            <Button onClick={handleChangeRole}>
+              Simpan
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <ConfirmDialog />
     </div>
   );
 }
