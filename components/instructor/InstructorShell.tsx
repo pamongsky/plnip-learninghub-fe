@@ -31,33 +31,58 @@ import {
 import { cn } from "@/lib/utils";
 import api from "@/lib/axios";
 
-// Navigation items - cleaner structure
-const navItems = [
+// Navigation items - grouped structure
+const navGroups = [
   {
-    href: "/instructor",
-    label: "Dashboard",
-    icon: HomeIcon,
-    exact: true,
+    label: "OVERVIEW",
+    items: [
+      {
+        href: "/instructor",
+        label: "Dashboard",
+        icon: HomeIcon,
+        exact: true,
+      },
+    ],
   },
   {
-    href: "/instructor/classes",
-    label: "Kelas Saya",
-    icon: AcademicCapIcon,
+    label: "PEMBELAJARAN",
+    items: [
+      {
+        href: "/instructor/classes",
+        label: "Kelas Saya",
+        icon: AcademicCapIcon,
+      },
+    ],
   },
   {
-    href: "/instructor/announcements",
-    label: "Pengumuman",
-    icon: MegaphoneIcon,
+    label: "INFORMASI",
+    items: [
+      {
+        href: "/instructor/announcements",
+        label: "Pengumuman",
+        icon: MegaphoneIcon,
+      },
+    ],
   },
   {
-    href: "/instructor/support",
-    label: "Bantuan",
-    icon: LifebuoyIcon,
+    label: "SUPPORT",
+    items: [
+      {
+        href: "/instructor/support",
+        label: "Bantuan",
+        icon: LifebuoyIcon,
+      },
+    ],
   },
   {
-    href: "/instructor/profile",
-    label: "Profil Saya",
-    icon: UserCircleIcon,
+    label: "AKUN",
+    items: [
+      {
+        href: "/instructor/profile",
+        label: "Profil Saya",
+        icon: UserCircleIcon,
+      },
+    ],
   },
 ];
 

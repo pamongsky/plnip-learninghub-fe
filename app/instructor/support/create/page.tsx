@@ -24,47 +24,50 @@ interface Category {
 
 const categories: Category[] = [
   {
-    value: "schedule",
-    label: "Jadwal Kelas",
-    description: "Reschedule, bentrok jadwal, perubahan waktu",
-    icon: "📅",
-  },
-  {
-    value: "content",
-    label: "Materi & Konten",
-    description: "Upload materi, update konten, issue media",
-    icon: "📝",
-  },
-  {
-    value: "student",
-    label: "Peserta",
-    description: "Absensi, kendala peserta, enrollment",
-    icon: "👥",
-  },
-  {
     value: "technical",
-    label: "Teknis Platform",
-    description: "Bug sistem, error, fitur tidak berfungsi",
+    label: "Masalah Teknis",
+    description: "Kendala login, error sistem, bug, atau akses platform",
     icon: "🔧",
   },
   {
-    value: "certification",
-    label: "Sertifikasi",
-    description: "Penerbitan sertifikat, koreksi data peserta",
+    value: "learning",
+    label: "Masalah Pembelajaran",
+    description: "Masalah konten, video, kuis, atau materi kelas",
+    icon: "📚",
+  },
+  {
+    value: "certificate",
+    label: "Masalah Sertifikat",
+    description: "Sertifikat belum muncul, salah nama, atau gagal download",
     icon: "🎓",
   },
   {
-    value: "coordination",
-    label: "Koordinasi Admin",
-    description: "Kebutuhan lain yang perlu koordinasi",
-    icon: "🤝",
+    value: "other",
+    label: "Lainnya",
+    description: "Pertanyaan umum atau kendala di luar kategori di atas",
+    icon: "💬",
   },
 ];
 
 const priorities = [
-  { value: "low", label: "Rendah", description: "Tidak urgent, bisa ditangani dalam beberapa hari", color: "bg-green-100 text-green-700 border-green-300" },
-  { value: "medium", label: "Sedang", description: "Perlu ditangani dalam 1-2 hari", color: "bg-amber-100 text-amber-700 border-amber-300" },
-  { value: "high", label: "Tinggi", description: "Urgent, perlu ditangani hari ini", color: "bg-orange-100 text-orange-700 border-orange-300" },
+  {
+    value: "low",
+    label: "Rendah",
+    description: "Tidak urgent, bisa ditangani dalam beberapa hari",
+    color: "bg-green-100 text-green-700 border-green-300",
+  },
+  {
+    value: "medium",
+    label: "Sedang",
+    description: "Perlu ditangani dalam 1-2 hari",
+    color: "bg-amber-100 text-amber-700 border-amber-300",
+  },
+  {
+    value: "high",
+    label: "Tinggi",
+    description: "Urgent, perlu ditangani hari ini",
+    color: "bg-orange-100 text-orange-700 border-orange-300",
+  },
 ];
 
 export default function CreateInstructorTicketPage() {
@@ -217,11 +220,13 @@ export default function CreateInstructorTicketPage() {
                   <div className="flex items-start gap-3">
                     <span className="text-2xl">{category.icon}</span>
                     <div>
-                      <h3 className={`font-medium ${
-                        selectedCategory === category.value
-                          ? "text-pln-primary"
-                          : "text-slate-900 dark:text-white"
-                      }`}>
+                      <h3
+                        className={`font-medium ${
+                          selectedCategory === category.value
+                            ? "text-pln-primary"
+                            : "text-slate-900 dark:text-white"
+                        }`}
+                      >
                         {category.label}
                       </h3>
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
@@ -272,18 +277,22 @@ export default function CreateInstructorTicketPage() {
                       <CheckIcon className="h-4 w-4" />
                     </div>
                   )}
-                  <h3 className={`font-medium ${
-                    selectedPriority === priority.value
-                      ? ""
-                      : "text-slate-900 dark:text-white"
-                  }`}>
+                  <h3
+                    className={`font-medium ${
+                      selectedPriority === priority.value
+                        ? ""
+                        : "text-slate-900 dark:text-white"
+                    }`}
+                  >
                     {priority.label}
                   </h3>
-                  <p className={`text-xs mt-0.5 ${
-                    selectedPriority === priority.value
-                      ? "opacity-80"
-                      : "text-slate-500 dark:text-slate-400"
-                  }`}>
+                  <p
+                    className={`text-xs mt-0.5 ${
+                      selectedPriority === priority.value
+                        ? "opacity-80"
+                        : "text-slate-500 dark:text-slate-400"
+                    }`}
+                  >
                     {priority.description}
                   </p>
                 </button>
@@ -359,7 +368,9 @@ export default function CreateInstructorTicketPage() {
                 } bg-white dark:bg-slate-900 px-4 py-3 text-sm text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2`}
               />
               {errors.description && (
-                <p className="text-sm text-red-500 mt-1">{errors.description}</p>
+                <p className="text-sm text-red-500 mt-1">
+                  {errors.description}
+                </p>
               )}
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                 {description.length}/1000 karakter
@@ -380,7 +391,8 @@ export default function CreateInstructorTicketPage() {
               Lampiran Gambar (Opsional)
             </h2>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-              Unggah gambar/screenshot untuk membantu admin memahami kebutuhan Anda
+              Unggah gambar/screenshot untuk membantu admin memahami kebutuhan
+              Anda
             </p>
           </div>
 
@@ -401,11 +413,15 @@ export default function CreateInstructorTicketPage() {
                 className="w-full p-6 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl hover:border-pln-primary dark:hover:border-pln-light hover:bg-pln-primary/5 dark:hover:bg-pln-primary/10 transition-all flex flex-col items-center justify-center gap-2 text-slate-600 dark:text-slate-400 hover:text-pln-primary dark:hover:text-pln-light"
               >
                 <PhotoIcon className="w-8 h-8" />
-                <span className="font-medium">Klik untuk upload atau drag & drop</span>
+                <span className="font-medium">
+                  Klik untuk upload atau drag & drop
+                </span>
                 <span className="text-xs">PNG, JPG, JPEG (Max 5 file)</span>
               </button>
               {errors.attachments && (
-                <p className="text-sm text-red-500 mt-2">{errors.attachments}</p>
+                <p className="text-sm text-red-500 mt-2">
+                  {errors.attachments}
+                </p>
               )}
             </div>
 
@@ -452,8 +468,9 @@ export default function CreateInstructorTicketPage() {
                 Informasi
               </h4>
               <p className="text-sm text-blue-700 dark:text-blue-400 mt-1">
-                Admin akan merespon tiket Anda dalam 1x24 jam kerja. Untuk kebutuhan urgent,
-                Anda dapat menghubungi admin langsung via ext. 1234.
+                Admin akan merespon tiket Anda dalam 1x24 jam kerja. Untuk
+                kebutuhan urgent, Anda dapat menghubungi admin langsung via ext.
+                1234.
               </p>
             </div>
           </div>
@@ -482,8 +499,20 @@ export default function CreateInstructorTicketPage() {
             {isSubmitting ? (
               <>
                 <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                    fill="none"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  />
                 </svg>
                 Mengirim...
               </>

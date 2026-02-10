@@ -412,7 +412,10 @@ export default function UserSupportDetailPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content */}
-        <div className="lg:col-span-2 flex flex-col h-screen max-h-screen">
+        <div
+          className="lg:col-span-2 flex flex-col"
+          style={{ maxHeight: "calc(100vh - 280px)" }}
+        >
           {/* Messages Container - Scrollable */}
           <div className="flex-1 overflow-y-auto space-y-4 pb-4">
             {/* Original Message */}

@@ -25,31 +25,25 @@ const categories: Category[] = [
   {
     value: "technical",
     label: "Masalah Teknis",
-    description: "Tidak bisa masuk kelas, error akses, error sistem",
+    description: "Kendala login, error sistem, bug, atau akses platform",
     icon: "🔐",
   },
   {
     value: "learning",
     label: "Masalah Pembelajaran",
-    description: "Video tidak jalan, materi tidak muncul, konten error",
+    description: "Masalah konten, video, kuis, atau materi kelas",
     icon: "📚",
   },
   {
     value: "certificate",
     label: "Masalah Sertifikat",
-    description: "Sertifikat belum terbit, nama salah, download gagal",
+    description: "Sertifikat belum muncul, salah nama, atau gagal download",
     icon: "🏆",
-  },
-  {
-    value: "payment",
-    label: "Masalah Pembayaran",
-    description: "Pembayaran, invoice, refund",
-    icon: "💳",
   },
   {
     value: "other",
     label: "Lainnya",
-    description: "Pertanyaan umum atau kendala lain",
+    description: "Pertanyaan umum atau kendala di luar kategori di atas",
     icon: "💬",
   },
 ];

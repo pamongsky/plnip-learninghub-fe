@@ -25,29 +25,28 @@ const itemVariants = {
 const categories = [
   {
     value: "technical",
-    label: "Teknis",
+    label: "Masalah Teknis",
     icon: "🔧",
-    description: "Bug, error, masalah sistem",
+    description: "Kendala login, error sistem, bug, atau akses platform",
   },
   {
-    value: "access",
-    label: "Akses",
-    icon: "🔐",
-    description: "Hak akses, permission, role",
-  },
-  {
-    value: "moodle",
-    label: "Moodle",
+    value: "learning",
+    label: "Masalah Pembelajaran",
     icon: "📚",
-    description: "Sinkronisasi, integrasi LMS",
+    description: "Masalah konten, video, kuis, atau materi kelas",
   },
   {
-    value: "feature_request",
-    label: "Request Fitur",
-    icon: "💡",
-    description: "Fitur baru, improvement",
+    value: "certificate",
+    label: "Masalah Sertifikat",
+    icon: "🎓",
+    description: "Sertifikat belum muncul, salah nama, atau gagal download",
   },
-  { value: "other", label: "Lainnya", icon: "📋", description: "Masalah lain" },
+  {
+    value: "other",
+    label: "Lainnya",
+    icon: "📋",
+    description: "Pertanyaan umum atau kendala di luar kategori di atas",
+  },
 ];
 
 const priorities = [

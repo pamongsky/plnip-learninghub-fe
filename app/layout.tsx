@@ -4,6 +4,7 @@ import "./globals.css";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { SettingsProvider } from "@/contexts/SettingsContext";
 import AIChatWidget from "@/components/AIChatWidget";
 
 const jakarta = Plus_Jakarta_Sans({
@@ -44,9 +45,11 @@ export default function RootLayout({
       >
         <AuthProvider>
           <ThemeProvider>
-            {children}
-            <AIChatWidget />
-            <Toaster richColors position="top-center" />
+            <SettingsProvider>
+              {children}
+              <AIChatWidget />
+              <Toaster richColors position="top-center" />
+            </SettingsProvider>
           </ThemeProvider>
         </AuthProvider>
       </body>

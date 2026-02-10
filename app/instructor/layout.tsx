@@ -17,6 +17,8 @@ import {
   HomeIcon,
 } from "@heroicons/react/24/outline";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSettings } from "@/contexts/SettingsContext";
+import { getImageUrl } from "@/lib/imageUrl";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -59,6 +61,16 @@ const navGroups = [
       { href: "/instructor/support", label: "Bantuan", icon: LifebuoyIcon },
     ],
   },
+  {
+    label: "Akun",
+    items: [
+      {
+        href: "/instructor/profile",
+        label: "Profil Saya",
+        icon: UserCircleIcon,
+      },
+    ],
+  },
 ];
 
 export default function InstructorLayout({
@@ -68,6 +80,7 @@ export default function InstructorLayout({
 }) {
   const pathname = usePathname();
   const { logout, user } = useAuth();
+  const { settings } = useSettings();
   const [isDark, setIsDark] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -133,8 +146,16 @@ export default function InstructorLayout({
             isCollapsed && "justify-center px-2",
           )}
         >
-          <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-pln-primary to-pln-light shadow-lg shadow-pln-primary/25">
-            <AcademicCapIcon className="h-5 w-5 text-white" />
+          <div className="relative flex h-20 w-20 items-center justify-center">
+            <img
+              src={
+                settings.appLogo
+                  ? getImageUrl(settings.appLogo)
+                  : "/icon-192.png"
+              }
+              alt="Logo"
+              className="h-full w-full object-contain"
+            />
           </div>
           {!isCollapsed && (
             <div className="flex flex-col">
@@ -142,7 +163,7 @@ export default function InstructorLayout({
                 Instructor
               </span>
               <span className="text-sm font-bold text-slate-900 dark:text-white">
-                PLN IP Learning Hub
+                {settings.appName}
               </span>
             </div>
           )}
@@ -259,8 +280,16 @@ export default function InstructorLayout({
           >
             <Bars3Icon className="h-6 w-6" />
           </button>
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-pln-primary to-pln-light">
-            <AcademicCapIcon className="h-5 w-5 text-white" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white p-1 border border-slate-200 dark:bg-slate-800 dark:border-slate-700">
+            <img
+              src={
+                settings.appLogo
+                  ? getImageUrl(settings.appLogo)
+                  : "/icon-192.png"
+              }
+              alt="Logo"
+              className="h-full w-full object-contain"
+            />
           </div>
           <span className="font-bold text-slate-900 dark:text-white">
             Instructor
@@ -305,8 +334,16 @@ export default function InstructorLayout({
           >
             {/* Logo */}
             <div className="flex items-center gap-3 border-b border-slate-200 dark:border-slate-800 p-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-pln-primary to-pln-light shadow-lg">
-                <AcademicCapIcon className="h-5 w-5 text-white" />
+              <div className="flex h-20 w-20 items-center justify-center">
+                <img
+                  src={
+                    settings.appLogo
+                      ? getImageUrl(settings.appLogo)
+                      : "/icon-192.png"
+                  }
+                  alt="Logo"
+                  className="h-full w-full object-contain"
+                />
               </div>
               <div className="flex flex-col">
                 <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-pln-light">

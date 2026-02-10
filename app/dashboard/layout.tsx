@@ -5,6 +5,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useSettings } from "@/contexts/SettingsContext";
+import { getImageUrl } from "@/lib/imageUrl";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   HomeIcon,
@@ -75,6 +77,7 @@ export default function DashboardLayout({
 }) {
   const { user, logout } = useAuth();
   const { darkMode, toggleDarkMode } = useTheme();
+  const { settings } = useSettings();
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -136,8 +139,16 @@ export default function DashboardLayout({
             isCollapsed && "justify-center px-2",
           )}
         >
-          <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-pln-primary to-pln-light shadow-lg shadow-pln-primary/25">
-            <BoltIcon className="h-5 w-5 text-white" />
+          <div className="relative flex h-20 w-20 items-center justify-center">
+            <img
+              src={
+                settings.appLogo
+                  ? getImageUrl(settings.appLogo)
+                  : "/icon-192.png"
+              }
+              alt="Logo"
+              className="h-full w-full object-contain"
+            />
           </div>
           {!isCollapsed && (
             <div className="flex flex-col">
@@ -145,7 +156,7 @@ export default function DashboardLayout({
                 Learner
               </span>
               <span className="text-sm font-bold text-slate-900 dark:text-white">
-                PLN IP Learning Hub
+                {settings.appName}
               </span>
             </div>
           )}
@@ -262,8 +273,16 @@ export default function DashboardLayout({
           >
             <Bars3Icon className="h-6 w-6" />
           </button>
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-pln-primary to-pln-light">
-            <BoltIcon className="h-5 w-5 text-white" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white p-1 border border-slate-200 dark:bg-slate-800 dark:border-slate-700">
+            <img
+              src={
+                settings.appLogo
+                  ? getImageUrl(settings.appLogo)
+                  : "/icon-192.png"
+              }
+              alt="Logo"
+              className="h-full w-full object-contain"
+            />
           </div>
           <span className="font-bold text-slate-900 dark:text-white">
             Learning Hub
@@ -308,8 +327,16 @@ export default function DashboardLayout({
           >
             {/* Logo */}
             <div className="flex items-center gap-3 border-b border-slate-200 dark:border-slate-800 p-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-pln-primary to-pln-light shadow-lg">
-                <BoltIcon className="h-5 w-5 text-white" />
+              <div className="flex h-20 w-20 items-center justify-center">
+                <img
+                  src={
+                    settings.appLogo
+                      ? getImageUrl(settings.appLogo)
+                      : "/icon-192.png"
+                  }
+                  alt="Logo"
+                  className="h-full w-full object-contain"
+                />
               </div>
               <div className="flex flex-col">
                 <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-pln-light">

@@ -47,33 +47,6 @@ const priorityConfig = {
     icon: ExclamationTriangleIcon,
     weight: 3,
   },
-  // Legacy fallbacks for old data
-  informasi: {
-    label: "Informasi",
-    color: "bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400",
-    iconBg: "bg-blue-50 dark:bg-blue-500/10",
-    iconColor: "text-blue-600 dark:text-blue-400",
-    icon: InformationCircleIcon,
-    weight: 1,
-  },
-  umum: {
-    label: "Umum",
-    color:
-      "bg-slate-100 dark:bg-slate-500/20 text-slate-700 dark:text-slate-400",
-    iconBg: "bg-slate-50 dark:bg-slate-500/10",
-    iconColor: "text-slate-600 dark:text-slate-400",
-    icon: CheckCircleIcon,
-    weight: 2,
-  },
-  penting: {
-    label: "Penting",
-    color:
-      "bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400",
-    iconBg: "bg-amber-50 dark:bg-amber-500/10",
-    iconColor: "text-amber-600 dark:text-amber-400",
-    icon: ExclamationTriangleIcon,
-    weight: 3,
-  },
 };
 
 type PriorityType = keyof typeof priorityConfig;

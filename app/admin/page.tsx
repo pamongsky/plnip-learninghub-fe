@@ -403,14 +403,18 @@ export default function AdminDashboardPage() {
 
             <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
               <div>
-                <p className="text-white/80 text-sm mb-2">
-                  {getGreeting()}
-                </p>
+                <div className="flex items-center gap-2 mb-2">
+                  <SparklesIcon className="h-5 w-5 text-yellow-300" />
+                  <span className="text-sm font-medium text-pln-100">
+                    {getCurrentDate()}
+                  </span>
+                </div>
                 <h1 className="text-2xl lg:text-3xl font-bold mb-2">
-                  {user?.name || "Admin"}
+                  {getGreeting()}, {user?.name?.split(" ")[0] || "Admin"}! 👋
                 </h1>
-                <p className="text-white/70 text-sm mb-4">
-                  Selamat datang di Panel Administrator. Kelola user, pengumuman, dan pantau aktivitas unit Anda.
+                <p className="text-pln-100 max-w-lg">
+                  Selamat datang di Panel Administrator. Kelola user,
+                  pengumuman, dan pantau aktivitas unit Anda.
                 </p>
               </div>
               <div className="flex flex-wrap gap-3">
