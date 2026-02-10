@@ -80,13 +80,8 @@ const navGroups = [
     ],
   },
   {
-    label: "AI & Support",
+    label: "Support",
     items: [
-      {
-        href: "/superadmin/ai-faqs",
-        label: "AI FAQ Assistant",
-        icon: SparklesIcon,
-      },
       {
         href: "/superadmin/escalations",
         label: "Tiket Eskalasi",

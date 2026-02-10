@@ -108,9 +108,7 @@ function AnnouncementsContent() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedType, setSelectedType] = useState("all");
-  const [sortOrder, setSortOrder] = useState<
-    "newest" | "oldest" | "priority_high" | "priority_low"
-  >("newest");
+  const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [pagination, setPagination] = useState<PaginationData | null>(null);
@@ -173,20 +171,7 @@ function AnnouncementsContent() {
     const aDate = new Date(a.published_at || a.created_at).getTime();
     const bDate = new Date(b.published_at || b.created_at).getTime();
 
-    const aWeight = getPriorityConfig(a.priority).weight;
-    const bWeight = getPriorityConfig(b.priority).weight;
-
-    switch (sortOrder) {
-      case "oldest":
-        return aDate - bDate;
-      case "priority_high": // Highest priority first (Penting -> Informasi)
-        return bWeight - aWeight || bDate - aDate; // secondary sort by date
-      case "priority_low": // Lowest priority first (Informasi -> Penting)
-        return aWeight - bWeight || bDate - aDate;
-      case "newest":
-      default:
-        return bDate - aDate;
-    }
+    return sortOrder === "newest" ? bDate - aDate : aDate - bDate;
   });
 
   return (
@@ -271,32 +256,19 @@ function AnnouncementsContent() {
             </button>
           </div>
 
-          {/* Sort Dropdown */}
-          <div className="flex items-center gap-2 mt-2 sm:mt-0">
-            <span className="text-xs text-slate-500 dark:text-slate-400 hidden sm:inline">
-              Urutkan:
-            </span>
-            <div className="relative">
-              <select
-                value={sortOrder}
-                onChange={(e) =>
-                  setSortOrder(
-                    e.target.value as
-                      | "newest"
-                      | "oldest"
-                      | "priority_high"
-                      | "priority_low",
-                  )
-                }
-                className="appearance-none pl-3 pr-8 py-1.5 text-xs font-medium rounded-full border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-pln-primary/20 focus:border-pln-primary cursor-pointer"
-              >
-                <option value="newest">Terbaru</option>
-                <option value="oldest">Terlama</option>
-                <option value="priority_high">Prioritas Tertinggi</option>
-                <option value="priority_low">Prioritas Terendah</option>
-              </select>
-              <ChevronDownIcon className="w-4 h-4 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
-            </div>
+          {/* Sort Dropdown - No Label */}
+          <div className="relative mt-2 sm:mt-0">
+            <select
+              value={sortOrder}
+              onChange={(e) =>
+                setSortOrder(e.target.value as "newest" | "oldest")
+              }
+              className="appearance-none pl-3 pr-8 py-1.5 text-xs font-medium rounded-full border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-pln-primary/20 focus:border-pln-primary cursor-pointer"
+            >
+              <option value="newest">Terbaru</option>
+              <option value="oldest">Terlama</option>
+            </select>
+            <ChevronDownIcon className="w-4 h-4 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
         </div>
       </motion.div>
@@ -328,12 +300,7 @@ function AnnouncementsContent() {
 
       {/* Announcements List */}
       {!loading && !error && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="space-y-4"
-        >
+        <motion.div className="space-y-4">
           {announcements.length === 0 ? (
             <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
               <MegaphoneIcon className="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600" />

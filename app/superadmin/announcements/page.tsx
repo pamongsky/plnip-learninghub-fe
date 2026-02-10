@@ -529,29 +529,19 @@ export default function SuperadminAnnouncementsPage() {
           </div>
 
           {/* Sort Order */}
-          <div className="flex gap-2">
-            <button
-              onClick={() => setSortOrder("newest")}
-              className={`inline-flex items-center gap-2 px-4 py-2 text-xs font-medium rounded-lg transition-all ${
-                sortOrder === "newest"
-                  ? "bg-pln-primary text-white shadow-sm"
-                  : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:border-pln-primary dark:hover:border-pln-primary"
-              }`}
+          {/* Sort Dropdown */}
+          <div className="relative">
+            <select
+              value={sortOrder}
+              onChange={(e) =>
+                setSortOrder(e.target.value as "newest" | "oldest")
+              }
+              className="appearance-none pl-3 pr-8 py-2 text-xs font-medium rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-pln-primary/20 focus:border-pln-primary cursor-pointer"
             >
-              <ClockIcon className="w-3 h-3" />
-              Terbaru
-            </button>
-            <button
-              onClick={() => setSortOrder("oldest")}
-              className={`inline-flex items-center gap-2 px-4 py-2 text-xs font-medium rounded-lg transition-all ${
-                sortOrder === "oldest"
-                  ? "bg-pln-primary text-white shadow-sm"
-                  : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:border-pln-primary dark:hover:border-pln-primary"
-              }`}
-            >
-              <ArrowsUpDownIcon className="w-3 h-3" />
-              Terlama
-            </button>
+              <option value="newest">Terbaru</option>
+              <option value="oldest">Terlama</option>
+            </select>
+            <ChevronDownIcon className="w-4 h-4 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
         </div>
       </motion.div>

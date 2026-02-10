@@ -63,7 +63,6 @@ const navGroups = [
         label: "Pengumuman",
         icon: MegaphoneIcon,
       },
-      { href: "/admin/ai-faqs", label: "AI FAQ Assistant", icon: SparklesIcon },
     ],
   },
   {

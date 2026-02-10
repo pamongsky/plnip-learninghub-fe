@@ -11,6 +11,7 @@ import {
   MegaphoneIcon,
   MagnifyingGlassIcon,
   CalendarIcon,
+  ClockIcon,
   PlusIcon,
   XMarkIcon,
   PaperAirplaneIcon,
@@ -62,6 +63,7 @@ export default function AdminAnnouncementsPage() {
   const [activePriority, setActivePriority] = useState<
     "all" | "info" | "normal" | "important"
   >("all");
+  const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
   const [searchQuery, setSearchQuery] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -114,27 +116,39 @@ export default function AdminAnnouncementsPage() {
   };
 
   // Filter announcements
-  const filteredAllAnnouncements = allAnnouncements.filter((a) => {
-    const matchesSearch =
-      a.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      a.content.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredAllAnnouncements = allAnnouncements
+    .filter((a) => {
+      const matchesSearch =
+        a.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        a.content.toLowerCase().includes(searchQuery.toLowerCase());
 
-    if (activePriority === "all") return matchesSearch;
+      if (activePriority === "all") return matchesSearch;
 
-    const mapped = getMappedPriority(a.priority);
-    return matchesSearch && mapped === activePriority;
-  });
+      const mapped = getMappedPriority(a.priority);
+      return matchesSearch && mapped === activePriority;
+    })
+    .sort((a, b) => {
+      const dateA = new Date(a.created_at).getTime();
+      const dateB = new Date(b.created_at).getTime();
+      return sortOrder === "newest" ? dateB - dateA : dateA - dateB;
+    });
 
-  const filteredMyAnnouncements = myAnnouncements.filter((a) => {
-    const matchesSearch =
-      a.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      a.content.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredMyAnnouncements = myAnnouncements
+    .filter((a) => {
+      const matchesSearch =
+        a.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        a.content.toLowerCase().includes(searchQuery.toLowerCase());
 
-    if (activePriority === "all") return matchesSearch;
+      if (activePriority === "all") return matchesSearch;
 
-    const mapped = getMappedPriority(a.priority);
-    return matchesSearch && mapped === activePriority;
-  });
+      const mapped = getMappedPriority(a.priority);
+      return matchesSearch && mapped === activePriority;
+    })
+    .sort((a, b) => {
+      const dateA = new Date(a.created_at).getTime();
+      const dateB = new Date(b.created_at).getTime();
+      return sortOrder === "newest" ? dateB - dateA : dateA - dateB;
+    });
 
   const handleCreateAnnouncement = async () => {
     if (!newAnnouncement.title || !newAnnouncement.content) {
@@ -354,6 +368,21 @@ export default function AdminAnnouncementsPage() {
             <InformationCircleIcon className="w-3 h-3" />
             Informasi
           </button>
+        </div>
+
+        {/* Sort Order */}
+        <div className="relative">
+          <select
+            value={sortOrder}
+            onChange={(e) =>
+              setSortOrder(e.target.value as "newest" | "oldest")
+            }
+            className="appearance-none pl-3 pr-8 py-2 text-xs font-medium rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-pln-primary/20 focus:border-pln-primary cursor-pointer"
+          >
+            <option value="newest">Terbaru</option>
+            <option value="oldest">Terlama</option>
+          </select>
+          <ChevronDownIcon className="w-4 h-4 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
         </div>
       </motion.div>
 

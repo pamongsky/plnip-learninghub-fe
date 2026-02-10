@@ -20,37 +20,35 @@ import {
   type AISession,
 } from "@/lib/api/ai-assistant";
 
-// Chatbot icon SVG
+// Chatbot icon SVG - robot gagah
 function BotIcon({ className = "h-4 w-4" }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className}>
-      <rect
-        x="3"
-        y="7"
-        width="18"
-        height="12"
-        rx="3"
+      {/* Antenna - spike style */}
+      <path d="M12 1l1.8 3.5h-3.6L12 1z" fill="currentColor" />
+      {/* Helmet/head */}
+      <path
+        d="M4.5 7.5C4.5 6.12 5.62 5 7 5h10c1.38 0 2.5 1.12 2.5 2.5v8c0 2.76-2.24 5-5 5h-5c-2.76 0-5-2.24-5-5v-8z"
         fill="currentColor"
         opacity="0.15"
       />
-      <rect
-        x="3"
-        y="7"
-        width="18"
-        height="12"
-        rx="3"
-        stroke="currentColor"
-        strokeWidth="1.8"
-      />
-      <circle cx="9" cy="13" r="1.5" fill="currentColor" />
-      <circle cx="15" cy="13" r="1.5" fill="currentColor" />
       <path
-        d="M12 2v5"
+        d="M4.5 7.5C4.5 6.12 5.62 5 7 5h10c1.38 0 2.5 1.12 2.5 2.5v8c0 2.76-2.24 5-5 5h-5c-2.76 0-5-2.24-5-5v-8z"
         stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
+        strokeWidth="1.6"
       />
-      <circle cx="12" cy="2" r="1" fill="currentColor" />
+      {/* Visor band */}
+      <rect x="6.5" y="9.5" width="11" height="4" rx="1.5" fill="currentColor" opacity="0.25" />
+      {/* Eyes - angular/sharp look */}
+      <path d="M7.5 11l2.5 1-2.5 1" fill="currentColor" />
+      <path d="M16.5 11l-2.5 1 2.5 1" fill="currentColor" />
+      {/* Mouth plate */}
+      <path d="M9 17h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      {/* Ear armor */}
+      <rect x="1.5" y="9" width="2.5" height="5" rx="1.2" fill="currentColor" opacity="0.7" />
+      <rect x="20" y="9" width="2.5" height="5" rx="1.2" fill="currentColor" opacity="0.7" />
+      {/* Forehead line */}
+      <path d="M8 7.5h8" stroke="currentColor" strokeWidth="1" strokeLinecap="round" opacity="0.4" />
     </svg>
   );
 }
@@ -91,8 +89,10 @@ export default function AIChatWidget() {
   const [sessionsLoading, setSessionsLoading] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [isNewChat, setIsNewChat] = useState(true);
+  const [isDragging, setIsDragging] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const constraintsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isOpen && !context) {
@@ -222,13 +222,6 @@ export default function AIChatWidget() {
     }
   };
 
-  const quickQuestions = [
-    "Bagaimana cara membuat tiket support?",
-    "Bagaimana cara mengakses kelas saya?",
-    "Jelaskan materi yang ada di kelas saya",
-    "Apa saja fitur yang tersedia?",
-  ];
-
   const formatTime = (timestamp: string) => {
     try {
       const date = new Date(timestamp);
@@ -258,24 +251,10 @@ export default function AIChatWidget() {
       <h3 className="text-lg font-semibold text-slate-900 dark:text-white mt-4 mb-1">
         PLN IP Assistant
       </h3>
-      <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 max-w-xs">
+      <p className="text-sm text-slate-500 dark:text-slate-400 max-w-xs">
         Tanya apa saja tentang materi pembelajaran, navigasi platform, atau
         pertanyaan umum lainnya.
       </p>
-      <div className="w-full space-y-2 max-w-xs">
-        {quickQuestions.map((q, idx) => (
-          <button
-            key={idx}
-            onClick={() => {
-              setInputMessage(q);
-              inputRef.current?.focus();
-            }}
-            className="w-full text-left text-sm px-4 py-2.5 rounded-lg bg-pln-50 dark:bg-slate-700/50 hover:bg-pln-100 dark:hover:bg-slate-700 transition-colors text-slate-700 dark:text-slate-300 border border-pln-100 dark:border-slate-600"
-          >
-            {q}
-          </button>
-        ))}
-      </div>
     </div>
   );
 
@@ -344,16 +323,25 @@ export default function AIChatWidget() {
 
   return (
     <>
-      {/* Floating Button - clean corporate */}
+      {/* Drag boundary */}
+      <div ref={constraintsRef} className="fixed inset-0 pointer-events-none z-40" />
+
+      {/* Floating Button - draggable */}
       <motion.button
-        onClick={() => setIsOpen(true)}
-        className={`fixed bottom-6 right-6 z-50 rounded-xl bg-pln-primary p-3.5 text-white shadow-lg hover:bg-pln-dark hover:shadow-xl transition-all ${
+        drag
+        dragConstraints={constraintsRef}
+        dragElastic={0.1}
+        dragMomentum={false}
+        onDragStart={() => setIsDragging(true)}
+        onDragEnd={() => setTimeout(() => setIsDragging(false), 100)}
+        onClick={() => { if (!isDragging) setIsOpen(true); }}
+        className={`fixed bottom-6 right-6 z-50 rounded-xl bg-pln-primary p-3.5 text-white shadow-lg hover:bg-pln-dark hover:shadow-xl transition-shadow cursor-grab active:cursor-grabbing ${
           isOpen ? "hidden" : "block"
         }`}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
       >
-        <BotIcon className="h-6 w-6" />
+        <BotIcon className="h-8 w-8" />
       </motion.button>
 
       {/* Chat Window */}
@@ -407,11 +395,6 @@ export default function AIChatWidget() {
                     <h3 className="font-semibold text-sm leading-tight">
                       PLN IP Assistant
                     </h3>
-                    <p className="text-[10px] text-white/60">
-                      {isNewChat
-                        ? "Percakapan baru"
-                        : `${messages.length} pesan`}
-                    </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-0.5 flex-shrink-0">
