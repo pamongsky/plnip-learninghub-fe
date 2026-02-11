@@ -6,7 +6,6 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import {
   ArrowLeftIcon,
-  PaperAirplaneIcon,
   CheckCircleIcon,
   ClockIcon,
   ArrowPathIcon,
@@ -19,7 +18,6 @@ import {
   FlagIcon,
   ChatBubbleLeftRightIcon,
   CheckIcon,
-  PaperClipIcon,
   XMarkIcon,
   EyeIcon,
   DocumentIcon,
@@ -29,6 +27,7 @@ import { supportApi, type SupportTicket, type SupportReply } from "@/lib/api";
 import { escalationApi } from "@/lib/api/escalation";
 import { useSupportTicketChannel } from "@/hooks/useRealTimeMessages";
 import { useAuth } from "@/contexts/AuthContext";
+import { ChatReplyBox } from "@/components/support/ChatReplyBox";
 
 // Extended type with replies
 interface TicketWithReplies extends SupportTicket {
@@ -240,8 +239,26 @@ export default function AdminSupportDetailPage() {
     [user],
   );
 
+  // Real-time: Handle status updates from broadcasting
+  const handleStatusUpdate = useCallback((data: any) => {
+    console.log("handleStatusUpdate called:", data);
+
+    setTicket((prev) => {
+      if (!prev) return prev;
+
+      console.log("Updating ticket status to:", data.status);
+      return {
+        ...prev,
+        status: data.status,
+        resolved_at: data.resolved_at || prev.resolved_at,
+        assigned_to: data.assigned_to || prev.assigned_to,
+        updated_at: data.updated_at,
+      };
+    });
+  }, []);
+
   // Subscribe to real-time support ticket channel
-  useSupportTicketChannel(ticketId, handleNewReply);
+  useSupportTicketChannel(ticketId, handleNewReply, handleStatusUpdate);
 
   const loadTicket = async () => {
     setIsLoading(true);
@@ -299,16 +316,14 @@ export default function AdminSupportDetailPage() {
       .slice(0, 2);
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const files = Array.from(e.target.files);
-      const newAttachments = [...attachments, ...files];
-      setAttachments(newAttachments);
+  const handleFileSelect = (files: FileList) => {
+    const fileArray = Array.from(files);
+    const newAttachments = [...attachments, ...fileArray];
+    setAttachments(newAttachments);
 
-      // Create preview URLs
-      const newPreviewUrls = files.map((file) => URL.createObjectURL(file));
-      setPreviewUrls([...previewUrls, ...newPreviewUrls]);
-    }
+    // Create preview URLs
+    const newPreviewUrls = fileArray.map((file) => URL.createObjectURL(file));
+    setPreviewUrls([...previewUrls, ...newPreviewUrls]);
   };
 
   const removeAttachment = (index: number) => {
@@ -425,8 +440,23 @@ export default function AdminSupportDetailPage() {
     setIsChangingStatus(true);
 
     try {
-      await supportApi.updateStatus(ticketId, newStatus);
-      await loadTicket();
+      const response = await supportApi.updateStatus(ticketId, newStatus);
+
+      // Optimistic update - update local state immediately from API response
+      if (response.data) {
+        setTicket((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            status: response.data.status,
+            resolved_at: response.data.resolved_at || prev.resolved_at,
+            assigned_to: response.data.assigned_to || prev.assigned_to,
+            updated_at: response.data.updated_at,
+          };
+        });
+      }
+
+      // No need to reload - broadcasting will update for other users
     } catch (err: any) {
       console.error("Error updating status:", err);
       setError(err.response?.data?.message || "Gagal mengubah status");
@@ -645,153 +675,65 @@ export default function AdminSupportDetailPage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 + index * 0.05 }}
-                  className={`rounded-2xl border overflow-hidden ${
+                  className={`rounded-xl border overflow-hidden ${
                     reply.is_admin_reply
                       ? "bg-pln-primary/5 dark:bg-pln-primary/10 border-pln-primary/20"
                       : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
                   }`}
                 >
                   <div
-                    className={`flex items-center gap-4 p-4 border-b ${
+                    className={`flex items-center gap-2 px-3 py-2 ${
                       reply.is_admin_reply
-                        ? "border-pln-primary/20 bg-pln-primary/5"
-                        : "border-slate-200 dark:border-slate-700"
+                        ? "bg-pln-primary/5"
+                        : "bg-slate-50 dark:bg-slate-800/50"
                     }`}
                   >
                     <div
-                      className={`h-10 w-10 rounded-full flex items-center justify-center text-sm font-semibold ${
+                      className={`h-7 w-7 rounded-full flex items-center justify-center text-xs font-semibold ${
                         reply.is_admin_reply
                           ? "bg-pln-primary text-white"
-                          : "bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-white"
+                          : "bg-slate-300 dark:bg-slate-600 text-slate-700 dark:text-white"
                       }`}
                     >
                       {reply.user ? getInitials(reply.user.name) : "U"}
                     </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-slate-900 dark:text-white">
-                          {reply.user?.name || "User"}
+                    <div className="flex-1 flex items-center gap-2">
+                      <span className="text-sm font-medium text-slate-900 dark:text-white">
+                        {reply.user?.name || "User"}
+                      </span>
+                      {reply.is_admin_reply && (
+                        <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-pln-primary text-white">
+                          Admin
                         </span>
-                        {reply.is_admin_reply && (
-                          <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-pln-primary text-white">
-                            Admin
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="p-4">
-                    <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
-                      {reply.message}
-                    </p>
-                    {renderAttachments(reply.attachments)}
-                    <div className="mt-2 pt-2 border-t border-slate-200/50 dark:border-slate-600/50">
-                      <span className="text-xs text-slate-400 dark:text-slate-500">
+                      )}
+                      <span className="text-xs text-slate-400 dark:text-slate-500 ml-auto">
                         {formatTime(reply.created_at)}
                       </span>
                     </div>
+                  </div>
+                  <div className="px-3 py-2">
+                    <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
+                      {reply.message}
+                    </p>
+                    {renderAttachments(reply.attachments)}
                   </div>
                 </motion.div>
               ))}
           </div>
 
-          {/* Reply Input */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden flex-shrink-0 mt-4"
-          >
-            <div className="p-4">
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                Balas sebagai Admin
-              </label>
-              <textarea
-                value={replyMessage}
-                onChange={(e) => setReplyMessage(e.target.value)}
-                placeholder="Tulis balasan untuk user..."
-                rows={4}
-                className="w-full resize-none rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 px-4 py-3 text-sm text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:border-pln-primary focus:outline-none focus:ring-2 focus:ring-pln-primary/20"
-              />
-
-              {/* Attachment Previews */}
-              {previewUrls.length > 0 && (
-                <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  {previewUrls.map((url, index) => (
-                    <div
-                      key={index}
-                      className="relative aspect-video w-full overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700"
-                    >
-                      <img
-                        src={url}
-                        alt="Preview"
-                        className="h-full w-full object-cover"
-                      />
-                      <button
-                        onClick={() => removeAttachment(index)}
-                        className="absolute right-1 top-1 rounded-full bg-black/50 p-1 text-white hover:bg-red-500 transition-colors"
-                      >
-                        <XMarkIcon className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="flex items-center justify-between mt-3">
-                <div>
-                  <input
-                    type="file"
-                    id="attachment-upload"
-                    multiple
-                    className="hidden"
-                    onChange={handleFileSelect}
-                  />
-                  <label
-                    htmlFor="attachment-upload"
-                    className="flex items-center gap-2 cursor-pointer text-slate-500 hover:text-pln-primary transition-colors text-sm"
-                  >
-                    <PaperClipIcon className="h-5 w-5" />
-                    <span>Lampirkan File</span>
-                  </label>
-                </div>
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={handleSendReply}
-                  disabled={!replyMessage.trim() || isSubmitting}
-                  className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-pln-primary text-white font-medium hover:bg-pln-dark disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                          fill="none"
-                        />
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        />
-                      </svg>
-                      Mengirim...
-                    </>
-                  ) : (
-                    <>
-                      <PaperAirplaneIcon className="h-4 w-4" />
-                      Kirim Balasan
-                    </>
-                  )}
-                </motion.button>
-              </div>
-            </div>
-          </motion.div>
+          {/* Reply Input - New ChatReplyBox Component */}
+          <ChatReplyBox
+            value={replyMessage}
+            onChange={setReplyMessage}
+            onSend={handleSendReply}
+            onFileSelect={handleFileSelect}
+            onRemoveFile={removeAttachment}
+            attachments={attachments}
+            previewUrls={previewUrls}
+            isSubmitting={isSubmitting}
+            placeholder="Tulis balasan untuk user..."
+            label="Balas sebagai Admin"
+          />
         </div>
 
         {/* Sidebar - Ticket Info */}

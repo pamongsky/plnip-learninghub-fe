@@ -5,7 +5,6 @@ import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   ArrowLeftIcon,
-  PaperAirplaneIcon,
   ClockIcon,
   CheckCircleIcon,
   UserCircleIcon,
@@ -14,8 +13,6 @@ import {
   ArrowPathIcon,
   ExclamationTriangleIcon,
   LockClosedIcon,
-  PaperClipIcon,
-  XMarkIcon,
   PhotoIcon,
   DocumentIcon,
 } from "@heroicons/react/24/outline";
@@ -30,6 +27,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { useEscalationTicketChannel } from "@/hooks/useRealTimeMessages";
 import Image from "next/image";
+import { ChatReplyBox } from "@/components/support/ChatReplyBox";
 
 const priorityColors: Record<string, string> = {
   low: "bg-slate-100 text-slate-700",
@@ -62,8 +60,8 @@ export default function SuperadminEscalationDetailPage() {
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [message, setMessage] = useState("");
   const [attachments, setAttachments] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const ticketId = Number(params.id);
 
@@ -158,15 +156,22 @@ export default function SuperadminEscalationDetailPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const newFiles = Array.from(e.target.files);
-      setAttachments((prev) => [...prev, ...newFiles]);
-    }
+  const handleFileSelect = (files: FileList) => {
+    const newFiles = Array.from(files);
+    setAttachments((prev) => [...prev, ...newFiles]);
+
+    // Create preview URLs for images
+    const newPreviewUrls = newFiles.map((file) => URL.createObjectURL(file));
+    setPreviewUrls((prev) => [...prev, ...newPreviewUrls]);
   };
 
   const removeAttachment = (index: number) => {
+    // Revoke preview URL before removing
+    if (previewUrls[index]) {
+      URL.revokeObjectURL(previewUrls[index]);
+    }
     setAttachments((prev) => prev.filter((_, i) => i !== index));
+    setPreviewUrls((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -188,6 +193,9 @@ export default function SuperadminEscalationDetailPage() {
     // Clear input immediately (optimistic UI)
     setMessage("");
     setAttachments([]);
+    // Revoke all preview URLs
+    previewUrls.forEach((url) => URL.revokeObjectURL(url));
+    setPreviewUrls([]);
 
     try {
       console.log("Calling API...");
@@ -534,7 +542,7 @@ export default function SuperadminEscalationDetailPage() {
             </div>
 
             {/* Replies */}
-            <div className="p-4 space-y-4 max-h-96 overflow-y-auto">
+            <div className="p-3 space-y-2 max-h-96 overflow-y-auto">
               {ticket.replies?.map((reply) => (
                 <div
                   key={reply.id}
@@ -545,13 +553,13 @@ export default function SuperadminEscalationDetailPage() {
                   }`}
                 >
                   <div
-                    className={`max-w-[80%] rounded-xl p-3 ${
+                    className={`max-w-[80%] rounded-lg px-2.5 py-2 ${
                       Number(reply.user_id) === Number(user?.id)
                         ? "bg-pln-primary/10 dark:bg-pln-900/30"
                         : "bg-slate-100 dark:bg-slate-800"
                     }`}
                   >
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-1.5 mb-0.5">
                       <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
                         {reply.user.name}
                       </span>
@@ -563,7 +571,7 @@ export default function SuperadminEscalationDetailPage() {
                       {reply.message}
                     </p>
                     {reply.attachments && renderAttachments(reply.attachments)}
-                    <p className="text-xs text-slate-400 mt-1">
+                    <p className="text-xs text-slate-400 mt-0.5">
                       {formatDate(reply.created_at)}
                     </p>
                   </div>
@@ -574,76 +582,21 @@ export default function SuperadminEscalationDetailPage() {
 
             {/* Reply Input or Status Message */}
             {!["closed", "resolved"].includes(ticket.status) ? (
-              <div className="p-4 border-t border-slate-100 dark:border-slate-800">
-                {/* File Preview */}
-                {attachments.length > 0 && (
-                  <div className="mb-3 flex flex-wrap gap-2">
-                    {attachments.map((file, index) => (
-                      <div
-                        key={index}
-                        className="relative flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-800"
-                      >
-                        <span className="truncate max-w-[150px]">
-                          {file.name}
-                        </span>
-                        <button
-                          onClick={() => removeAttachment(index)}
-                          className="text-slate-400 hover:text-red-500"
-                        >
-                          <XMarkIcon className="h-4 w-4" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <form onSubmit={handleSendMessage} className="flex gap-3">
-                  <div className="flex-1 relative">
-                    <input
-                      type="text"
-                      value={message}
-                      onChange={(e) => setMessage(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && !e.shiftKey) {
-                          e.preventDefault();
-                          handleSendMessage(e as any);
-                        }
-                      }}
-                      placeholder="Ketik balasan ke Admin..."
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 pl-4 pr-10 py-2 text-sm focus:border-pln-primary focus:outline-none focus:ring-2 focus:ring-pln-primary/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-pln-primary transition-colors"
-                      title="Lampirkan File"
-                    >
-                      <PaperClipIcon className="h-5 w-5" />
-                    </button>
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleFileSelect}
-                      className="hidden"
-                      multiple
-                      accept="image/*,.pdf,.doc,.docx"
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={
-                      (!message.trim() && attachments.length === 0) || sending
-                    }
-                    className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 h-9 px-4 py-2 bg-gradient-to-r from-pln-primary to-pln-light text-white hover:opacity-90"
-                  >
-                    {sending ? (
-                      <ArrowPathIcon className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <PaperAirplaneIcon className="h-4 w-4" />
-                    )}
-                  </button>
-                </form>
-              </div>
+              <ChatReplyBox
+                value={message}
+                onChange={setMessage}
+                onSend={(e?: any) => {
+                  e?.preventDefault?.();
+                  handleSendMessage(e || { preventDefault: () => {}, stopPropagation: () => {} } as any);
+                }}
+                onFileSelect={handleFileSelect}
+                onRemoveFile={removeAttachment}
+                attachments={attachments}
+                previewUrls={previewUrls}
+                isSubmitting={sending}
+                placeholder="Ketik balasan ke Admin..."
+                label="Diskusi dengan Admin"
+              />
             ) : (
               <div className="p-6 bg-slate-50 border-t border-slate-100 dark:bg-slate-800/50 dark:border-slate-800 text-center">
                 <div className="w-12 h-12 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-3">

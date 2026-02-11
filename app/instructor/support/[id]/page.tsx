@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import {
   ArrowLeftIcon,
-  PaperAirplaneIcon,
   CheckCircleIcon,
   ClockIcon,
   ArrowPathIcon,
@@ -14,6 +13,9 @@ import {
   ExclamationTriangleIcon,
 } from "@heroicons/react/24/outline";
 import { supportApi } from "@/lib/api";
+import { useSupportTicketChannel } from "@/hooks/useRealTimeMessages";
+import { useAuth } from "@/contexts/AuthContext";
+import { ChatReplyBox } from "@/components/support/ChatReplyBox";
 
 interface Reply {
   id: number;
@@ -122,11 +124,62 @@ const statusConfig: Record<
 export default function InstructorSupportDetailPage() {
   const params = useParams();
   const ticketId = Number(params?.id);
+  const { user } = useAuth();
   const [ticket, setTicket] = useState<TicketDetail | null>(null);
   const [replyMessage, setReplyMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Real-time: Handle new replies
+  const handleNewReply = useCallback(
+    (data: any) => {
+      // Skip if this is our own reply
+      if (user && data.user_id === user.id) {
+        return;
+      }
+
+      setTicket((prev) => {
+        if (!prev) return prev;
+
+        const newReply: Reply = {
+          id: data.id,
+          user_id: data.user_id,
+          message: data.message,
+          is_admin_reply: data.is_admin_reply,
+          created_at: data.created_at,
+          user: data.user,
+        };
+
+        // Avoid duplicates
+        const exists = prev.replies.some((r) => r.id === newReply.id);
+        if (exists) return prev;
+
+        return {
+          ...prev,
+          replies: [...prev.replies, newReply],
+        };
+      });
+    },
+    [user]
+  );
+
+  // Real-time: Handle status updates
+  const handleStatusUpdate = useCallback((data: any) => {
+    setTicket((prev) => {
+      if (!prev) return prev;
+
+      return {
+        ...prev,
+        status: data.status,
+        resolved_at: data.resolved_at || prev.resolved_at,
+        updated_at: data.updated_at,
+      };
+    });
+  }, []);
+
+  // Subscribe to real-time support ticket channel
+  useSupportTicketChannel(ticketId, handleNewReply, handleStatusUpdate);
 
   useEffect(() => {
     if (!ticketId || Number.isNaN(ticketId)) return;
@@ -391,21 +444,21 @@ export default function InstructorSupportDetailPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 + index * 0.1 }}
-                className={`rounded-2xl border overflow-hidden ${
+                className={`rounded-xl border overflow-hidden ${
                   reply.is_admin_reply
                     ? "bg-pln-primary/5 dark:bg-pln-primary/10 border-pln-primary/20"
                     : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
                 }`}
               >
                 <div
-                  className={`flex items-center gap-4 p-4 border-b ${
+                  className={`flex items-center gap-2 px-3 py-2 ${
                     reply.is_admin_reply
-                      ? "border-pln-primary/20"
-                      : "border-slate-200 dark:border-slate-700"
+                      ? "bg-pln-primary/5"
+                      : "bg-slate-50 dark:bg-slate-800/50"
                   }`}
                 >
                   <div
-                    className={`h-10 w-10 rounded-full flex items-center justify-center text-sm font-semibold ${
+                    className={`h-7 w-7 rounded-full flex items-center justify-center text-xs font-semibold ${
                       reply.is_admin_reply
                         ? "bg-pln-primary text-white"
                         : "bg-slate-600 text-white"
@@ -413,24 +466,22 @@ export default function InstructorSupportDetailPage() {
                   >
                     {getInitials(reply.user.name)}
                   </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-slate-900 dark:text-white">
-                        {reply.user.name}
+                  <div className="flex-1 flex items-center gap-2">
+                    <span className="text-sm font-medium text-slate-900 dark:text-white">
+                      {reply.user.name}
+                    </span>
+                    {reply.is_admin_reply && (
+                      <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-pln-primary text-white">
+                        Admin
                       </span>
-                      {reply.is_admin_reply && (
-                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-pln-primary text-white">
-                          Admin
-                        </span>
-                      )}
-                    </div>
+                    )}
+                    <span className="text-xs text-slate-400 dark:text-slate-500 ml-auto">
+                      {formatRelativeDate(reply.created_at)}
+                    </span>
                   </div>
-                  <span className="text-sm text-slate-500 dark:text-slate-400">
-                    {formatRelativeDate(reply.created_at)}
-                  </span>
                 </div>
-                <div className="p-4">
-                  <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
+                <div className="px-3 py-2">
+                  <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
                     {reply.message}
                   </p>
                 </div>
@@ -440,64 +491,14 @@ export default function InstructorSupportDetailPage() {
 
           {/* Reply Input */}
           {!isResolved ? (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="flex-shrink-0 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden"
-            >
-              <div className="p-4">
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  Balas Pesan
-                </label>
-                <textarea
-                  value={replyMessage}
-                  onChange={(e) => setReplyMessage(e.target.value)}
-                  placeholder="Tulis balasan atau informasi tambahan..."
-                  rows={4}
-                  className="w-full resize-none rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 px-4 py-3 text-sm text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:border-pln-primary focus:outline-none focus:ring-2 focus:ring-pln-primary/20"
-                />
-                <div className="flex justify-end mt-3">
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={handleSendReply}
-                    disabled={!replyMessage.trim() || isSubmitting}
-                    className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-pln-primary text-white font-medium hover:bg-pln-dark disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <svg
-                          className="animate-spin h-4 w-4"
-                          viewBox="0 0 24 24"
-                        >
-                          <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                            fill="none"
-                          />
-                          <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                          />
-                        </svg>
-                        Mengirim...
-                      </>
-                    ) : (
-                      <>
-                        <PaperAirplaneIcon className="h-4 w-4" />
-                        Kirim Balasan
-                      </>
-                    )}
-                  </motion.button>
-                </div>
-              </div>
-            </motion.div>
+            <ChatReplyBox
+              value={replyMessage}
+              onChange={setReplyMessage}
+              onSend={handleSendReply}
+              isSubmitting={isSubmitting}
+              placeholder="Tulis balasan atau informasi tambahan..."
+              label="Balas Pesan"
+            />
           ) : (
             <motion.div
               initial={{ opacity: 0, y: 20 }}

@@ -6,18 +6,17 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import {
   ArrowLeftIcon,
-  PaperAirplaneIcon,
   CheckCircleIcon,
   ClockIcon,
   ArrowPathIcon,
   XCircleIcon,
   ExclamationTriangleIcon,
   PaperClipIcon,
-  XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { supportApi, type SupportTicket, type SupportReply } from "@/lib/api";
 import { useSupportTicketChannel } from "@/hooks/useRealTimeMessages";
 import { useAuth } from "@/contexts/AuthContext";
+import { ChatReplyBox } from "@/components/support/ChatReplyBox";
 
 // Extended type with replies
 interface TicketWithReplies extends SupportTicket {
@@ -144,8 +143,26 @@ export default function UserSupportDetailPage() {
     [user],
   );
 
+  // Real-time: Handle status updates from broadcasting
+  const handleStatusUpdate = useCallback((data: any) => {
+    console.log("handleStatusUpdate called:", data);
+
+    setTicket((prev) => {
+      if (!prev) return prev;
+
+      console.log("Updating ticket status to:", data.status);
+      return {
+        ...prev,
+        status: data.status,
+        resolved_at: data.resolved_at || prev.resolved_at,
+        assigned_to: data.assigned_to || prev.assigned_to,
+        updated_at: data.updated_at,
+      };
+    });
+  }, []);
+
   // Subscribe to real-time support ticket channel
-  useSupportTicketChannel(ticketId, handleNewReply);
+  useSupportTicketChannel(ticketId, handleNewReply, handleStatusUpdate);
 
   const loadTicket = async () => {
     setIsLoading(true);
@@ -282,13 +299,6 @@ export default function UserSupportDetailPage() {
       setError(err.response?.data?.message || "Gagal mengirim balasan");
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSendReply();
     }
   };
 
@@ -460,21 +470,21 @@ export default function UserSupportDetailPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 + index * 0.1 }}
-                className={`rounded-2xl border overflow-hidden ${
+                className={`rounded-xl border overflow-hidden ${
                   reply.is_admin_reply
                     ? "bg-pln-primary/5 dark:bg-pln-primary/10 border-pln-primary/20"
                     : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
                 }`}
               >
                 <div
-                  className={`flex items-center gap-4 p-4 border-b ${
+                  className={`flex items-center gap-2 px-3 py-2 ${
                     reply.is_admin_reply
-                      ? "border-pln-primary/20 bg-pln-primary/5"
-                      : "border-slate-200 dark:border-slate-700"
+                      ? "bg-pln-primary/5"
+                      : "bg-slate-50 dark:bg-slate-800/50"
                   }`}
                 >
                   <div
-                    className={`h-10 w-10 rounded-full flex items-center justify-center text-sm font-semibold ${
+                    className={`h-7 w-7 rounded-full flex items-center justify-center text-xs font-semibold ${
                       reply.is_admin_reply
                         ? "bg-pln-primary text-white"
                         : "bg-slate-600 text-white"
@@ -482,29 +492,25 @@ export default function UserSupportDetailPage() {
                   >
                     {getInitials(reply.user.name)}
                   </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-slate-900 dark:text-white">
-                        {reply.user.name}
+                  <div className="flex-1 flex items-center gap-2">
+                    <span className="text-sm font-medium text-slate-900 dark:text-white">
+                      {reply.user.name}
+                    </span>
+                    {reply.is_admin_reply && (
+                      <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-pln-primary text-white">
+                        Admin
                       </span>
-                      {reply.is_admin_reply && (
-                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-pln-primary text-white">
-                          Admin
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <div className="p-4">
-                  <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
-                    {reply.message}
-                  </p>
-                  {renderAttachments(reply.attachments)}
-                  <div className="mt-2 pt-2 border-t border-slate-200/50 dark:border-slate-600/50">
-                    <span className="text-xs text-slate-400 dark:text-slate-500">
+                    )}
+                    <span className="text-xs text-slate-400 dark:text-slate-500 ml-auto">
                       {formatTime(reply.created_at)}
                     </span>
                   </div>
+                </div>
+                <div className="px-3 py-2">
+                  <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
+                    {reply.message}
+                  </p>
+                  {renderAttachments(reply.attachments)}
                 </div>
               </motion.div>
             ))}
@@ -512,63 +518,14 @@ export default function UserSupportDetailPage() {
 
           {/* Reply Input - Hide if resolved/closed */}
           {!isResolved ? (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="sticky bottom-0 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 shadow-lg"
-            >
-              <div className="p-4">
-                <div className="flex items-end gap-3">
-                  <div className="flex-1">
-                    <textarea
-                      value={replyMessage}
-                      onChange={(e) => setReplyMessage(e.target.value)}
-                      onKeyDown={handleKeyDown}
-                      placeholder="Ketik pesan... (Enter untuk kirim, Shift+Enter untuk baris baru)"
-                      rows={1}
-                      className="w-full resize-none rounded-2xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 px-4 py-3 text-sm text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:border-pln-primary focus:outline-none focus:ring-2 focus:ring-pln-primary/20 transition-all max-h-32 overflow-y-auto"
-                      style={{
-                        minHeight: "44px",
-                        height: "auto",
-                      }}
-                      autoFocus
-                    />
-                  </div>
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={handleSendReply}
-                    disabled={!replyMessage.trim() || isSubmitting}
-                    className="flex-shrink-0 h-11 w-11 rounded-full bg-pln-primary text-white hover:bg-pln-dark disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center shadow-lg hover:shadow-xl"
-                  >
-                    {isSubmitting ? (
-                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                          fill="none"
-                        />
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        />
-                      </svg>
-                    ) : (
-                      <PaperAirplaneIcon className="h-5 w-5" />
-                    )}
-                  </motion.button>
-                </div>
-                <p className="text-xs text-slate-400 dark:text-slate-500 mt-2 text-center">
-                  Tim support kami akan merespon dalam 1-2 jam kerja
-                </p>
-              </div>
-            </motion.div>
+            <ChatReplyBox
+              value={replyMessage}
+              onChange={setReplyMessage}
+              onSend={handleSendReply}
+              isSubmitting={isSubmitting}
+              placeholder="Ketik pesan..."
+              label="Balas Tiket"
+            />
           ) : (
             <motion.div
               initial={{ opacity: 0, y: 20 }}

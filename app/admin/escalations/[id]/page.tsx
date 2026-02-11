@@ -5,7 +5,6 @@ import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   ArrowLeftIcon,
-  PaperAirplaneIcon,
   ClockIcon,
   CheckCircleIcon,
   UserCircleIcon,
@@ -25,6 +24,7 @@ import {
 } from "@/lib/api/escalation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEscalationTicketChannel } from "@/hooks/useRealTimeMessages";
+import { ChatReplyBox } from "@/components/support/ChatReplyBox";
 
 const priorityColors: Record<string, string> = {
   low: "bg-slate-100 text-slate-700",
@@ -504,7 +504,7 @@ export default function EscalationDetailPage() {
             </div>
 
             {/* Replies */}
-            <div className="p-4 space-y-4 max-h-96 overflow-y-auto">
+            <div className="p-3 space-y-2 max-h-96 overflow-y-auto">
               {ticket.replies?.map((reply) => (
                 <div
                   key={reply.id}
@@ -515,13 +515,13 @@ export default function EscalationDetailPage() {
                   }`}
                 >
                   <div
-                    className={`max-w-[80%] rounded-xl p-3 ${
+                    className={`max-w-[80%] rounded-lg px-2.5 py-2 ${
                       Number(reply.user_id) === Number(user?.id)
                         ? "bg-pln-primary/10 dark:bg-pln-900/30"
                         : "bg-slate-100 dark:bg-slate-800"
                     }`}
                   >
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-1.5 mb-0.5">
                       <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
                         {reply.user.name}
                       </span>
@@ -532,7 +532,7 @@ export default function EscalationDetailPage() {
                     <p className="text-sm text-slate-700 dark:text-slate-300">
                       {reply.message}
                     </p>
-                    <p className="text-xs text-slate-400 mt-1">
+                    <p className="text-xs text-slate-400 mt-0.5">
                       {formatDate(reply.created_at)}
                     </p>
                   </div>
@@ -543,37 +543,17 @@ export default function EscalationDetailPage() {
 
             {/* Reply Input or Status Message */}
             {!["closed", "resolved"].includes(ticket.status) ? (
-              <form
-                onSubmit={handleSendMessage}
-                className="p-4 border-t border-slate-100 dark:border-slate-800"
-              >
-                <div className="flex gap-3">
-                  <input
-                    type="text"
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSendMessage(e as any);
-                      }
-                    }}
-                    placeholder="Ketik balasan..."
-                    className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm focus:border-pln-primary focus:outline-none focus:ring-2 focus:ring-pln-primary/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-                  />
-                  <button
-                    type="submit"
-                    disabled={!message.trim() || sending}
-                    className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 h-9 px-4 py-2 bg-gradient-to-r from-pln-primary to-pln-light text-white hover:opacity-90"
-                  >
-                    {sending ? (
-                      <ArrowPathIcon className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <PaperAirplaneIcon className="h-4 w-4" />
-                    )}
-                  </button>
-                </div>
-              </form>
+              <ChatReplyBox
+                value={message}
+                onChange={setMessage}
+                onSend={(e?: any) => {
+                  e?.preventDefault?.();
+                  handleSendMessage(e || { preventDefault: () => {}, stopPropagation: () => {} } as any);
+                }}
+                isSubmitting={sending}
+                placeholder="Ketik balasan..."
+                label="Diskusi dengan Super Admin"
+              />
             ) : (
               <div className="p-6 bg-slate-50 border-t border-slate-100 dark:bg-slate-800/50 dark:border-slate-800 text-center">
                 <div className="w-12 h-12 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-3">

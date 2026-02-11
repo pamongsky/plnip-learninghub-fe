@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { getEcho } from "@/lib/echo";
 
 // Types for Direct Messages
@@ -141,9 +141,12 @@ export function useClassChatChannel(
 export function useSupportTicketChannel(
   ticketId: number | null,
   onNewReply: (data: SupportReplyData) => void,
+  onStatusUpdate?: (data: any) => void,
 ) {
   const callbackRef = useRef(onNewReply);
+  const statusCallbackRef = useRef(onStatusUpdate);
   callbackRef.current = onNewReply;
+  statusCallbackRef.current = onStatusUpdate;
 
   useEffect(() => {
     if (!ticketId) return;
@@ -159,9 +162,18 @@ export function useSupportTicketChannel(
 
     const channel = echo.private(channelName);
 
+    // Listen for new replies
     channel.listen(".reply.new", (data: SupportReplyData) => {
       console.log("Received reply.new event:", data);
       callbackRef.current(data);
+    });
+
+    // Listen for status updates
+    channel.listen(".status.updated", (data: any) => {
+      console.log("Received status.updated event:", data);
+      if (statusCallbackRef.current) {
+        statusCallbackRef.current(data);
+      }
     });
 
     // Debug channel connection
