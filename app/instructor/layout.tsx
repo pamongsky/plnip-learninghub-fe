@@ -28,6 +28,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import AIChatWidget from "@/components/AIChatWidget";
 
 // Grouped navigation items for Instructor
 const navGroups = [
@@ -501,6 +502,9 @@ export default function InstructorLayout({
       >
         <div className="p-4 md:p-6 lg:p-8">{children}</div>
       </main>
+
+      {/* AI Chat Widget */}
+      <AIChatWidget />
     </div>
   );
 }

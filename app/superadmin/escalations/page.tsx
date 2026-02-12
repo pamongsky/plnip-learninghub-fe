@@ -155,7 +155,7 @@ export default function SuperadminEscalationsPage() {
                 Tracking & Eskalasi Tiket
               </h1>
               <p className="text-slate-500 mt-1 dark:text-slate-400">
-                Pusat monitoring seluruh tiket di platform (User & Admin)
+                Pusat monitoring seluruh tiket di platform 
               </p>
             </div>
             <Button

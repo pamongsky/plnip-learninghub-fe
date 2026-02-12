@@ -61,17 +61,17 @@ const navGroups = [
     ],
   },
   {
-    label: "Konten & CMS",
+    label: "Konten",
     items: [
       {
         href: "/superadmin/announcements",
-        label: "Pengumuman Global",
+        label: "Pengumuman",
         icon: MegaphoneIcon,
       },
-      { href: "/superadmin/home", label: "Home CMS", icon: HomeIcon },
+      { href: "/superadmin/home", label: "Home", icon: HomeIcon },
       {
         href: "/superadmin/partners",
-        label: "Partner Institusi",
+        label: "Partner",
         icon: BuildingOffice2Icon,
       },
       {

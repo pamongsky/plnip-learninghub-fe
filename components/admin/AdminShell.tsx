@@ -73,7 +73,7 @@ const navGroups = [
       { href: "/admin/support", label: "Support Ticket", icon: TicketIcon },
       {
         href: "/admin/escalations",
-        label: "Eskalasi ke Super Admin",
+        label: "Eskalasi Super Admin",
         icon: ChatBubbleLeftRightIcon,
       },
     ],

@@ -25,7 +25,17 @@ export default function MoodleLoginButton({
       if (response.data.success && response.data.login_url) {
         // 2. Redirect user to that Magic Link
         // The link contains a one-time key that logs them in automatically.
-        window.open(response.data.login_url, "_blank");
+        // Use window.location.href for better mobile compatibility (no popup blocker)
+        // If you want new tab, use window.open but it might be blocked on mobile
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+        if (isMobile) {
+          // Mobile: Open in same tab (better UX, no popup blocker)
+          window.location.href = response.data.login_url;
+        } else {
+          // Desktop: Open in new tab
+          window.open(response.data.login_url, "_blank");
+        }
       } else {
         throw new Error(response.data.message || "Invalid response");
       }

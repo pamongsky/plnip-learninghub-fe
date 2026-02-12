@@ -259,7 +259,7 @@ export default function AdminAnnouncementsPage() {
             Kelola Pengumuman
           </h1>
           <p className="text-slate-500 mt-1 dark:text-slate-400">
-            Buat dan kelola pengumuman (Tampilan User/Instructor)
+            Buat dan kelola pengumuman
           </p>
         </div>
         <button
@@ -286,7 +286,7 @@ export default function AdminAnnouncementsPage() {
               : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white"
           }`}
         >
-          Masuk (Inbox)
+          Pengumuman
           <span className="ml-2 px-1.5 py-0.5 text-xs rounded-full bg-slate-200 dark:bg-slate-600">
             {allAnnouncements.length}
           </span>
@@ -299,7 +299,7 @@ export default function AdminAnnouncementsPage() {
               : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white"
           }`}
         >
-          Dibuat Saya (Sent)
+          Pengumuman Saya
           <span className="ml-2 px-1.5 py-0.5 text-xs rounded-full bg-slate-200 dark:bg-slate-600">
             {myAnnouncements.length}
           </span>

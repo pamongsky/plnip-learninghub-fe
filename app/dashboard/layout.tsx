@@ -8,6 +8,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useSettings } from "@/contexts/SettingsContext";
 import { getImageUrl } from "@/lib/imageUrl";
 import { motion, AnimatePresence } from "framer-motion";
+import AIChatWidget from "@/components/AIChatWidget";
 import {
   HomeIcon,
   BookOpenIcon,
@@ -511,6 +512,9 @@ export default function DashboardLayout({
       >
         <div className="p-4 md:p-6 lg:p-8">{children}</div>
       </main>
+
+      {/* AI Chat Widget */}
+      <AIChatWidget />
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import AdminShell from "@/components/admin/AdminShell";
 import RoleGuard from "@/components/guards/RoleGuard";
+import AIChatWidget from "@/components/AIChatWidget";
 
 export default function AdminLayout({
   children,
@@ -11,6 +12,7 @@ export default function AdminLayout({
   return (
     <RoleGuard allowedRoles={["admin", "superadmin"]} redirectTo="/dashboard">
       <AdminShell>{children}</AdminShell>
+      <AIChatWidget />
     </RoleGuard>
   );
 }

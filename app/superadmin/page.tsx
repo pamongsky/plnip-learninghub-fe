@@ -234,10 +234,20 @@ export default function SuperadminDashboardPage() {
   const handleMoodleAccess = async () => {
     setSyncLoading(true);
     try {
-      const response = await api.post("/moodle/login-url");
+      const response = await api.post("/moodle/login-url", {
+        role_id: 1, // Manager role - full system access
+      });
       if (response.data?.success && response.data?.login_url) {
-        // Open Moodle with SSO token
-        window.open(response.data.login_url, "_blank");
+        // Detect if user is on mobile device
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+        if (isMobile) {
+          // Mobile: redirect in same window to maintain session
+          window.location.href = response.data.login_url;
+        } else {
+          // Desktop: open in new tab
+          window.open(response.data.login_url, "_blank");
+        }
       } else {
         showToast({
           type: "error",
@@ -350,7 +360,7 @@ export default function SuperadminDashboardPage() {
       gradient: "from-violet-500 to-purple-500",
     },
     {
-      title: "Pengumuman Global",
+      title: "Pengumuman",
       desc: "Broadcast ke semua unit",
       icon: MegaphoneIcon,
       href: "/superadmin/announcements",
@@ -642,7 +652,7 @@ export default function SuperadminDashboardPage() {
                   <div>
                     <CardTitle className="text-lg flex items-center gap-2">
                       <MegaphoneIcon className="h-5 w-5 text-amber-500" />
-                      Pengumuman Global
+                      Pengumuman
                     </CardTitle>
                     <CardDescription>
                       Pengumuman untuk seluruh platform

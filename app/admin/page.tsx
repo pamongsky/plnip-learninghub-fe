@@ -16,7 +16,6 @@ import {
   ArrowRightIcon,
   ClockIcon,
   CheckCircleIcon,
-  UserPlusIcon,
   EyeIcon,
   AcademicCapIcon,
   ChatBubbleLeftRightIcon,
@@ -24,7 +23,6 @@ import {
   SparklesIcon,
   BookOpenIcon,
   ChartBarIcon,
-  BellAlertIcon,
   UserGroupIcon,
   PlusCircleIcon,
 } from "@heroicons/react/24/outline";
@@ -99,6 +97,7 @@ type Activity = {
 export default function AdminDashboardPage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [loadingMoodle, setLoadingMoodle] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [stats, setStats] = useState<DashboardStats>({
     total_users: 0,
@@ -123,14 +122,30 @@ export default function AdminDashboardPage() {
     return "Selamat Malam";
   };
 
-  // Get current date formatted
-  const getCurrentDate = () => {
-    return new Date().toLocaleDateString("id-ID", {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    });
+  // Handle Moodle access (admin = course creator, role_id 2)
+  const handleMoodleAccess = async () => {
+    try {
+      setLoadingMoodle(true);
+      const response = await api.post("/moodle/login-url", {
+        role_id: 2, // Admin = course creator di Moodle
+      });
+
+      if (response.data?.login_url) {
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        if (isMobile) {
+          window.location.href = response.data.login_url;
+        } else {
+          window.open(response.data.login_url, "_blank");
+        }
+      }
+    } catch (error: any) {
+      showToast({
+        type: "error",
+        message: error.response?.data?.message || "Gagal mengakses Moodle",
+      });
+    } finally {
+      setLoadingMoodle(false);
+    }
   };
 
   useEffect(() => {
@@ -255,20 +270,6 @@ export default function AdminDashboardPage() {
 
   const quickActions = [
     {
-      title: "Tambah User",
-      desc: "Daftarkan user baru ke sistem",
-      icon: UserPlusIcon,
-      href: "/admin/users",
-      gradient: "from-pln-primary to-pln-light",
-    },
-    {
-      title: "Buat Pengumuman",
-      desc: "Publikasikan informasi terbaru",
-      icon: PlusCircleIcon,
-      href: "/admin/announcements",
-      gradient: "from-amber-500 to-orange-500",
-    },
-    {
       title: "Kelola Kelas",
       desc: "Atur kelas dan peserta",
       icon: AcademicCapIcon,
@@ -281,6 +282,20 @@ export default function AdminDashboardPage() {
       icon: ChatBubbleLeftRightIcon,
       href: "/admin/support",
       gradient: "from-rose-500 to-pink-500",
+    },
+    {
+      title: "Kelola User",
+      desc: "Manajemen data user",
+      icon: UsersIcon,
+      href: "/admin/users",
+      gradient: "from-pln-primary to-pln-light",
+    },
+    {
+      title: "Pengumuman",
+      desc: "Kelola pengumuman platform",
+      icon: MegaphoneIcon,
+      href: "/admin/announcements",
+      gradient: "from-amber-500 to-orange-500",
     },
   ];
 
@@ -403,33 +418,25 @@ export default function AdminDashboardPage() {
 
             <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
               <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <SparklesIcon className="h-5 w-5 text-yellow-300" />
-                  <span className="text-sm font-medium text-pln-100">
-                    {getCurrentDate()}
-                  </span>
-                </div>
+                <p className="text-sm font-medium text-pln-100 mb-2">
+                  {getGreeting()}
+                </p>
                 <h1 className="text-2xl lg:text-3xl font-bold mb-2">
-                  {getGreeting()}, {user?.name?.split(" ")[0] || "Admin"}! 👋
+                  Administrator
                 </h1>
-                <p className="text-pln-100 max-w-lg">
-                  Selamat datang di Panel Administrator. Kelola user,
-                  pengumuman, dan pantau aktivitas unit Anda.
+                <p className="text-pln-100 max-w-2xl">
+                  Kelola user, pengumuman, sinkronisasi data, dan pantau aktivitas platform PLN IP Learning Hub.
                 </p>
               </div>
               <div className="flex flex-wrap gap-3">
-                <Link href="/admin/announcements">
-                  <Button className="bg-white/20 hover:bg-white/30 text-white border-white/30 backdrop-blur-sm">
-                    <BellAlertIcon className="h-4 w-4 mr-2" />
-                    Buat Pengumuman
-                  </Button>
-                </Link>
-                <Link href="/admin/users">
-                  <Button className="bg-white text-pln-primary hover:bg-white/90">
-                    <UserPlusIcon className="h-4 w-4 mr-2" />
-                    Tambah User
-                  </Button>
-                </Link>
+                <Button
+                  onClick={handleMoodleAccess}
+                  disabled={loadingMoodle}
+                  className="bg-white text-pln-primary hover:bg-white/90"
+                >
+                  <BookOpenIcon className="h-4 w-4 mr-2" />
+                  {loadingMoodle ? "Memuat..." : "Akses LMS Moodle"}
+                </Button>
               </div>
             </div>
           </div>
@@ -708,7 +715,7 @@ export default function AdminDashboardPage() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <CalendarDaysIcon className="h-5 w-5 text-pln-light" />
-                  Jadwal Hari Ini
+                  Tanggal Hari Ini
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -725,11 +732,7 @@ export default function AdminDashboardPage() {
                       year: "numeric",
                     })}
                   </p>
-                  <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
-                    <p className="text-sm text-slate-500">
-                      Tidak ada jadwal khusus
-                    </p>
-                  </div>
+            
                 </div>
               </CardContent>
             </Card>

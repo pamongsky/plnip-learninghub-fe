@@ -150,7 +150,7 @@ export default function SuperadminRolesPage() {
             Roles & Permissions
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
-            View available roles and their permissions
+          
           </p>
         </div>
         <Button

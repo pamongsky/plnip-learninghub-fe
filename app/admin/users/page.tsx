@@ -142,7 +142,7 @@ export default function AdminUsersPage() {
                 Kelola User
               </h1>
               <p className="text-slate-500 mt-1 dark:text-slate-400">
-                Kelola data user di unit Anda
+                Kelola data user
               </p>
             </div>
           </div>
