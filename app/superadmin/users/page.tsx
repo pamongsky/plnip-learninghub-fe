@@ -115,13 +115,11 @@ export default function SuperadminUsersPage() {
       color: "bg-pln-500",
     },
     {
-      role: "User",
+      role: "Learner",
       count: users.filter(
         (u) =>
-          u.role === "employee" ||
-          u.effective_role === "employee" ||
-          u.role === "user" ||
-          u.effective_role === "user" ||
+          u.role === "learner" ||
+          u.effective_role === "learner" ||
           (!u.role && !u.effective_role),
       ).length,
       color: "bg-pln-light",
@@ -162,7 +160,7 @@ export default function SuperadminUsersPage() {
       const response = await axios.get(`/superadmin/users?${params}`);
       setUsers(response.data.data || []);
     } catch (error) {
-      console.error("Failed to fetch users:", error);
+      // error handled silently
     } finally {
       setLoading(false);
     }
@@ -188,8 +186,9 @@ export default function SuperadminUsersPage() {
             Instructor
           </Badge>
         );
+      case "learner":
       default:
-        return <Badge variant="secondary">User</Badge>;
+        return <Badge variant="secondary">Learner</Badge>;
     }
   };
 
@@ -230,10 +229,11 @@ export default function SuperadminUsersPage() {
       });
       // Refresh users list after sync
       setTimeout(() => fetchUsers(), 1000);
-    } catch (error: any) {
+    } catch (error) {
+      const err = error as any;
       setSyncMessage({
         type: "error",
-        text: `❌ Sync gagal: ${error.response?.data?.error || error.message}`,
+        text: `❌ Sync gagal: ${err?.response?.data?.error || err?.message}`,
       });
     } finally {
       setSyncLoading(false);
@@ -262,7 +262,7 @@ export default function SuperadminUsersPage() {
             Kelola user dari seluruh unit dan role
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <Button
             onClick={handleERPSync}
             disabled={syncLoading}
@@ -305,7 +305,7 @@ export default function SuperadminUsersPage() {
       )}
 
       {/* Role Stats */}
-      <motion.div variants={itemVariants} className="grid gap-4 md:grid-cols-4">
+      <motion.div variants={itemVariants} className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {roleStats.map((stat) => (
           <Card key={stat.role} className="border-0 shadow-md">
             <CardContent className="flex items-center gap-4 p-5">
@@ -427,121 +427,123 @@ export default function SuperadminUsersPage() {
                 <p className="text-slate-500">Tidak ada user ditemukan</p>
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>User</TableHead>
-                    <TableHead>Employee ID</TableHead>
-                    <TableHead>Unit</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>Source</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Aksi</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {users.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-pln-primary to-pln-light text-sm font-semibold text-white">
-                            {user.name
-                              .split(" ")
-                              .map((n) => n[0])
-                              .join("")
-                              .slice(0, 2)}
-                          </div>
-                          <div>
-                            <p className="font-medium text-slate-900 dark:text-white">
-                              {user.name}
-                            </p>
-                            <p className="text-sm text-slate-500">
-                              {user.email}
-                            </p>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">
-                        {user.employee_id || "-"}
-                      </TableCell>
-                      <TableCell>{user.department || "-"}</TableCell>
-                      <TableCell>
-                        {getRoleBadge(user.effective_role || "user")}
-                      </TableCell>
-                      <TableCell>{getSourceBadge(user.source)}</TableCell>
-                      <TableCell>{getStatusBadge(user.is_active)}</TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <EllipsisHorizontalIcon className="h-5 w-5" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              className="gap-2"
-                              onSelect={() =>
-                                setDetailsModal({ open: true, userId: user.id })
-                              }
-                            >
-                              <EyeIcon className="h-4 w-4" />
-                              Lihat Detail
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              className="gap-2"
-                              onSelect={() =>
-                                setEditModal({ open: true, userId: user.id })
-                              }
-                            >
-                              <PencilSquareIcon className="h-4 w-4" />
-                              Edit
-                            </DropdownMenuItem>
-                            {user.source === "manual" && (
-                              <>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  className="gap-2 text-red-600"
-                                  onSelect={() =>
-                                    setDeleteModal({
-                                      open: true,
-                                      userId: user.id,
-                                      userName: user.name,
-                                    })
-                                  }
-                                >
-                                  <TrashIcon className="h-4 w-4" />
-                                  Hapus
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                            {user.source === "erp" && (
-                              <>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  className="gap-2"
-                                  onSelect={() =>
-                                    setOverrideModal({
-                                      open: true,
-                                      userId: user.id,
-                                      userName: user.name,
-                                      currentRole:
-                                        user.effective_role || "user",
-                                      accessGroup: user.access_group || "N/A",
-                                    })
-                                  }
-                                >
-                                  <ShieldCheckIcon className="h-4 w-4" />
-                                  Override Role
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
+              <div className="overflow-x-auto">
+                <Table className="min-w-[800px]">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>User</TableHead>
+                      <TableHead>Employee ID</TableHead>
+                      <TableHead>Unit</TableHead>
+                      <TableHead>Role</TableHead>
+                      <TableHead>Source</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Aksi</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {users.map((user) => (
+                      <TableRow key={user.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-pln-primary to-pln-light text-sm font-semibold text-white flex-shrink-0">
+                              {user.name
+                                .split(" ")
+                                .map((n) => n[0])
+                                .join("")
+                                .slice(0, 2)}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-medium text-slate-900 dark:text-white truncate">
+                                {user.name}
+                              </p>
+                              <p className="text-sm text-slate-500 truncate">
+                                {user.email}
+                              </p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-mono text-sm whitespace-nowrap">
+                          {user.employee_id || "-"}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">{user.department || "-"}</TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {getRoleBadge(user.effective_role || "learner")}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">{getSourceBadge(user.source)}</TableCell>
+                        <TableCell className="whitespace-nowrap">{getStatusBadge(user.is_active)}</TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <EllipsisHorizontalIcon className="h-5 w-5" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                className="gap-2"
+                                onSelect={() =>
+                                  setDetailsModal({ open: true, userId: user.id })
+                                }
+                              >
+                                <EyeIcon className="h-4 w-4" />
+                                Lihat Detail
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="gap-2"
+                                onSelect={() =>
+                                  setEditModal({ open: true, userId: user.id })
+                                }
+                              >
+                                <PencilSquareIcon className="h-4 w-4" />
+                                Edit
+                              </DropdownMenuItem>
+                              {user.source === "manual" && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    className="gap-2 text-red-600"
+                                    onSelect={() =>
+                                      setDeleteModal({
+                                        open: true,
+                                        userId: user.id,
+                                        userName: user.name,
+                                      })
+                                    }
+                                  >
+                                    <TrashIcon className="h-4 w-4" />
+                                    Hapus
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              {user.source === "erp" && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    className="gap-2"
+                                    onSelect={() =>
+                                      setOverrideModal({
+                                        open: true,
+                                        userId: user.id,
+                                        userName: user.name,
+                                        currentRole:
+                                          user.effective_role || "learner",
+                                        accessGroup: user.access_group || "N/A",
+                                      })
+                                    }
+                                  >
+                                    <ShieldCheckIcon className="h-4 w-4" />
+                                    Override Role
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </CardContent>
         </Card>

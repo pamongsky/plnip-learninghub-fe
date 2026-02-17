@@ -85,7 +85,7 @@ export default function AdminEscalationsPage() {
       setTickets(ticketsRes.tickets);
       setStats(statsRes);
     } catch (error) {
-      console.error("Error loading escalations:", error);
+      // error handled silently
     } finally {
       setLoading(false);
     }

@@ -72,10 +72,7 @@ export default function ProfilePage() {
     try {
       const response = await api.put("/profile", {
         name: fullName,
-        email: user.email,
         phone,
-        department: user.department,
-        position: user.position,
       });
 
       if (response.data?.data?.user) {
@@ -85,11 +82,14 @@ export default function ProfilePage() {
       setIsEditing(false);
       setStatusType("success");
       setStatusMessage("Profil berhasil diperbarui.");
-    } catch (error: any) {
+    } catch (err: unknown) {
       setStatusType("error");
-      setStatusMessage(
-        error.response?.data?.message || "Gagal memperbarui profil.",
-      );
+      let errorMessage = "Gagal memperbarui profil.";
+      if (err instanceof Error) {
+        const error = err as any;
+        errorMessage = error.response?.data?.message || "Gagal memperbarui profil.";
+      }
+      setStatusMessage(errorMessage);
     } finally {
       setSaving(false);
     }
@@ -122,11 +122,14 @@ export default function ProfilePage() {
 
       setStatusType("success");
       setStatusMessage("Foto profil berhasil diperbarui.");
-    } catch (error: any) {
+    } catch (err: unknown) {
       setStatusType("error");
-      setStatusMessage(
-        error.response?.data?.message || "Gagal mengunggah foto profil.",
-      );
+      let errorMessage = "Gagal mengunggah foto profil.";
+      if (err instanceof Error) {
+        const error = err as any;
+        errorMessage = error.response?.data?.message || "Gagal mengunggah foto profil.";
+      }
+      setStatusMessage(errorMessage);
     } finally {
       setAvatarUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -193,11 +196,14 @@ export default function ProfilePage() {
       setConfirmPassword("");
       setStatusType("success");
       setStatusMessage("Password berhasil diperbarui.");
-    } catch (error: any) {
+    } catch (err: unknown) {
       setStatusType("error");
-      setStatusMessage(
-        error.response?.data?.message || "Gagal memperbarui password.",
-      );
+      let errorMessage = "Gagal memperbarui password.";
+      if (err instanceof Error) {
+        const error = err as any;
+        errorMessage = error.response?.data?.message || "Gagal memperbarui password.";
+      }
+      setStatusMessage(errorMessage);
     } finally {
       setPasswordLoading(false);
     }
@@ -285,9 +291,6 @@ export default function ProfilePage() {
                 <span className="px-2 py-0.5 text-[10px] font-medium bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 rounded-full flex items-center gap-1">
                   <CheckCircleIcon className="w-3 h-3" />
                   Terverifikasi
-                </span>
-                <span className="text-[10px] text-slate-500 dark:text-slate-400">
-                  Email terverifikasi
                 </span>
               </div>
             </div>
@@ -381,13 +384,11 @@ export default function ProfilePage() {
                   </label>
                   <input
                     type="email"
-                    defaultValue={profileData.email}
+                    value={profileData.email}
                     disabled
-                    className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-white focus:ring-2 focus:ring-pln-primary/20 focus:border-pln-primary disabled:bg-slate-50 dark:disabled:bg-slate-700/50 disabled:text-slate-500 dark:disabled:text-slate-400 transition-all"
+                    className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400"
                   />
-                  <p className="mt-1 text-[10px] text-slate-400">
-                    Email dikunci oleh sistem
-                  </p>
+                  <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">Dari sistem ERP</p>
                 </motion.div>
                 <motion.div
                   whileHover={{ y: -2 }}
@@ -416,13 +417,11 @@ export default function ProfilePage() {
                   </label>
                   <input
                     type="text"
-                    defaultValue={profileData.unit}
+                    value={profileData.unit}
                     disabled
-                    className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-white focus:ring-2 focus:ring-pln-primary/20 focus:border-pln-primary disabled:bg-slate-50 dark:disabled:bg-slate-700/50 disabled:text-slate-500 dark:disabled:text-slate-400 transition-all"
+                    className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400"
                   />
-                  <p className="mt-1 text-[10px] text-slate-400">
-                    Unit kerja berasal dari ITD
-                  </p>
+                  <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">Dari sistem ERP</p>
                 </motion.div>
                 <motion.div
                   whileHover={{ y: -2 }}
@@ -434,13 +433,11 @@ export default function ProfilePage() {
                   </label>
                   <input
                     type="text"
-                    defaultValue={profileData.position}
+                    value={profileData.position}
                     disabled
-                    className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-white focus:ring-2 focus:ring-pln-primary/20 focus:border-pln-primary disabled:bg-slate-50 dark:disabled:bg-slate-700/50 disabled:text-slate-500 dark:disabled:text-slate-400 transition-all"
+                    className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400"
                   />
-                  <p className="mt-1 text-[10px] text-slate-400">
-                    Posisi berasal dari ITD
-                  </p>
+                  <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">Dari sistem ERP</p>
                 </motion.div>
                 <motion.div
                   whileHover={{ y: -2 }}
@@ -452,7 +449,7 @@ export default function ProfilePage() {
                   </label>
                   <input
                     type="text"
-                    defaultValue={profileData.joinDate}
+                    value={profileData.joinDate}
                     disabled
                     className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400"
                   />

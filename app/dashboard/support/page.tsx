@@ -15,20 +15,23 @@ import {
   ExclamationTriangleIcon,
 } from "@heroicons/react/24/outline";
 import { supportApi, type SupportTicket } from "@/lib/api";
+import { SUPPORT_CATEGORIES, getSupportCategoryLabel, getSupportCategoryIcon } from "@/lib/constants/support";
 
-const categoryLabels: Record<string, { label: string; icon: string }> = {
-  technical: { label: "Teknis", icon: "🔧" },
-  learning: { label: "Pembelajaran", icon: "📚" },
-  certificate: { label: "Sertifikat", icon: "🏆" },
-  payment: { label: "Pembayaran", icon: "💳" },
-  other: { label: "Lainnya", icon: "💬" },
-  // Legacy mappings
-  access: { label: "Akses Kelas", icon: "🔐" },
-  material: { label: "Materi Pembelajaran", icon: "📚" },
-  account: { label: "Akun & Login", icon: "👤" },
-};
+const categoryLabels: Record<string, { label: string; icon: string }> = Object.fromEntries(
+  Object.values(SUPPORT_CATEGORIES).map(cat => [
+    cat.value,
+    { label: cat.label, icon: cat.icon }
+  ])
+);
 
-const statusConfig: Record<string, { label: string; color: string; bgColor: string; icon: any }> = {
+interface StatusConfig {
+  label: string;
+  color: string;
+  bgColor: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
+
+const statusConfig: Record<string, StatusConfig> = {
   open: { label: "Menunggu", color: "text-blue-700", bgColor: "bg-blue-100 dark:bg-blue-900/30", icon: ClockIcon },
   in_progress: { label: "Diproses", color: "text-amber-700", bgColor: "bg-amber-100 dark:bg-amber-900/30", icon: ArrowPathIcon },
   resolved: { label: "Selesai", color: "text-green-700", bgColor: "bg-green-100 dark:bg-green-900/30", icon: CheckCircleIcon },
@@ -65,9 +68,10 @@ export default function UserSupportPage() {
       }
 
       setTickets(ticketData);
-    } catch (err: any) {
-      console.error("Error loading tickets:", err);
-      setError(err.response?.data?.message || "Gagal memuat tiket. Silakan coba lagi.");
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Gagal memuat tiket. Silakan coba lagi.";
+      const apiMessage = err && typeof err === 'object' && 'response' in err ? (err as any).response?.data?.message : undefined;
+      setError(apiMessage || errorMessage);
     } finally {
       setIsLoading(false);
     }

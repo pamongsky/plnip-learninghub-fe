@@ -19,6 +19,7 @@ import {
   type AIChatMessage,
   type AISession,
 } from "@/lib/api/ai-assistant";
+import { sanitizeHtml } from "@/lib/utils";
 
 // Chatbot icon SVG - robot gagah
 function BotIcon({ className = "h-4 w-4" }: { className?: string }) {
@@ -69,12 +70,13 @@ function BotAvatar({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
   );
 }
 
-// Simple markdown rendering
+// Simple markdown rendering with XSS protection
 function renderMessage(content: string) {
   let html = content.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
   html = html.replace(/^[•\-]\s(.+)$/gm, '<li class="ml-4">$1</li>');
   html = html.replace(/\n/g, "<br />");
-  return html;
+  // Sanitize to prevent XSS attacks from AI responses
+  return sanitizeHtml(html);
 }
 
 export default function AIChatWidget() {
@@ -116,7 +118,7 @@ export default function AIChatWidget() {
       const ctx = await aiAssistantApi.getContext();
       setContext(ctx);
     } catch (error) {
-      console.error("Failed to load AI context:", error);
+      // error handled silently
     }
   };
 
@@ -126,7 +128,7 @@ export default function AIChatWidget() {
       const data = await aiAssistantApi.getSessions();
       setSessions(data);
     } catch (error) {
-      console.error("Failed to load sessions:", error);
+      // error handled silently
     } finally {
       setSessionsLoading(false);
     }
@@ -149,7 +151,7 @@ export default function AIChatWidget() {
       setIsNewChat(false);
       setShowSidebar(false);
     } catch (error) {
-      console.error("Failed to load conversation:", error);
+      // error handled silently
     } finally {
       setIsLoading(false);
     }
@@ -167,7 +169,7 @@ export default function AIChatWidget() {
       );
       if (conversationId === sessionConvId) startNewChat();
     } catch (error) {
-      console.error("Failed to delete conversation:", error);
+      // error handled silently
     }
   };
 
@@ -310,6 +312,7 @@ export default function AIChatWidget() {
               </p>
               <button
                 onClick={(e) => deleteConversation(e, session.conversation_id)}
+                aria-label="Delete conversation"
                 className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-red-50 dark:hover:bg-red-900/30 transition-all"
               >
                 <TrashIcon className="h-3.5 w-3.5 text-red-400" />
@@ -335,6 +338,7 @@ export default function AIChatWidget() {
         onDragStart={() => setIsDragging(true)}
         onDragEnd={() => setTimeout(() => setIsDragging(false), 100)}
         onClick={() => { if (!isDragging) setIsOpen(true); }}
+        aria-label="Open AI chat assistant"
         className={`fixed bottom-6 right-6 z-50 rounded-xl bg-pln-primary p-3.5 text-white shadow-lg hover:bg-pln-dark hover:shadow-xl transition-shadow cursor-grab active:cursor-grabbing ${
           isOpen ? "hidden" : "block"
         }`}
@@ -380,6 +384,8 @@ export default function AIChatWidget() {
                 <div className="flex items-center gap-2.5 min-w-0">
                   <button
                     onClick={() => setShowSidebar(!showSidebar)}
+                    aria-label={showSidebar ? "Close sidebar" : "Open sidebar"}
+                    aria-expanded={showSidebar}
                     className="rounded-lg p-1.5 hover:bg-white/15 transition-colors flex-shrink-0"
                   >
                     {showSidebar ? (
@@ -400,15 +406,16 @@ export default function AIChatWidget() {
                 <div className="flex items-center gap-0.5 flex-shrink-0">
                   <button
                     onClick={startNewChat}
+                    aria-label="Start new chat"
                     className="rounded-lg p-1.5 hover:bg-white/15 transition-colors"
-                    title="Chat Baru"
                   >
                     <PlusIcon className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => setIsMaximized(!isMaximized)}
+                    aria-label={isMaximized ? "Minimize chat window" : "Maximize chat window"}
+                    aria-expanded={isMaximized}
                     className="rounded-lg p-1.5 hover:bg-white/15 transition-colors"
-                    title={isMaximized ? "Perkecil" : "Perbesar"}
                   >
                     {isMaximized ? (
                       <ArrowsPointingInIcon className="h-4 w-4" />
@@ -421,6 +428,7 @@ export default function AIChatWidget() {
                       setIsOpen(false);
                       setShowSidebar(false);
                     }}
+                    aria-label="Close chat"
                     className="rounded-lg p-1.5 hover:bg-white/15 transition-colors"
                   >
                     <XMarkIcon className="h-4 w-4" />

@@ -202,6 +202,8 @@ export default function SuperadminShell({
         <div className={cn("px-3 py-2", isCollapsed && "px-2")}>
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
+            aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-expanded={!isCollapsed}
             className={cn(
               "flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-600 transition-all hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700",
               isCollapsed && "px-2",
@@ -282,6 +284,7 @@ export default function SuperadminShell({
           {/* Theme Toggle */}
           <button
             onClick={toggleTheme}
+            aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
             className={cn(
               "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 transition-all hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800",
               isCollapsed && "justify-center px-2",
@@ -363,6 +366,8 @@ export default function SuperadminShell({
         <div className="flex items-center gap-3">
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            aria-label="Toggle mobile menu"
+            aria-expanded={isMobileMenuOpen}
             className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
           >
             <Bars3Icon className="h-6 w-6" />
@@ -385,6 +390,7 @@ export default function SuperadminShell({
         <div className="flex items-center gap-2">
           <button
             onClick={toggleTheme}
+            aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
             className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
           >
             {isDark ? (

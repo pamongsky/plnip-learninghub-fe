@@ -51,7 +51,6 @@ export default function AdminUsersPage() {
         const data = await usersApi.getAllUsers();
         setUsers(Array.isArray(data) ? data : []);
       } catch (error) {
-        console.error("Failed to fetch users:", error);
         setUsers([]);
       } finally {
         setLoading(false);

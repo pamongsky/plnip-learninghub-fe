@@ -48,10 +48,11 @@ export function UserDeleteModal({
         onOpenChange(false);
         onSuccess();
       }, 1500);
-    } catch (error: any) {
+    } catch (error) {
+      const err = error as any;
       setMessage({
         type: "error",
-        text: error.response?.data?.message || "Gagal menghapus user",
+        text: err?.response?.data?.message || "Gagal menghapus user",
       });
     } finally {
       setDeleting(false);

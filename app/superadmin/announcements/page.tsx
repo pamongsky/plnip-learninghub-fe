@@ -27,6 +27,7 @@ import {
   TrashIcon,
 } from "@heroicons/react/24/outline";
 import axios from "@/lib/axios";
+import { sanitizeHtml } from "@/lib/utils";
 import { getEcho, disconnectEcho } from "@/lib/echo";
 
 // Priority configuration - 3 levels only
@@ -140,8 +141,7 @@ export default function SuperadminAnnouncementsPage() {
     const echo = getEcho();
     if (echo) {
       const channel = echo.channel("announcements");
-      channel.listen(".announcement.created", (data: any) => {
-        console.log("New announcement received:", data);
+      channel.listen(".announcement.created", (data: unknown) => {
         fetchData(); // Refresh data
       });
     }
@@ -192,7 +192,7 @@ export default function SuperadminAnnouncementsPage() {
 
       setStats(statsRes.data.data);
     } catch (error) {
-      console.error("Failed to fetch data:", error);
+      // error handled silently
     } finally {
       setLoading(false);
     }
@@ -231,11 +231,13 @@ export default function SuperadminAnnouncementsPage() {
 
       handleCancelEdit();
       fetchData();
-    } catch (error: any) {
-      toast.error(
-        error.response?.data?.message || "Gagal menyimpan pengumuman",
-      );
-      console.error("Failed to save announcement:", error);
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Object && "response" in err
+          ? (err as { response?: { data?: { message?: string } } }).response
+              ?.data?.message
+          : undefined;
+      toast.error(errorMessage || "Gagal menyimpan pengumuman");
     } finally {
       setSaving(false);
     }
@@ -264,7 +266,6 @@ export default function SuperadminAnnouncementsPage() {
       setExpandedId(null);
       fetchData();
     } catch (error) {
-      console.error("Failed to delete announcement:", error);
       toast.error("Gagal menghapus pengumuman");
     }
   };
@@ -594,7 +595,7 @@ export default function SuperadminAnnouncementsPage() {
                     </p>
                     <p className="text-xs text-blue-700 dark:text-blue-300 mt-0.5">
                       Akan dikirim ke seluruh user platform (Admin, Instructor,
-                      dan Peserta)
+                      and Learners)
                     </p>
                   </div>
                 </div>
@@ -913,7 +914,7 @@ export default function SuperadminAnnouncementsPage() {
                               <div
                                 className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700 text-sm text-slate-600 dark:text-slate-300 leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_h3]:text-lg [&_h3]:font-bold"
                                 dangerouslySetInnerHTML={{
-                                  __html: announcement.content,
+                                  __html: sanitizeHtml(announcement.content),
                                 }}
                               />
                               {/* Admin Actions */}
@@ -1044,7 +1045,7 @@ export default function SuperadminAnnouncementsPage() {
                               <div
                                 className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700 text-sm text-slate-600 dark:text-slate-300 leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_h3]:text-lg [&_h3]:font-bold"
                                 dangerouslySetInnerHTML={{
-                                  __html: announcement.content,
+                                  __html: sanitizeHtml(announcement.content),
                                 }}
                               />
                               <div className="mt-4 flex gap-2">

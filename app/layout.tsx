@@ -5,6 +5,7 @@ import { Toaster } from "sonner";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { SettingsProvider } from "@/contexts/SettingsContext";
+import GlobalAuthHandler from "@/components/GlobalAuthHandler";
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -46,6 +47,7 @@ export default function RootLayout({
           <ThemeProvider>
             <SettingsProvider>
               {children}
+              <GlobalAuthHandler />
               <Toaster richColors position="top-center" />
             </SettingsProvider>
           </ThemeProvider>

@@ -51,10 +51,14 @@ const priorityConfig: Record<
   },
 };
 
-const statusConfig: Record<
-  string,
-  { label: string; color: string; bgColor: string; icon: any }
-> = {
+interface StatusConfig {
+  label: string;
+  color: string;
+  bgColor: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
+
+const statusConfig: Record<string, StatusConfig> = {
   open: {
     label: "Menunggu",
     color: "text-blue-700",

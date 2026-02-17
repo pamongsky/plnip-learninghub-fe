@@ -40,7 +40,7 @@ interface AuditLog {
   action: string;
   entity_type?: string;
   entity_id?: number;
-  changes: any;
+  changes: Record<string, unknown> | null;
   reason: string;
   ip_address?: string;
   user_agent?: string;
@@ -83,11 +83,12 @@ export function UserDetailsModal({
 
       setUser(userRes.data);
       setAuditLogs(auditRes.data || []);
-    } catch (error: any) {
-      console.error("Failed to fetch user details:", error);
+    } catch (error) {
+      const err = error as any;
+      // error handled silently
       // Still try to set user data if available
-      if (error.response?.data) {
-        setUser(error.response.data);
+      if (err?.response?.data) {
+        setUser(err.response.data);
       }
     } finally {
       setLoading(false);

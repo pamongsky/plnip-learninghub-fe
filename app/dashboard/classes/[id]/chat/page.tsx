@@ -33,7 +33,6 @@ export default function UserClassChatPage() {
         const res = await api.get(`/courses/${params.id}`);
         setClassData(res.data);
       } catch (error) {
-        console.error("Failed to load class:", error);
         setClassData(null);
       } finally {
         setLoading(false);
@@ -74,7 +73,7 @@ export default function UserClassChatPage() {
             <p className="text-sm text-slate-500 dark:text-slate-400">
               {classData?.instructor?.name
                 ? `Instruktur: ${classData.instructor.name}`
-                : "Diskusi dengan instruktur dan peserta kelas lainnya"}
+                : "Discussion with instructor and other learners"}
             </p>
           </div>
         </div>

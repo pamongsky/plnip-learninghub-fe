@@ -221,7 +221,7 @@ export default function SuperadminHomePage() {
 
       if (data.partners) setPartners(data.partners);
     } catch (error) {
-      console.error("Failed to fetch CMS data", error);
+      // error handled silently
     }
   };
 

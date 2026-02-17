@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import api from "@/lib/axios";
+import { sanitizeHtml } from "@/lib/utils";
 import { useSearchParams } from "next/navigation";
 import {
   MegaphoneIcon,
@@ -118,9 +119,13 @@ function AnnouncementsContent() {
         setAnnouncements(response.data.data.announcements || []);
         setPagination(response.data.data.pagination || null);
       }
-    } catch (err: any) {
-      console.error("Failed to fetch announcements:", err);
-      setError(err.response?.data?.message || "Gagal memuat pengumuman");
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Object && "response" in err
+          ? (err as { response?: { data?: { message?: string } } }).response
+              ?.data?.message
+          : "Gagal memuat pengumuman";
+      setError(errorMessage || "Gagal memuat pengumuman");
     } finally {
       setLoading(false);
     }
@@ -350,7 +355,7 @@ function AnnouncementsContent() {
                               <div
                                 className="mt-4 text-sm text-slate-600 dark:text-slate-300 leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_h3]:text-lg [&_h3]:font-bold"
                                 dangerouslySetInnerHTML={{
-                                  __html: announcement.content,
+                                  __html: sanitizeHtml(announcement.content),
                                 }}
                               />
                             </motion.div>

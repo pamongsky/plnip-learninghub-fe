@@ -17,140 +17,31 @@ import {
   BuildingOfficeIcon,
   CpuChipIcon,
 } from "@heroicons/react/24/outline";
-import { url } from "inspector";
-
 const outfit = Outfit({ subsets: ["latin"] });
 
-// Hero background images - ganti dengan URL gambar PLN yang sesuai
-const heroImages = [
-  {
-    url: "https://cdn.medcom.id/dynamic/content/2021/02/03/1238953/nTC6iylXh2.jpg?w=1024",
-    title: "Pembangkit Listrik",
-  },
-  {
-    url: "https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?w=1200",
-    title: "Energi Terbarukan",
-  },
-  {
-    url: "https://images.unsplash.com/photo-1509391366360-2e959784a276?w=1200",
-    title: "Solar Panel",
-  },
-  {
-    url: "https://images.unsplash.com/photo-1532601224476-15c79f2f7a51?w=1200",
-    title: "Wind Turbine",
-  },
-  {
-    url: "https://images.unsplash.com/photo-1620714223084-8fcacc6dfd8d?w=1200",
-    title: "Control Room",
-  },
-];
+// Type definitions
+interface HeroImageCMS {
+  image_path: string;
+  title?: string;
+}
 
-// Fallback data untuk Leaders
-const defaultLeaders = [
-  { id: 1, name: "Edi Srimulyanti", title: "Dir. Retail", image_path: null },
-  { id: 2, name: "Adi Lumakso", title: "Dir. Pembangkitan", image_path: null },
-  {
-    id: 3,
-    name: "Darmawan Prasodjo",
-    title: "Direktur Utama",
-    image_path: null,
-  },
-  {
-    id: 4,
-    name: "Yusuf Didi Setiarto",
-    title: "Dir. Legal & HC",
-    image_path: null,
-  },
-  { id: 5, name: "Edi Srimulyanti", title: "Dir. Retail", image_path: null },
-  { id: 6, name: "Adi Lumakso", title: "Dir. Pembangkitan", image_path: null },
-];
+interface Leader {
+  id?: number;
+  name: string;
+  title: string;
+  image_path?: string | null;
+  _dupKey?: string;
+}
 
-// Fallback data untuk Partners
-const defaultPartners = [
-  {
-    id: 1,
-    name: "Kementerian ESDM",
-    logo_path: null,
-    color: "bg-red-600",
-    abbrev: "ESDM",
-  },
-  {
-    id: 2,
-    name: "Kementerian BUMN",
-    logo_path: null,
-    color: "bg-red-700",
-    abbrev: "BUMN",
-  },
-  {
-    id: 3,
-    name: "PLN Indonesia Power",
-    logo_path: null,
-    color: "bg-teal-500",
-    abbrev: "IP",
-  },
-  {
-    id: 4,
-    name: "PLN Nusantara Power",
-    logo_path: null,
-    color: "bg-blue-700",
-    abbrev: "NP",
-  },
-  {
-    id: 5,
-    name: "Institut Teknologi Bandung",
-    logo_path: null,
-    color: "bg-teal-600",
-    abbrev: "ITB",
-  },
-  {
-    id: 6,
-    name: "Universitas Indonesia",
-    logo_path: null,
-    color: "bg-yellow-500",
-    abbrev: "UI",
-  },
-  {
-    id: 7,
-    name: "Oracle",
-    logo_path: null,
-    color: "bg-red-600",
-    abbrev: "Oracle",
-  },
-];
+interface Partner {
+  name: string;
+  logo_path?: string;
+  color?: string;
+  abbrev?: string;
+  _dupKey?: string;
+}
 
-const features = [
-  {
-    title: "Digital Learning",
-    desc: "Ribuan modul teknis dan non-teknis yang bisa diakses kapan saja, di mana saja.",
-    icon: BookOpenIcon,
-    color: "from-blue-500 to-cyan-500",
-  },
-  {
-    title: "Sertifikasi",
-    desc: "Uji kompetensi terstandarisasi untuk jenjang karir yang jelas dan terukur.",
-    icon: AcademicCapIcon,
-    color: "from-emerald-500 to-teal-500",
-  },
-  {
-    title: "AI Mentor",
-    desc: "Pendamping belajar berbasis AI untuk pertanyaan teknis dan rekomendasi karir.",
-    icon: SparklesIcon,
-    color: "from-purple-500 to-pink-500",
-  },
-  {
-    title: "Progress Tracking",
-    desc: "Pantau perkembangan belajar Anda dengan dashboard yang intuitif.",
-    icon: ChartBarIcon,
-    color: "from-amber-500 to-orange-500",
-  },
-];
 
-const stats = [
-  { value: "50K+", label: "Talenta Aktif", icon: UserGroupIcon },
-  { value: "1.2K", label: "Modul Pembelajaran", icon: BookOpenIcon },
-  { value: "240+", label: "Mentor Ahli", icon: AcademicCapIcon },
-  { value: "350+", label: "Sertifikasi", icon: ChartBarIcon },
-];
 
 // Counter animation component
 function AnimatedCounter({ value }: { value: string | number }) {
@@ -196,15 +87,45 @@ const navLinks = [
   { href: "#partners", label: "Partner" },
 ];
 
+interface CMSData {
+  hero_images?: Array<{ image_path: string; title: string }>;
+  leaders?: Array<{ id: number; name: string; title: string; image_path: string | null }>;
+  partners?: Array<{ id: number; name: string; logo_path: string | null; color?: string; abbrev?: string }>;
+  app_logo?: string;
+  app_name?: string;
+  hero_title?: string;
+  hero_description?: string;
+  f1_title?: string;
+  f1_desc?: string;
+  f2_title?: string;
+  f2_desc?: string;
+  f3_title?: string;
+  f3_desc?: string;
+  f4_title?: string;
+  f4_desc?: string;
+  s1_val?: string;
+  s1_label?: string;
+  s2_val?: string;
+  s2_label?: string;
+  s3_val?: string;
+  s3_label?: string;
+  s4_val?: string;
+  s4_label?: string;
+}
+
 export default function LandingPage() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [scrolled, setScrolled] = useState(false);
   const [activeSection, setActiveSection] = useState("");
-  const [cmsData, setCmsData] = useState<any>(null);
+  const [cmsData, setCmsData] = useState<CMSData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
+        setIsLoading(true);
+        setHasError(false);
         const response = await axios.get("/landing-page");
         // Flatten settings into root level for easier access
         const data = response.data;
@@ -215,19 +136,19 @@ export default function LandingPage() {
           partners: data.partners,
         });
       } catch (error) {
-        console.error("Failed to fetch CMS data", error);
+        setHasError(true);
+        // Fallback: Continue with default data (app will still work)
+      } finally {
+        setIsLoading(false);
       }
     };
     fetchData();
   }, []);
 
-  const heroItems =
-    cmsData?.hero_images?.length > 0
-      ? cmsData.hero_images.map((img: any) => ({
-          url: getImageUrl(img.image_path),
-          title: img.title,
-        }))
-      : heroImages;
+  const heroItems = (cmsData?.hero_images ?? []).map((img: HeroImageCMS) => ({
+    url: getImageUrl(img.image_path),
+    title: img.title,
+  }));
 
   const logoUrl = getImageUrl(cmsData?.app_logo) || "/images/pln-logo.png";
   const appName = cmsData?.app_name || "PLN Learning Hub";
@@ -295,26 +216,8 @@ export default function LandingPage() {
     },
   ];
 
-  const rawLeaders =
-    cmsData?.leaders?.length > 0 ? cmsData.leaders : defaultLeaders;
-  const rawPartners =
-    cmsData?.partners?.length > 0 ? cmsData.partners : defaultPartners;
-
-  // Ensure minimum items for smooth marquee animation (at least 6 items)
-  const ensureMinimumItems = (items: any[], minCount: number = 6) => {
-    if (items.length >= minCount) return items;
-    const multiplier = Math.ceil(minCount / items.length);
-    const result = [];
-    for (let i = 0; i < multiplier; i++) {
-      result.push(
-        ...items.map((item, idx) => ({ ...item, _dupKey: `${i}-${idx}` })),
-      );
-    }
-    return result;
-  };
-
-  const leaders = ensureMinimumItems(rawLeaders, 6);
-  const partners = ensureMinimumItems(rawPartners, 6);
+  const leaders = cmsData?.leaders ?? [];
+  const partners = cmsData?.partners ?? [];
 
   // Detect scroll for navbar effect
   useEffect(() => {
@@ -339,14 +242,15 @@ export default function LandingPage() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Auto slide setiap 10 detik - selalu aktif
+  // Auto slide setiap 10 detik
   useEffect(() => {
+    if (heroItems.length === 0) return;
     const interval = setInterval(() => {
-      setCurrentImageIndex((prev) => (prev + 1) % heroImages.length);
-    }, 10000); // 10 detik
+      setCurrentImageIndex((prev) => (prev + 1) % heroItems.length);
+    }, 10000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [heroItems.length]);
 
   const goToSlide = (index: number) => {
     setCurrentImageIndex(index);
@@ -408,6 +312,7 @@ export default function LandingPage() {
               <a
                 key={link.href}
                 href={link.href}
+                {...(link.href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
                 className="group relative px-4 py-2"
               >
                 <span
@@ -511,7 +416,7 @@ export default function LandingPage() {
 
         {/* Carousel Indicators */}
         <div className="absolute bottom-8 left-1/2 z-20 flex -translate-x-1/2 gap-2">
-          {heroImages.map((_, index) => (
+          {heroItems.map((_, index) => (
             <button
               key={index}
               onClick={() => goToSlide(index)}
@@ -740,7 +645,7 @@ export default function LandingPage() {
           }}
         >
           <div className="marquee-track flex gap-6">
-            {leaders.map((leader: any, index: number) => (
+            {leaders.map((leader: Leader, index: number) => (
               <div
                 key={`leader-1-${leader._dupKey || leader.id || index}`}
                 className="flex w-64 flex-shrink-0 flex-col items-center rounded-3xl border border-slate-200 bg-white p-6 text-center shadow-lg shadow-slate-200/50 transition hover:shadow-xl hover:border-pln-light/50"
@@ -769,7 +674,7 @@ export default function LandingPage() {
               </div>
             ))}
             {/* Duplicate set for seamless loop */}
-            {leaders.map((leader: any, index: number) => (
+            {leaders.map((leader: Leader, index: number) => (
               <div
                 key={`leader-2-${leader._dupKey || leader.id || index}`}
                 className="flex w-64 flex-shrink-0 flex-col items-center rounded-3xl border border-slate-200 bg-white p-6 text-center shadow-lg shadow-slate-200/50 transition hover:shadow-xl hover:border-pln-light/50"
@@ -804,94 +709,254 @@ export default function LandingPage() {
       {/* AI Section */}
       <section
         id="ai"
-        className="relative overflow-hidden bg-slate-950 py-24 text-white"
+        className="relative overflow-hidden bg-slate-900 py-24 text-white"
       >
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950" />
-        <div className="absolute -right-32 top-10 h-[400px] w-[400px] rounded-full bg-purple-500/20 blur-[150px]" />
-        <div className="absolute -left-32 bottom-10 h-[300px] w-[300px] rounded-full bg-pln-light/20 blur-[120px]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800" />
 
-        <div className="relative mx-auto flex w-[min(1200px,92%)] flex-col items-center gap-12 lg:flex-row">
+        <div className="relative mx-auto flex w-[min(1200px,92%)] flex-col items-center gap-16 lg:flex-row">
           <motion.div
-            initial={{ opacity: 0, x: -50 }}
-            whileInView={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             className="max-w-xl"
           >
-            <span className="inline-flex items-center gap-2 rounded-full border border-purple-400/30 bg-purple-500/10 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-purple-400">
-              <SparklesIcon className="h-4 w-4" />
-              Powered by AI
+            <span className="inline-flex items-center gap-2 rounded-full bg-pln-primary/15 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-pln-light">
+              <CpuChipIcon className="h-4 w-4" />
+              AI-Powered Learning
             </span>
             <h2 className="mt-6 text-3xl font-bold md:text-4xl">
               Asisten Belajar{" "}
-              <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                Pribadi
+              <span className="text-pln-light">
+                Cerdas
               </span>
             </h2>
-            <p className="mt-4 text-lg text-white/60 leading-relaxed">
+            <p className="mt-4 text-lg text-slate-400 leading-relaxed">
               Tanyakan materi teknis, dapatkan ringkasan modul, dan rekomendasi
               karir secara instan dengan AI mentor yang selalu siap membantu.
             </p>
-            <Link
-              href="/login"
-              className="mt-8 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 px-8 py-4 text-sm font-semibold text-white shadow-xl shadow-purple-500/30 transition hover:shadow-2xl hover:shadow-purple-500/40 hover:-translate-y-1"
+
+            <div className="mt-8 flex flex-col gap-4">
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.2 }}
+                className="flex items-start gap-3"
+              >
+                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-pln-primary/20 mt-0.5">
+                  <BookOpenIcon className="h-4 w-4 text-pln-light" />
+                </div>
+                <div>
+                  <p className="font-medium text-white text-sm">Ringkas Materi Kursus</p>
+                  <p className="text-sm text-slate-400">Ekstrak dan rangkum konten PDF, modul, dan materi dari Moodle LMS</p>
+                </div>
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.3 }}
+                className="flex items-start gap-3"
+              >
+                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-pln-primary/20 mt-0.5">
+                  <SparklesIcon className="h-4 w-4 text-pln-light" />
+                </div>
+                <div>
+                  <p className="font-medium text-white text-sm">Asisten Belajar Interaktif</p>
+                  <p className="text-sm text-slate-400">Tanya jawab seputar materi teknis kelistrikan dan pembangkitan</p>
+                </div>
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.4 }}
+                className="flex items-start gap-3"
+              >
+                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-pln-primary/20 mt-0.5">
+                  <ChartBarIcon className="h-4 w-4 text-pln-light" />
+                </div>
+                <div>
+                  <p className="font-medium text-white text-sm">Panduan Platform</p>
+                  <p className="text-sm text-slate-400">Bantuan navigasi fitur dan penggunaan Learning Hub</p>
+                </div>
+              </motion.div>
+            </div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.5 }}
             >
-              <SparklesIcon className="h-5 w-5" />
-              Coba AI Mentor
-            </Link>
+              <Link
+                href="/login"
+                className="mt-8 inline-flex items-center gap-2 rounded-full bg-pln-primary px-8 py-3.5 text-sm font-semibold text-white transition hover:bg-pln-primary/90 hover:-translate-y-0.5"
+              >
+                <SparklesIcon className="h-5 w-5" />
+                Coba AI Mentor
+              </Link>
+            </motion.div>
           </motion.div>
 
           <motion.div
-            initial={{ opacity: 0, x: 50 }}
-            whileInView={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
+            transition={{ delay: 0.2 }}
             className="w-full max-w-md"
           >
-            <div className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
-              <div className="space-y-4">
+            <motion.div
+              animate={{
+                y: [0, -8, 0],
+                rotate: [0, 0.5, 0, -0.5, 0]
+              }}
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+              className="rounded-2xl border border-slate-700 bg-slate-800 overflow-hidden shadow-2xl shadow-pln-primary/10"
+            >
+              {/* Chat header */}
+              <div className="flex items-center gap-3 border-b border-slate-700 px-5 py-3.5">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-pln-primary">
+                  <SparklesIcon className="h-4 w-4 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-white">AI Mentor PLN</p>
+                  <p className="text-xs text-slate-400">Selalu siap membantu</p>
+                </div>
                 <motion.div
-                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: [1, 0.4, 1] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                  className="ml-auto h-2 w-2 rounded-full bg-emerald-400"
+                />
+              </div>
+
+              {/* Chat messages */}
+              <div className="space-y-4 p-5">
+                {/* AI Message 1 */}
+                <motion.div
+                  initial={{ opacity: 0, x: -15 }}
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true }}
-                  transition={{ delay: 0.3 }}
-                  className="flex gap-3"
+                  transition={{ delay: 0.4 }}
+                  whileHover={{ scale: 1.02 }}
+                  className="flex gap-2.5"
                 >
-                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 to-pink-500">
-                    <SparklesIcon className="h-4 w-4 text-white" />
+                  <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-pln-primary/20">
+                    <SparklesIcon className="h-3.5 w-3.5 text-pln-light" />
                   </div>
-                  <div className="rounded-2xl rounded-tl-none bg-white/10 p-4 text-sm">
+                  <div className="rounded-xl rounded-tl-sm bg-slate-700 px-4 py-3 text-sm text-slate-200">
                     Halo! Saya AI Mentor PLN. Ada yang bisa saya bantu tentang
                     materi pembelajaran hari ini?
                   </div>
                 </motion.div>
+
+                {/* User Message */}
                 <motion.div
-                  initial={{ opacity: 0, x: 20 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: 0.5 }}
-                  className="flex justify-end"
-                >
-                  <div className="rounded-2xl rounded-tr-none bg-gradient-to-r from-pln-primary to-pln-light p-4 text-sm">
-                    Jelaskan fungsi Gardu Induk dalam sistem transmisi.
-                  </div>
-                </motion.div>
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
+                  initial={{ opacity: 0, x: 15 }}
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: 0.7 }}
-                  className="flex gap-3"
+                  whileHover={{ scale: 1.02 }}
+                  className="flex justify-end"
                 >
-                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 to-pink-500">
-                    <SparklesIcon className="h-4 w-4 text-white" />
+                  <div className="rounded-xl rounded-tr-sm bg-pln-primary px-4 py-3 text-sm text-white">
+                    Jelaskan fungsi Gardu Induk dalam sistem transmisi.
                   </div>
-                  <div className="rounded-2xl rounded-tl-none bg-white/10 p-4 text-sm">
-                    Gardu Induk berfungsi sebagai titik transformasi tegangan
-                    dalam sistem transmisi...
-                    <span className="inline-block h-4 w-1 animate-pulse bg-purple-400 ml-1" />
+                </motion.div>
+
+                {/* Typing Indicator */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  whileInView={{ opacity: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: 0.9, duration: 0.3 }}
+                  className="flex gap-2.5"
+                >
+                  <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-pln-primary/20">
+                    <SparklesIcon className="h-3.5 w-3.5 text-pln-light" />
+                  </div>
+                  <motion.div
+                    initial={{ opacity: 1 }}
+                    animate={{ opacity: 0 }}
+                    transition={{ delay: 1.8, duration: 0.3 }}
+                    className="rounded-xl rounded-tl-sm bg-slate-700 px-4 py-3 flex gap-1"
+                  >
+                    {[0, 1, 2].map((i) => (
+                      <motion.div
+                        key={i}
+                        animate={{ y: [0, -4, 0] }}
+                        transition={{
+                          duration: 0.6,
+                          repeat: Infinity,
+                          delay: i * 0.15,
+                        }}
+                        className="w-1.5 h-1.5 rounded-full bg-slate-400"
+                      />
+                    ))}
+                  </motion.div>
+                </motion.div>
+
+                {/* AI Message 2 with list */}
+                <motion.div
+                  initial={{ opacity: 0, x: -15 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: 2.1 }}
+                  whileHover={{ scale: 1.02 }}
+                  className="flex gap-2.5"
+                >
+                  <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-pln-primary/20">
+                    <SparklesIcon className="h-3.5 w-3.5 text-pln-light" />
+                  </div>
+                  <div className="rounded-xl rounded-tl-sm bg-slate-700 px-4 py-3 text-sm text-slate-200">
+                    <motion.p
+                      initial={{ opacity: 0 }}
+                      whileInView={{ opacity: 1 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: 2.2 }}
+                    >
+                      Gardu Induk (GI) berfungsi sebagai titik transformasi tegangan dalam sistem transmisi tenaga listrik. Fungsi utamanya:
+                    </motion.p>
+                    <ol className="mt-2 ml-4 space-y-0.5 list-decimal text-slate-300">
+                      <motion.li
+                        initial={{ opacity: 0, x: -10 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: 2.4 }}
+                      >
+                        Menaikkan/menurunkan tegangan listrik
+                      </motion.li>
+                      <motion.li
+                        initial={{ opacity: 0, x: -10 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: 2.6 }}
+                      >
+                        Mengatur distribusi daya ke jaringan
+                      </motion.li>
+                    </ol>
                   </div>
                 </motion.div>
               </div>
-            </div>
+
+              {/* Chat input */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 2.8 }}
+                className="border-t border-slate-700 px-5 py-3"
+              >
+                <div className="flex items-center gap-2 rounded-lg bg-slate-700/50 px-4 py-2.5">
+                  <span className="text-sm text-slate-500">Tanyakan sesuatu...</span>
+                  <div className="ml-auto flex h-7 w-7 items-center justify-center rounded-lg bg-pln-primary">
+                    <svg className="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+                    </svg>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
           </motion.div>
         </div>
       </section>
@@ -935,7 +1000,7 @@ export default function LandingPage() {
             }}
           >
             <div className="marquee-track-slow flex gap-8 py-4">
-              {partners.map((partner: any, index: number) => (
+              {partners.map((partner: Partner, index: number) => (
                 <div
                   key={`p1-${partner._dupKey || index}`}
                   className="flex flex-col min-w-[180px] items-center justify-center p-4 bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 border border-slate-100"
@@ -960,7 +1025,7 @@ export default function LandingPage() {
                   </p>
                 </div>
               ))}
-              {partners.map((partner: any, index: number) => (
+              {partners.map((partner: Partner, index: number) => (
                 <div
                   key={`p2-${partner._dupKey || index}`}
                   className="flex flex-col min-w-[180px] items-center justify-center p-4 bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 border border-slate-100"
@@ -1034,102 +1099,34 @@ export default function LandingPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-pln-primary via-pln-dark to-slate-900 py-32">
-        {/* Animated Background Elements */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(255,255,255,0.08),transparent_50%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,rgba(14,165,233,0.15),transparent_50%)]" />
-
-        {/* Floating Particles */}
-        <div className="absolute inset-0 opacity-30">
-          {[...Array(6)].map((_, i) => (
-            <motion.div
-              key={i}
-              className="absolute h-2 w-2 rounded-full bg-white"
-              style={{
-                left: `${15 + i * 15}%`,
-                top: `${20 + (i % 3) * 20}%`,
-              }}
-              animate={{
-                y: [0, -30, 0],
-                opacity: [0.3, 0.8, 0.3],
-              }}
-              transition={{
-                duration: 3 + i * 0.5,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-            />
-          ))}
-        </div>
-
+      <section className="relative overflow-hidden bg-gradient-to-b from-pln-primary to-pln-dark py-28">
         <div className="relative mx-auto w-[min(900px,92%)] text-center">
           <motion.div
-            initial={{ opacity: 0, y: 40 }}
+            initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            {/* Badge */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.2 }}
-              className="mb-6 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm border border-white/20"
-            >
-              <SparklesIcon className="h-4 w-4" />
-              Platform Pembelajaran Terdepan
-            </motion.div>
-
-            {/* Heading */}
-            <motion.h2
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.3 }}
-              className="text-4xl font-bold text-white md:text-5xl lg:text-6xl leading-tight"
-            >
+            <h2 className="text-3xl font-bold text-white md:text-5xl lg:text-6xl leading-tight">
               Siap Memulai Perjalanan
               <br />
-              <span className="bg-gradient-to-r from-cyan-300 to-blue-300 bg-clip-text text-transparent">
+              <span className="text-pln-100">
                 Belajar Anda?
               </span>
-            </motion.h2>
+            </h2>
 
-            {/* Description */}
-            <motion.p
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.4 }}
-              className="mx-auto mt-6 max-w-2xl text-lg text-white/80 leading-relaxed"
-            >
+            <p className="mx-auto mt-6 max-w-2xl text-lg text-white/75 leading-relaxed">
               Bergabunglah dengan ribuan talenta PLN yang telah mengembangkan
               kompetensi mereka melalui platform pembelajaran terintegrasi kami.
-            </motion.p>
+            </p>
 
-            {/* CTA Buttons */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.5 }}
-              className="mt-12 flex flex-wrap justify-center gap-4"
-            >
+            <div className="mt-10 flex flex-wrap justify-center gap-4">
               <Link
                 href="/login"
-                className="group relative inline-flex items-center gap-2 rounded-full bg-white px-8 py-4 text-base font-semibold text-pln-primary shadow-2xl transition-all hover:shadow-[0_0_40px_rgba(255,255,255,0.3)] hover:-translate-y-1 hover:scale-105"
+                className="inline-flex items-center gap-2 rounded-full bg-white px-8 py-4 text-base font-semibold text-pln-primary transition-all hover:bg-white/90 hover:-translate-y-0.5"
               >
-                <AcademicCapIcon className="h-5 w-5 transition-transform group-hover:rotate-12" />
+                <AcademicCapIcon className="h-5 w-5" />
                 Mulai Sekarang
-                <motion.span
-                  className="absolute -right-1 -top-1 flex h-3 w-3"
-                  animate={{ scale: [1, 1.2, 1] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                >
-                  <span className="absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75 animate-ping"></span>
-                  <span className="relative inline-flex h-3 w-3 rounded-full bg-cyan-500"></span>
-                </motion.span>
               </Link>
 
               <button
@@ -1139,43 +1136,29 @@ export default function LandingPage() {
                     block: "start",
                   });
                 }}
-                className="group inline-flex items-center gap-2 rounded-full border-2 border-white/30 bg-white/5 px-8 py-4 text-base font-semibold text-white backdrop-blur-sm transition-all hover:bg-white/15 hover:border-white/50 hover:-translate-y-1"
+                className="inline-flex items-center gap-2 rounded-full border border-white/30 px-8 py-4 text-base font-semibold text-white transition-all hover:bg-white/10 hover:border-white/50 hover:-translate-y-0.5"
               >
-                <BookOpenIcon className="h-5 w-5 transition-transform group-hover:scale-110" />
+                <BookOpenIcon className="h-5 w-5" />
                 Pelajari Fitur
               </button>
-            </motion.div>
+            </div>
 
-            {/* Stats Preview */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.6 }}
-              className="mt-16 flex flex-wrap justify-center gap-8 text-white/60 text-sm"
-            >
-              <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-green-400 animate-pulse"></div>
-                <span>
-                  {cmsData?.s1_val || "50K+"}+{" "}
-                  {cmsData?.s1_label || "Talenta Aktif"}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-cyan-400 animate-pulse"></div>
-                <span>
-                  {cmsData?.s2_val || "1K"}+{" "}
-                  {cmsData?.s2_label || "Modul Pembelajaran"}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-blue-400 animate-pulse"></div>
-                <span>
-                  {cmsData?.s3_val || "240+"}+{" "}
-                  {cmsData?.s3_label || "Mentor Ahli"}
-                </span>
-              </div>
-            </motion.div>
+            <div className="mt-12 flex flex-wrap justify-center gap-8 text-white/60 text-sm">
+              <span>
+                {cmsData?.s1_val || "50K+"}{" "}
+                {cmsData?.s1_label || "Talenta Aktif"}
+              </span>
+              <span className="text-white/30">|</span>
+              <span>
+                {cmsData?.s2_val || "1K+"}{" "}
+                {cmsData?.s2_label || "Modul Pembelajaran"}
+              </span>
+              <span className="text-white/30">|</span>
+              <span>
+                {cmsData?.s3_val || "240+"}{" "}
+                {cmsData?.s3_label || "Mentor Ahli"}
+              </span>
+            </div>
           </motion.div>
         </div>
       </section>
@@ -1276,6 +1259,8 @@ export default function LandingPage() {
                 <li>
                   <a
                     href="https://www.plnindonesiapower.co.id/"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="transition hover:text-pln-light hover:translate-x-1 inline-block"
                   >
                     Company Profile

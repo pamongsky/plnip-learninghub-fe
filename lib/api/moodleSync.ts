@@ -35,6 +35,14 @@ export interface SyncResult {
   duration_seconds: number;
 }
 
+export interface CategorySyncResult {
+  synced: number;
+  created: number;
+  updated: number;
+  skipped: number;
+  errors: number;
+}
+
 export interface FullSyncResult {
   started_at: string;
   completed_at: string;
@@ -42,7 +50,7 @@ export interface FullSyncResult {
   users: SyncResult;
   courses: SyncResult;
   enrollments: SyncResult;
-  categories: any;
+  categories: CategorySyncResult;
   logs: Array<{
     timestamp: string;
     level: string;
@@ -121,7 +129,7 @@ export const syncEnrollments = async (): Promise<{
  */
 export const syncCategories = async (): Promise<{
   message: string;
-  results: any;
+  results: CategorySyncResult;
 }> => {
   const response = await api.post("/moodle/sync/categories");
   return response.data;

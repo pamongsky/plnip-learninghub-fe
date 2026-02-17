@@ -131,12 +131,11 @@ export default function InstructorDashboardPage() {
     fetchQuestionStats();
 
     // Set up real-time listener for question stats
-    const echo = (window as any).Echo;
+    const echo = (window as unknown as { Echo?: { channel: (name: string) => { listen: (event: string, callback: (data: unknown) => void) => void } } }).Echo;
     if (echo) {
       echo
         .channel("instructor-dashboard")
-        .listen(".question.answered", (data: any) => {
-          console.log("✅ Question answered event received:", data);
+        .listen(".question.answered", (data: unknown) => {
           // Decrement unanswered count
           setQuestionStats((prev) => Math.max(0, prev - 1));
         });
@@ -155,7 +154,6 @@ export default function InstructorDashboardPage() {
       const res = await api.get("/dashboard/instructor");
       setDashboardData(res.data.data);
     } catch (error) {
-      console.error("Failed to fetch instructor dashboard data:", error);
       setDashboardData({
         stats: {
           active_classes: 0,
@@ -176,7 +174,7 @@ export default function InstructorDashboardPage() {
       const res = await api.get("/instructor/question-stats");
       setQuestionStats(res.data.data?.unanswered || 0);
     } catch (error) {
-      console.error("Failed to fetch question stats:", error);
+      // error handled silently
     }
   };
 
@@ -187,7 +185,7 @@ export default function InstructorDashboardPage() {
         window.open(response.data.login_url, "_blank");
       }
     } catch (error) {
-      console.error("Failed to access Moodle:", error);
+      // error handled silently
     }
   };
 
@@ -201,7 +199,7 @@ export default function InstructorDashboardPage() {
       textColor: "text-pln-primary dark:text-pln-light",
     },
     {
-      label: "Total Peserta",
+      label: "Total Learners",
       value: dashboardData?.stats?.total_participants || 0,
       icon: UserGroupIcon,
       gradient: "from-blue-500 to-blue-600",
@@ -253,7 +251,7 @@ export default function InstructorDashboardPage() {
               {displayName}
             </h1>
             <p className="text-white/70 text-sm mb-4">
-              Kelola kelas dan pantau perkembangan peserta Anda dengan mudah
+              Manage classes and monitor learner progress with ease
             </p>
           </div>
 
@@ -398,7 +396,7 @@ export default function InstructorDashboardPage() {
                         <div className="flex items-center gap-4 mt-1 text-xs text-slate-500 dark:text-slate-400">
                           <span className="flex items-center gap-1">
                             <UserGroupIcon className="w-3.5 h-3.5" />
-                            {cls.participants} peserta
+                            {cls.participants} learners
                           </span>
                           <span className="flex items-center gap-1">
                             <ClockIcon className="w-3.5 h-3.5" />
@@ -521,7 +519,7 @@ export default function InstructorDashboardPage() {
                 />
               </div>
               <p className="text-xs text-white/50 mt-3">
-                Tingkat kehadiran peserta di semua kelas Anda
+                Learner attendance rate in all your classes
               </p>
             </div>
           </motion.div>
@@ -541,7 +539,7 @@ export default function InstructorDashboardPage() {
                 </h4>
                 <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
                   Gunakan fitur kuis di Moodle untuk meningkatkan interaksi dan
-                  engagement peserta dalam kelas Anda.
+                  learner engagement in your classes.
                 </p>
               </div>
             </div>

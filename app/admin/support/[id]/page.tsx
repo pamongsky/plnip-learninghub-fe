@@ -76,18 +76,17 @@ const priorityConfig: Record<
   },
 };
 
-const statusConfig: Record<
-  string,
-  {
-    label: string;
-    color: string;
-    bgColor: string;
-    borderColor: string;
-    textColor: string;
-    icon: any;
-    message: string;
-  }
-> = {
+interface StatusConfigAdmin {
+  label: string;
+  color: string;
+  bgColor: string;
+  borderColor: string;
+  textColor: string;
+  icon: React.ComponentType<{ className?: string }>;
+  message: string;
+}
+
+const statusConfig: Record<string, StatusConfigAdmin> = {
   open: {
     label: "Menunggu",
     color: "text-blue-700",
@@ -169,7 +168,7 @@ export default function AdminSupportDetailPage() {
       const result = await escalationApi.checkEscalationStatus(ticketId);
       setIsAlreadyEscalated(result.exists);
     } catch (err) {
-      console.error("Error checking escalation status:", err);
+      // error handled silently
     }
   };
 
@@ -186,9 +185,10 @@ export default function AdminSupportDetailPage() {
       setEscalationReason("");
       setIsAlreadyEscalated(true);
       await loadTicket();
-    } catch (err: any) {
-      console.error("Error escalating ticket:", err);
-      setError(err.response?.data?.message || "Gagal eskalasi tiket");
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Gagal eskalasi tiket";
+      const apiMessage = err && typeof err === 'object' && 'response' in err ? (err as any).response?.data?.message : undefined;
+      setError(apiMessage || errorMessage);
     } finally {
       setIsEscalating(false);
     }
@@ -196,12 +196,9 @@ export default function AdminSupportDetailPage() {
 
   // Real-time: Listen for new replies
   const handleNewReply = useCallback(
-    (data: any) => {
-      console.log("handleNewReply called with data:", data);
-
+    (data: SupportReply) => {
       // Skip if this is our own reply (already added via optimistic update)
       if (user && data.user_id === user.id) {
-        console.log("Skipping own reply from broadcast:", data.id);
         return;
       }
 
@@ -213,23 +210,20 @@ export default function AdminSupportDetailPage() {
         is_admin_reply: data.is_admin_reply,
         created_at: data.created_at,
         user: data.user,
-        attachments: data.attachments || [],
+        attachments: data.attachments || null,
       };
 
       setTicket((prev) => {
         if (!prev) {
-          console.log("No previous ticket state");
           return prev;
         }
 
         // Avoid duplicates - check by ID
         const exists = prev.replies.some((r) => r.id === newReply.id);
         if (exists) {
-          console.log("Reply already exists, skipping:", newReply.id);
           return prev;
         }
 
-        console.log("Adding new reply from broadcast:", newReply.id);
         return {
           ...prev,
           replies: [...prev.replies, newReply],
@@ -240,19 +234,16 @@ export default function AdminSupportDetailPage() {
   );
 
   // Real-time: Handle status updates from broadcasting
-  const handleStatusUpdate = useCallback((data: any) => {
-    console.log("handleStatusUpdate called:", data);
-
+  const handleStatusUpdate = useCallback((data: Partial<SupportTicket>) => {
     setTicket((prev) => {
       if (!prev) return prev;
 
-      console.log("Updating ticket status to:", data.status);
       return {
         ...prev,
-        status: data.status,
+        status: data.status || prev.status,
         resolved_at: data.resolved_at || prev.resolved_at,
         assigned_to: data.assigned_to || prev.assigned_to,
-        updated_at: data.updated_at,
+        updated_at: data.updated_at || prev.updated_at,
       };
     });
   }, []);
@@ -266,9 +257,10 @@ export default function AdminSupportDetailPage() {
     try {
       const data = await supportApi.getTicket(ticketId);
       setTicket(data as TicketWithReplies);
-    } catch (err: any) {
-      console.error("Error loading ticket:", err);
-      setError(err.response?.data?.message || "Gagal memuat tiket");
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Gagal memuat tiket";
+      const apiMessage = err && typeof err === 'object' && 'response' in err ? (err as any).response?.data?.message : undefined;
+      setError(apiMessage || errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -340,8 +332,7 @@ export default function AdminSupportDetailPage() {
   const renderAttachments = (urls: string[] | null | undefined) => {
     if (!urls || urls.length === 0) return null;
 
-    const baseURL =
-      process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+    const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "";
 
     return (
       <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -419,9 +410,10 @@ export default function AdminSupportDetailPage() {
       setReplyMessage("");
       setAttachments([]);
       setPreviewUrls([]);
-    } catch (err: any) {
-      console.error("Error sending reply:", err);
-      setError(err.response?.data?.message || "Gagal mengirim balasan");
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Gagal mengirim balasan";
+      const apiMessage = err && typeof err === 'object' && 'response' in err ? (err as any).response?.data?.message : undefined;
+      setError(apiMessage || errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -457,9 +449,10 @@ export default function AdminSupportDetailPage() {
       }
 
       // No need to reload - broadcasting will update for other users
-    } catch (err: any) {
-      console.error("Error updating status:", err);
-      setError(err.response?.data?.message || "Gagal mengubah status");
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Gagal mengubah status";
+      const apiMessage = err && typeof err === 'object' && 'response' in err ? (err as any).response?.data?.message : undefined;
+      setError(apiMessage || errorMessage);
     } finally {
       setIsChangingStatus(false);
     }

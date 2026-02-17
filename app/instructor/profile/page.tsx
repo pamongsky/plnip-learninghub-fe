@@ -15,18 +15,13 @@ import {
   CameraIcon,
   ShieldCheckIcon,
   KeyIcon,
-  BellIcon,
-  GlobeAltIcon,
   CheckCircleIcon,
-  XMarkIcon,
 } from "@heroicons/react/24/outline";
 
 export default function InstructorProfilePage() {
   const { user, setUser } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [activeTab, setActiveTab] = useState<
-    "profile" | "security" | "preferences"
-  >("profile");
+  const [activeTab, setActiveTab] = useState<"profile" | "security">("profile");
   const [isEditing, setIsEditing] = useState(false);
   const [phone, setPhone] = useState("");
   const [saving, setSaving] = useState(false);
@@ -39,7 +34,6 @@ export default function InstructorProfilePage() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordLoading, setPasswordLoading] = useState(false);
-  const [deviceLabel, setDeviceLabel] = useState("Perangkat ini");
   const [fullName, setFullName] = useState("");
 
   const profileData = {
@@ -61,23 +55,12 @@ export default function InstructorProfilePage() {
   const tabs = [
     { id: "profile", label: "Profil", icon: UserCircleIcon },
     { id: "security", label: "Keamanan", icon: ShieldCheckIcon },
-    { id: "preferences", label: "Preferensi", icon: BellIcon },
   ];
 
   useEffect(() => {
     setPhone(user?.phone || "");
     setFullName(user?.name || "");
   }, [user?.phone, user?.name]);
-
-  useEffect(() => {
-    if (typeof navigator !== "undefined") {
-      const ua = navigator.userAgent;
-      if (/windows/i.test(ua)) setDeviceLabel("Chrome di Windows");
-      else if (/mac/i.test(ua)) setDeviceLabel("Safari di macOS");
-      else if (/android/i.test(ua)) setDeviceLabel("Android Device");
-      else if (/iphone|ipad/i.test(ua)) setDeviceLabel("iOS Device");
-    }
-  }, []);
 
   const handleSaveProfile = async () => {
     if (!user) return;
@@ -88,10 +71,7 @@ export default function InstructorProfilePage() {
     try {
       const response = await api.put("/profile", {
         name: fullName,
-        email: user.email,
         phone,
-        department: user.department,
-        position: user.position,
       });
 
       if (response.data?.data?.user) {
@@ -101,11 +81,14 @@ export default function InstructorProfilePage() {
       setIsEditing(false);
       setStatusType("success");
       setStatusMessage("Profil berhasil diperbarui.");
-    } catch (error: any) {
+    } catch (err: unknown) {
       setStatusType("error");
-      setStatusMessage(
-        error.response?.data?.message || "Gagal memperbarui profil.",
-      );
+      let errorMessage = "Gagal memperbarui profil.";
+      if (err instanceof Error) {
+        const error = err as any;
+        errorMessage = error.response?.data?.message || "Gagal memperbarui profil.";
+      }
+      setStatusMessage(errorMessage);
     } finally {
       setSaving(false);
     }
@@ -136,11 +119,14 @@ export default function InstructorProfilePage() {
 
       setStatusType("success");
       setStatusMessage("Foto profil berhasil diperbarui.");
-    } catch (error: any) {
+    } catch (err: unknown) {
       setStatusType("error");
-      setStatusMessage(
-        error.response?.data?.message || "Gagal mengunggah foto profil.",
-      );
+      let errorMessage = "Gagal mengunggah foto profil.";
+      if (err instanceof Error) {
+        const error = err as any;
+        errorMessage = error.response?.data?.message || "Gagal mengunggah foto profil.";
+      }
+      setStatusMessage(errorMessage);
     } finally {
       setAvatarUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -151,6 +137,43 @@ export default function InstructorProfilePage() {
     setPasswordLoading(true);
     setStatusMessage(null);
     setStatusType(null);
+
+    if (newPassword.length < 8) {
+      setStatusType("error");
+      setStatusMessage("Password minimal 8 karakter.");
+      setPasswordLoading(false);
+      return;
+    }
+    if (!/[a-z]/.test(newPassword)) {
+      setStatusType("error");
+      setStatusMessage("Password harus mengandung huruf kecil.");
+      setPasswordLoading(false);
+      return;
+    }
+    if (!/[A-Z]/.test(newPassword)) {
+      setStatusType("error");
+      setStatusMessage("Password harus mengandung huruf besar.");
+      setPasswordLoading(false);
+      return;
+    }
+    if (!/[0-9]/.test(newPassword)) {
+      setStatusType("error");
+      setStatusMessage("Password harus mengandung angka.");
+      setPasswordLoading(false);
+      return;
+    }
+    if (!/[@$!%*#?&]/.test(newPassword)) {
+      setStatusType("error");
+      setStatusMessage("Password harus mengandung karakter spesial (@$!%*#?&).");
+      setPasswordLoading(false);
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setStatusType("error");
+      setStatusMessage("Konfirmasi password tidak cocok.");
+      setPasswordLoading(false);
+      return;
+    }
 
     try {
       await api.put("/profile/password", {
@@ -164,11 +187,14 @@ export default function InstructorProfilePage() {
       setConfirmPassword("");
       setStatusType("success");
       setStatusMessage("Password berhasil diubah.");
-    } catch (error: any) {
+    } catch (err: unknown) {
       setStatusType("error");
-      setStatusMessage(
-        error.response?.data?.message || "Gagal mengubah password.",
-      );
+      let errorMessage = "Gagal mengubah password.";
+      if (err instanceof Error) {
+        const error = err as any;
+        errorMessage = error.response?.data?.message || "Gagal mengubah password.";
+      }
+      setStatusMessage(errorMessage);
     } finally {
       setPasswordLoading(false);
     }
@@ -188,40 +214,6 @@ export default function InstructorProfilePage() {
           Kelola informasi profil dan pengaturan akun instruktur
         </p>
       </motion.div>
-
-      {/* Status Message - Above Tabs */}
-      {statusMessage && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          className={`flex items-center gap-3 p-4 rounded-lg ${
-            statusType === "success"
-              ? "bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20"
-              : "bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20"
-          }`}
-        >
-          <CheckCircleIcon
-            className={`w-5 h-5 flex-shrink-0 ${
-              statusType === "success"
-                ? "text-emerald-600 dark:text-emerald-400"
-                : "text-red-600 dark:text-red-400"
-            }`}
-          />
-          <p
-            className={`text-sm font-medium ${
-              statusType === "success"
-                ? "text-emerald-700 dark:text-emerald-400"
-                : "text-red-700 dark:text-red-400"
-            }`}
-          >
-            {statusMessage}
-          </p>
-          <button onClick={() => setStatusMessage(null)} className="ml-auto">
-            <XMarkIcon className="w-4 h-4" />
-          </button>
-        </motion.div>
-      )}
 
       {/* Profile Card */}
       <motion.div
@@ -348,6 +340,17 @@ export default function InstructorProfilePage() {
 
         {/* Tab Content */}
         <div className="p-6">
+          {statusMessage && (
+            <div
+              className={`mb-6 rounded-lg border px-4 py-3 text-sm ${
+                statusType === "success"
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400"
+                  : "border-red-200 bg-red-50 text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400"
+              }`}
+            >
+              {statusMessage}
+            </div>
+          )}
           {activeTab === "profile" && (
             <motion.div
               initial={{ opacity: 0, x: -20 }}
@@ -384,13 +387,11 @@ export default function InstructorProfilePage() {
                   </label>
                   <input
                     type="email"
-                    defaultValue={profileData.email}
+                    value={profileData.email}
                     disabled
-                    className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-white focus:ring-2 focus:ring-pln-primary/20 focus:border-pln-primary disabled:bg-slate-50 dark:disabled:bg-slate-700/50 disabled:text-slate-500 dark:disabled:text-slate-400 transition-all"
+                    className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400"
                   />
-                  <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">
-                    Email dikunci oleh sistem
-                  </p>
+                  <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">Dari sistem ERP</p>
                 </motion.div>
                 <motion.div
                   whileHover={{ y: -2 }}
@@ -419,13 +420,11 @@ export default function InstructorProfilePage() {
                   </label>
                   <input
                     type="text"
-                    defaultValue={profileData.unit}
+                    value={profileData.unit}
                     disabled
-                    className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-white focus:ring-2 focus:ring-pln-primary/20 focus:border-pln-primary disabled:bg-slate-50 dark:disabled:bg-slate-700/50 disabled:text-slate-500 dark:disabled:text-slate-400 transition-all"
+                    className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400"
                   />
-                  <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">
-                    Unit kerja berasal dari database
-                  </p>
+                  <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">Dari sistem ERP</p>
                 </motion.div>
                 <motion.div
                   whileHover={{ y: -2 }}
@@ -437,13 +436,11 @@ export default function InstructorProfilePage() {
                   </label>
                   <input
                     type="text"
-                    defaultValue={profileData.position}
+                    value={profileData.position}
                     disabled
-                    className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-white focus:ring-2 focus:ring-pln-primary/20 focus:border-pln-primary disabled:bg-slate-50 dark:disabled:bg-slate-700/50 disabled:text-slate-500 dark:disabled:text-slate-400 transition-all"
+                    className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400"
                   />
-                  <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">
-                    Posisi berasal dari database
-                  </p>
+                  <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">Dari sistem ERP</p>
                 </motion.div>
                 <motion.div
                   whileHover={{ y: -2 }}
@@ -455,7 +452,7 @@ export default function InstructorProfilePage() {
                   </label>
                   <input
                     type="text"
-                    defaultValue={profileData.joinDate}
+                    value={profileData.joinDate}
                     disabled
                     className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400"
                   />
@@ -469,125 +466,56 @@ export default function InstructorProfilePage() {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ type: "spring", stiffness: 200 }}
-              className="space-y-6"
-            >
-              {/* Change Password */}
-              <div className="space-y-4">
-                <h4 className="font-medium text-sm text-slate-800 dark:text-white">
-                  Ubah Password
-                </h4>
-                <motion.div whileHover={{ y: -2 }}>
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">
-                    Password Saat Ini
-                  </label>
-                  <input
-                    type="password"
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-white focus:ring-2 focus:ring-pln-primary/20 focus:border-pln-primary"
-                  />
-                </motion.div>
-                <motion.div whileHover={{ y: -2 }}>
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">
-                    Password Baru
-                  </label>
-                  <input
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-white focus:ring-2 focus:ring-pln-primary/20 focus:border-pln-primary"
-                  />
-                </motion.div>
-                <motion.div whileHover={{ y: -2 }}>
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">
-                    Konfirmasi Password Baru
-                  </label>
-                  <input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-white focus:ring-2 focus:ring-pln-primary/20 focus:border-pln-primary"
-                  />
-                </motion.div>
-                <motion.button
-                  onClick={handleChangePassword}
-                  disabled={
-                    passwordLoading ||
-                    !currentPassword ||
-                    !newPassword ||
-                    !confirmPassword
-                  }
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="px-4 py-2 bg-pln-primary text-white text-xs font-medium rounded-lg hover:bg-pln-dark transition-all disabled:opacity-50"
-                >
-                  <KeyIcon className="w-4 h-4 inline mr-2" />
-                  {passwordLoading ? "Memproses..." : "Ubah Password"}
-                </motion.button>
-              </div>
-
-              {/* Active Sessions */}
-              <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-700">
-                <h4 className="font-medium text-sm text-slate-800 dark:text-white mb-4">
-                  Sesi Aktif
-                </h4>
-                <motion.div
-                  whileHover={{ scale: 1.01 }}
-                  className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-600"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-white dark:bg-slate-600 rounded-lg flex items-center justify-center shadow-sm">
-                        <UserCircleIcon className="w-5 h-5 text-slate-600 dark:text-slate-300" />
-                      </div>
-                      <div>
-                        <h4 className="font-medium text-sm text-slate-800 dark:text-white">
-                          {deviceLabel}
-                        </h4>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                          Sesi saat ini
-                        </p>
-                      </div>
-                    </div>
-                    <span className="px-2 py-0.5 text-[10px] font-medium bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 rounded-full">
-                      Aktif
-                    </span>
-                  </div>
-                </motion.div>
-              </div>
-            </motion.div>
-          )}
-
-          {activeTab === "preferences" && (
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ type: "spring", stiffness: 200 }}
               className="space-y-4"
             >
-              {/* Language */}
               <motion.div
                 whileHover={{ scale: 1.01 }}
                 className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-600"
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-white dark:bg-slate-600 rounded-lg flex items-center justify-center shadow-sm">
-                      <GlobeAltIcon className="w-5 h-5 text-slate-600 dark:text-slate-300" />
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-sm text-slate-800 dark:text-white">
-                        Bahasa
-                      </h4>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        Pilih bahasa aplikasi
-                      </p>
-                    </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white dark:bg-slate-600 rounded-lg flex items-center justify-center shadow-sm">
+                    <KeyIcon className="w-5 h-5 text-slate-600 dark:text-slate-300" />
                   </div>
-                  <select className="px-3 py-1.5 text-xs border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-600 text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-pln-primary/20 focus:border-pln-primary">
-                    <option value="id">Bahasa Indonesia</option>
-                    <option value="en">English</option>
-                  </select>
+                  <div>
+                    <h4 className="font-medium text-sm text-slate-800 dark:text-white">
+                      Password
+                    </h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Min 8 karakter: huruf besar, kecil, angka, & simbol
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                  <input
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder="Password saat ini"
+                    className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-white focus:ring-2 focus:ring-pln-primary/20 focus:border-pln-primary"
+                  />
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Password baru"
+                    className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-white focus:ring-2 focus:ring-pln-primary/20 focus:border-pln-primary"
+                  />
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Konfirmasi password"
+                    className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-white focus:ring-2 focus:ring-pln-primary/20 focus:border-pln-primary"
+                  />
+                </div>
+                <div className="mt-3 flex justify-end">
+                  <button
+                    onClick={handleChangePassword}
+                    disabled={passwordLoading}
+                    className="px-4 py-2 text-xs font-medium text-white bg-pln-primary rounded-lg hover:bg-pln-dark transition-all disabled:opacity-70"
+                  >
+                    {passwordLoading ? "Menyimpan..." : "Ubah Password"}
+                  </button>
                 </div>
               </motion.div>
             </motion.div>

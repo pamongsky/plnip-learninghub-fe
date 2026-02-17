@@ -74,8 +74,27 @@ export default function InstructorClassDetailPage() {
   const [participantsData, setParticipantsData] = useState<Participant[]>([]);
 
   // Progress tracking state
+  interface ProgressData {
+    progress: number;
+    completed_activities: number;
+    total_with_completion: number;
+    progress_mode: "grades" | "completion";
+    course_grade: number | null;
+    last_access: string | null;
+    total_activities: number;
+    activities: Array<{
+      type: string;
+      name: string;
+      completion_status: number;
+      grade: number | null;
+      grade_raw: number | null;
+      grade_max: number | null;
+      has_completion: boolean;
+    }>;
+  }
+
   const [progressTarget, setProgressTarget] = useState<Participant | null>(null);
-  const [progressData, setProgressData] = useState<any>(null);
+  const [progressData, setProgressData] = useState<ProgressData | null>(null);
   const [progressLoading, setProgressLoading] = useState(false);
 
   useEffect(() => {
@@ -85,10 +104,8 @@ export default function InstructorClassDetailPage() {
   const fetchClassDetails = async () => {
     try {
       setLoading(true);
-      console.log(`Fetching class details for ID: ${params.id}`);
 
       const res = await api.get(`/courses/${params.id}`);
-      console.log("Class details response:", res.data);
 
       const course = res.data;
 
@@ -122,9 +139,15 @@ export default function InstructorClassDetailPage() {
 
       // Map participants from enrollments
       if (course.enrollments && course.enrollments.length > 0) {
-        const mappedParticipants: Participant[] = course.enrollments
-          .filter((enrollment: any) => enrollment.user) // Skip enrollments without user
-          .map((enrollment: any) => ({
+        interface EnrollmentData {
+          user: { id: number; name: string; email: string; department?: string };
+          last_activity_at: string | null;
+          progress: number;
+          status: string;
+        }
+        const mappedParticipants: Participant[] = (course.enrollments as EnrollmentData[])
+          .filter((enrollment) => enrollment.user) // Skip enrollments without user
+          .map((enrollment) => ({
             id: enrollment.user.id,
             name: enrollment.user.name,
             email: enrollment.user.email,
@@ -135,10 +158,8 @@ export default function InstructorClassDetailPage() {
           }));
         setParticipantsData(mappedParticipants);
       }
-    } catch (error: any) {
-      console.error("Failed to fetch class details:", error);
-      console.error("Error response:", error.response?.data);
-      console.error("Error status:", error.response?.status);
+    } catch (err: unknown) {
+      // error handled silently
 
       // If 404, course doesn't exist
       // If 401, user not authenticated
@@ -169,10 +190,15 @@ export default function InstructorClassDetailPage() {
     setProgressData(null);
     setProgressLoading(true);
     try {
-      const data = await coursesApi.getUserProgress(classData.id, participant.id);
+      const data = await coursesApi.getUserProgress(classData.id, participant.id) as ProgressData;
       setProgressData(data);
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Gagal memuat data progress");
+    } catch (err: unknown) {
+      let errorMessage = "Gagal memuat data progress";
+      if (err instanceof Error) {
+        const error = err as any;
+        errorMessage = error.response?.data?.message || "Gagal memuat data progress";
+      }
+      toast.error(errorMessage);
       setProgressTarget(null);
     } finally {
       setProgressLoading(false);
@@ -228,12 +254,52 @@ export default function InstructorClassDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-pln-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-500 dark:text-slate-400">
-            Memuat data kelas...
-          </p>
+      <div className="space-y-6 animate-pulse">
+        {/* Back button & Header Skeleton */}
+        <div className="space-y-4">
+          <div className="h-4 w-32 bg-slate-200 dark:bg-slate-800 rounded" />
+          <div className="space-y-2">
+            <div className="h-8 w-64 bg-slate-200 dark:bg-slate-800 rounded-lg" />
+            <div className="h-4 w-96 bg-slate-200 dark:bg-slate-800 rounded-lg" />
+          </div>
+        </div>
+
+        {/* Tab Navigation Skeleton */}
+        <div className="flex gap-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-2">
+          <div className="flex-1 h-12 bg-slate-200 dark:bg-slate-700 rounded-lg" />
+          <div className="flex-1 h-12 bg-slate-200 dark:bg-slate-700 rounded-lg" />
+        </div>
+
+        {/* Info Cards Skeleton */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div
+              key={i}
+              className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700 space-y-2"
+            >
+              <div className="w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-lg" />
+              <div className="h-4 w-16 bg-slate-200 dark:bg-slate-700 rounded" />
+              <div className="h-6 w-12 bg-slate-200 dark:bg-slate-700 rounded" />
+            </div>
+          ))}
+        </div>
+
+        {/* Schedule Info Skeleton */}
+        <div className="h-24 bg-slate-200 dark:bg-slate-800 rounded-xl" />
+
+        {/* Participants Section Skeleton */}
+        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden space-y-4 p-6">
+          <div className="space-y-2">
+            <div className="h-5 w-32 bg-slate-200 dark:bg-slate-700 rounded" />
+            <div className="h-4 w-64 bg-slate-200 dark:bg-slate-700 rounded" />
+          </div>
+          <div className="space-y-2">
+            <div className="h-10 w-full bg-slate-200 dark:bg-slate-700 rounded-lg" />
+            <div className="h-10 w-40 bg-slate-200 dark:bg-slate-700 rounded-lg" />
+          </div>
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-14 bg-slate-200 dark:bg-slate-700 rounded-lg" />
+          ))}
         </div>
       </div>
     );
@@ -359,7 +425,7 @@ export default function InstructorClassDetailPage() {
                     {participantsData.length}
                   </p>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Total Peserta
+                    Total Learners
                   </p>
                 </div>
               </div>
@@ -374,7 +440,7 @@ export default function InstructorClassDetailPage() {
                     {activeCount}
                   </p>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Peserta Aktif
+                    Active Learners
                   </p>
                 </div>
               </div>
@@ -457,10 +523,10 @@ export default function InstructorClassDetailPage() {
           >
             <div className="p-4 border-b border-slate-100 dark:border-slate-700">
               <h2 className="font-semibold text-slate-800 dark:text-white">
-                Daftar Peserta
+                Learner List
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                Kelola dan pantau peserta kelas
+                Manage and monitor class learners
               </p>
             </div>
 
@@ -470,7 +536,7 @@ export default function InstructorClassDetailPage() {
                 <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Cari peserta..."
+                  placeholder="Search learners..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pln-primary dark:text-white"
@@ -493,7 +559,7 @@ export default function InstructorClassDetailPage() {
                 <thead className="bg-slate-50 dark:bg-slate-700/50">
                   <tr>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-slate-600 dark:text-slate-300">
-                      Peserta
+                      Learner
                     </th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-slate-600 dark:text-slate-300 hidden md:table-cell">
                       Unit
@@ -607,7 +673,7 @@ export default function InstructorClassDetailPage() {
             {filteredParticipants.length === 0 && (
               <div className="text-center py-8">
                 <p className="text-sm text-slate-500 dark:text-slate-400">
-                  Tidak ada peserta ditemukan
+                  No learners found
                 </p>
               </div>
             )}
@@ -619,7 +685,7 @@ export default function InstructorClassDetailPage() {
       <Dialog open={!!progressTarget} onOpenChange={(o) => { if (!o) { setProgressTarget(null); setProgressData(null); } }}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Progress Peserta</DialogTitle>
+            <DialogTitle>Learner Progress</DialogTitle>
             <DialogDescription>
               {progressTarget?.name} — {progressTarget?.email}
             </DialogDescription>
@@ -683,7 +749,7 @@ export default function InstructorClassDetailPage() {
                   Daftar Aktivitas ({progressData.total_activities})
                 </h4>
                 <div className="border border-slate-200 dark:border-slate-700 rounded-lg divide-y divide-slate-200 dark:divide-slate-700">
-                  {progressData.activities.map((activity: any, idx: number) => {
+                  {progressData.activities.map((activity, idx: number) => {
                     const completion = getCompletionLabel(activity.completion_status);
                     return (
                       <div key={idx} className="flex items-center justify-between px-3 py-2.5 text-sm">
@@ -736,7 +802,7 @@ export default function InstructorClassDetailPage() {
               Diskusi Kelas
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Chat grup dengan peserta - {unansweredQuestions} pertanyaan belum
+              Group chat with learners - {unansweredQuestions} pertanyaan belum
               dijawab
             </p>
           </div>

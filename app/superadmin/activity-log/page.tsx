@@ -88,7 +88,6 @@ export default function ActivityLogPage() {
         : response.data.data || [];
       setUsers(usersData);
     } catch (error) {
-      console.error("Error fetching users:", error);
       setUsers([]);
     }
   };
@@ -96,7 +95,7 @@ export default function ActivityLogPage() {
   const fetchLogs = async () => {
     try {
       setLoading(true);
-      const params: any = {};
+      const params: Record<string, string> = {};
 
       if (filters.user_id) params.user_id = filters.user_id;
       if (filters.action) params.action = filters.action;
@@ -112,7 +111,6 @@ export default function ActivityLogPage() {
         setLogs(response.data);
       }
     } catch (error) {
-      console.error("Error fetching activity logs:", error);
       setLogs([]);
     } finally {
       setLoading(false);
@@ -208,7 +206,7 @@ export default function ActivityLogPage() {
           <h2 className="font-semibold text-gray-900">Filter & Pencarian</h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {/* Search */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -425,13 +423,13 @@ export default function ActivityLogPage() {
                                   )}
 
                                   {/* Meta Info */}
-                                  <div className="flex items-center gap-3 text-xs text-gray-500">
+                                  <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
                                     {log.ip_address && (
                                       <span className="flex items-center gap-1">
                                         <span className="font-semibold">
                                           IP:
                                         </span>
-                                        {log.ip_address}
+                                        <span className="break-all">{log.ip_address}</span>
                                       </span>
                                     )}
                                     {log.entity_type && (
@@ -469,11 +467,11 @@ export default function ActivityLogPage() {
 
                               {/* Expanded changes */}
                               {isExpanded && log.changes && (
-                                <div className="mt-3 p-3 bg-white rounded border border-gray-200">
+                                <div className="mt-3 p-3 bg-white rounded border border-gray-200 overflow-x-auto">
                                   <p className="text-xs font-semibold text-gray-700 mb-2">
                                     Perubahan Data:
                                   </p>
-                                  <pre className="text-xs text-gray-600 overflow-x-auto">
+                                  <pre className="text-xs text-gray-600 whitespace-pre-wrap break-words">
                                     {JSON.stringify(log.changes, null, 2)}
                                   </pre>
                                 </div>

@@ -72,7 +72,6 @@ export default function SuperadminPartnersPage() {
         setPartners(response.data.partners);
       }
     } catch (error) {
-      console.error("Failed to fetch partners", error);
       showToast({ type: "error", message: "Gagal memuat data partner" });
     }
   };

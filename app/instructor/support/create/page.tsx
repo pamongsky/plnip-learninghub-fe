@@ -122,12 +122,11 @@ export default function CreateInstructorTicketPage() {
 
       // Redirect to support list with success
       router.push("/instructor/support?created=true");
-    } catch (err: any) {
-      console.error("Error creating ticket:", err);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Gagal membuat tiket. Silakan coba lagi.";
+      const apiMessage = err && typeof err === 'object' && 'response' in err ? (err as any).response?.data?.message : undefined;
       setErrors({
-        submit:
-          err.response?.data?.message ||
-          "Gagal membuat tiket. Silakan coba lagi.",
+        submit: apiMessage || errorMessage,
       });
       setIsSubmitting(false);
     }

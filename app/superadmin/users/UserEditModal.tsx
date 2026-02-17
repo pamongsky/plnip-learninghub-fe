@@ -84,11 +84,13 @@ export function UserEditModal({
           response.data.role_override || response.data.effective_role || "user",
         is_active: response.data.is_active,
       });
-    } catch (error) {
-      console.error("Failed to fetch user:", error);
+    } catch (error: unknown) {
+      const errorMessage = error && typeof error === 'object' && 'response' in error
+        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message || "Gagal memuat data user"
+        : error instanceof Error ? error.message : "Gagal memuat data user";
       setMessage({
         type: "error",
-        text: "Gagal memuat data user",
+        text: errorMessage,
       });
     } finally {
       setLoading(false);
@@ -111,10 +113,13 @@ export function UserEditModal({
         onOpenChange(false);
         onSuccess();
       }, 1500);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error && typeof error === 'object' && 'response' in error
+        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message || "Gagal mengupdate user"
+        : error instanceof Error ? error.message : "Gagal mengupdate user";
       setMessage({
         type: "error",
-        text: error.response?.data?.message || "Gagal mengupdate user",
+        text: errorMessage,
       });
     } finally {
       setSubmitting(false);
@@ -154,7 +159,7 @@ export function UserEditModal({
             )}
 
             {user?.role_override === "super-admin" ||
-            user?.roles?.some((r: any) => r.name === "super-admin") ? (
+            user?.roles?.some((r: User["roles"] extends Array<infer U> ? U : { name: string }) => r.name === "super-admin") ? (
               <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3 rounded-lg">
                 <p className="text-sm font-semibold text-red-700 dark:text-red-300">
                   🔒 Protected Super Admin Account
@@ -240,14 +245,14 @@ export function UserEditModal({
                 }
                 disabled={
                   user?.role_override === "super-admin" ||
-                  user?.roles?.some((r: any) => r.name === "super-admin")
+                  user?.roles?.some((r: User["roles"] extends Array<infer U> ? U : { name: string }) => r.name === "super-admin")
                 }
               >
                 <SelectTrigger
                   id="role"
                   disabled={
                     user?.role_override === "super-admin" ||
-                    user?.roles?.some((r: any) => r.name === "super-admin")
+                    user?.roles?.some((r: User["roles"] extends Array<infer U> ? U : { name: string }) => r.name === "super-admin")
                   }
                 >
                   <SelectValue />
@@ -261,7 +266,7 @@ export function UserEditModal({
               </Select>
               {user?.source === "erp" &&
                 user?.role_override !== "super-admin" &&
-                user?.roles?.every((r: any) => r.name !== "super-admin") && (
+                user?.roles?.every((r: User["roles"] extends Array<infer U> ? U : { name: string }) => r.name !== "super-admin") && (
                   <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
                     ⚠️ Gunakan "Override Role" untuk ERP users agar tracked di
                     audit log

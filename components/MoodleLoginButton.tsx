@@ -12,9 +12,6 @@ export default function MoodleLoginButton({
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
-  // Moodle Local URL provided by user
-  const MOODLE_URL = "http://localhost/moodle45-oracle";
-
   const handleMoodleLogin = async () => {
     setIsLoading(true);
     try {
@@ -39,12 +36,15 @@ export default function MoodleLoginButton({
       } else {
         throw new Error(response.data.message || "Invalid response");
       }
-    } catch (error: any) {
-      console.error("Moodle SSO error:", error);
+    } catch (error: unknown) {
+      const errorMessage = error && typeof error === 'object' && 'response' in error
+        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message ||
+          (error as { message?: string }).message ||
+          "Terjadi kesalahan"
+        : "Terjadi kesalahan";
+
       toast.error(
-        `Gagal menghubungkan ke Moodle: ${
-          error.response?.data?.message || error.message
-        }. Pastikan akun Anda sudah terdaftar di Moodle.`,
+        `Gagal menghubungkan ke Moodle: ${errorMessage}. Pastikan akun Anda sudah terdaftar di Moodle.`,
       );
     } finally {
       setIsLoading(false);

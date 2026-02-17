@@ -16,6 +16,15 @@ import {
 } from "@heroicons/react/24/outline";
 import MoodleLoginButton from "@/components/MoodleLoginButton";
 
+interface CourseFromAPI {
+  id: number;
+  title: string;
+  instructor?: { name: string };
+  category_id?: string;
+  image?: string;
+  moodle_url?: string;
+}
+
 interface Announcement {
   id: number;
   title: string;
@@ -109,13 +118,13 @@ export default function DashboardPage() {
       setLoading(true);
       // Parallel requests for stats and courses
       const [statsRes, coursesRes] = await Promise.all([
-        api.get("/dashboard/employee"),
+        api.get("/dashboard/learner"),
         api.get("/courses/my"),
       ]);
 
       setDashboardData({
         ...statsRes.data.data,
-        course_progress: coursesRes.data.data.map((c: any) => ({
+        course_progress: coursesRes.data.data.map((c: CourseFromAPI) => ({
           id: c.id,
           title: c.title,
           instructor: c.instructor?.name || "Instructor",
@@ -125,7 +134,7 @@ export default function DashboardPage() {
         })),
       });
     } catch (error) {
-      console.error("Failed to fetch dashboard data:", error);
+      // error handled silently
     } finally {
       setLoading(false);
     }
@@ -164,6 +173,21 @@ export default function DashboardPage() {
   ];
 
   const courseProgress = dashboardData?.course_progress || [];
+
+  if (loading) {
+    return (
+      <div className="space-y-6 animate-pulse">
+        <div className="bg-slate-200 rounded-2xl h-32" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => <div key={i} className="bg-slate-200 rounded-xl h-24" />)}
+        </div>
+        <div className="grid lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 bg-slate-200 rounded-xl h-64" />
+          <div className="bg-slate-200 rounded-xl h-64" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

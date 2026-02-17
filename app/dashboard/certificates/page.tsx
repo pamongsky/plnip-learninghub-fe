@@ -17,6 +17,7 @@ import { toast } from "sonner";
 export default function CertificatesPage() {
   const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState<number | null>(null);
 
   useEffect(() => {
     fetchCertificates();
@@ -27,16 +28,30 @@ export default function CertificatesPage() {
       setLoading(true);
       const data = await certificateApi.getMyCertificates();
       setCertificates(data);
-    } catch (error) {
-      console.error("Failed to fetch certificates:", error);
+    } catch (err: unknown) {
+      // error handled silently
     } finally {
       setLoading(false);
     }
   };
 
   const handleDownload = async (cert: Certificate) => {
+    setDownloading(cert.id);
     try {
       const blob = await certificateApi.download(cert.id);
+
+      // Validate blob type
+      if (!blob.type.includes('pdf') && !blob.type.includes('octet-stream')) {
+        toast.error("File yang diterima bukan PDF. Hubungi administrator.");
+        return;
+      }
+
+      // Validate blob size (should not be empty)
+      if (blob.size === 0) {
+        toast.error("File sertifikat kosong. Hubungi administrator.");
+        return;
+      }
+
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -45,10 +60,60 @@ export default function CertificatesPage() {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-    } catch (error) {
-      toast.error("Gagal download sertifikat");
+
+      toast.success("Sertifikat berhasil didownload");
+    } catch (err: unknown) {
+
+      let errorMsg = "Gagal download sertifikat. Periksa koneksi internet Anda.";
+
+      if (err instanceof Error) {
+        const error = err as any;
+        errorMsg = error.response?.status === 404
+          ? "File sertifikat tidak ditemukan di server. Hubungi administrator."
+          : error.response?.status === 403
+          ? "Anda tidak memiliki akses ke sertifikat ini."
+          : error.response?.data?.message
+          ? error.response.data.message
+          : "Gagal download sertifikat. Periksa koneksi internet Anda.";
+      }
+
+      toast.error(errorMsg);
+    } finally {
+      setDownloading(null);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-6 animate-pulse">
+        {/* Header Skeleton */}
+        <div className="space-y-2">
+          <div className="h-6 w-32 bg-slate-200 dark:bg-slate-800 rounded-lg" />
+          <div className="h-4 w-64 bg-slate-200 dark:bg-slate-800 rounded-lg" />
+        </div>
+
+        {/* Cards Skeleton */}
+        <div className="grid gap-4 md:grid-cols-2">
+          {[1, 2, 3, 4].map((i) => (
+            <div
+              key={i}
+              className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6 space-y-3"
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex-1 space-y-2">
+                  <div className="h-5 w-40 bg-slate-200 dark:bg-slate-700 rounded" />
+                  <div className="h-3 w-32 bg-slate-200 dark:bg-slate-700 rounded" />
+                </div>
+                <div className="w-5 h-5 bg-slate-200 dark:bg-slate-700 rounded" />
+              </div>
+              <div className="h-4 w-48 bg-slate-200 dark:bg-slate-700 rounded" />
+              <div className="h-10 w-full bg-slate-200 dark:bg-slate-700 rounded-lg" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -59,11 +124,7 @@ export default function CertificatesPage() {
         </p>
       </motion.div>
 
-      {loading ? (
-        <div className="text-center py-12">
-          <p className="text-slate-500">Memuat sertifikat...</p>
-        </div>
-      ) : certificates.length === 0 ? (
+      {certificates.length === 0 ? (
         <Card>
           <CardContent className="py-12">
             <div className="text-center">
@@ -115,10 +176,19 @@ export default function CertificatesPage() {
                   <Button
                     onClick={() => handleDownload(cert)}
                     className="w-full bg-pln-primary hover:bg-pln-primary/90"
-                    disabled={!cert.is_valid}
+                    disabled={!cert.is_valid || downloading === cert.id}
                   >
-                    <ArrowDownTrayIcon className="h-4 w-4 mr-2" />
-                    Download Sertifikat
+                    {downloading === cert.id ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                        Mengunduh...
+                      </>
+                    ) : (
+                      <>
+                        <ArrowDownTrayIcon className="h-4 w-4 mr-2" />
+                        Download Sertifikat
+                      </>
+                    )}
                   </Button>
 
                   {!cert.is_valid && cert.notes && (

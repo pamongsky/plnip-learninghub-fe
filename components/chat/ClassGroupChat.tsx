@@ -56,16 +56,6 @@ export default function ClassGroupChat({
   isInstructor = false,
   onQuestionCountChange,
 }: ClassGroupChatProps) {
-  // Debug: Log props on mount
-  useEffect(() => {
-    console.log("🎯 ClassGroupChat Props:", {
-      classId,
-      currentUserId,
-      currentUserId_type: typeof currentUserId,
-      isInstructor,
-    });
-  }, [classId, currentUserId, isInstructor]);
-
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [messageType, setMessageType] = useState<"discussion" | "question">(
@@ -119,7 +109,7 @@ export default function ClassGroupChat({
 
   // Real-time: Listen for new messages
   const handleNewClassMessage = useCallback(
-    (data: any) => {
+    (data: ClassMessage) => {
       const newMsg: Message = {
         id: data.id,
         class_id: data.class_id,
@@ -142,15 +132,11 @@ export default function ClassGroupChat({
         // Check if message with same ID already exists
         const existsById = prev.some((msg) => msg.id === newMsg.id);
         if (existsById) {
-          console.log("⏭️ Skipping duplicate message by ID:", newMsg.id);
           return prev;
         }
 
         // Skip if this is from current user (already handled by optimistic update)
         if (Number(newMsg.user_id) === Number(currentUserId)) {
-          console.log(
-            "⏭️ Skipping own message from broadcast (optimistic update already handled)",
-          );
           return prev;
         }
 
@@ -182,7 +168,6 @@ export default function ClassGroupChat({
           }, 5000);
         }
 
-        console.log("✅ Adding new message from broadcast:", newMsg.id);
         return [...prev, newMsg];
       });
     },
@@ -198,9 +183,9 @@ export default function ClassGroupChat({
       const response = await classChatApi.getMessages(classId);
       // Backend returns { data: { data: [...] } } because of pagination
       // @ts-ignore - API type definition doesn't match backend pagination structure exactly
-      const messagesArray = response.data.data || [];
+      const messagesArray = (response.data.data || []) as ClassMessage[];
 
-      const transformedMessages: Message[] = messagesArray.map((msg: any) => ({
+      const transformedMessages: Message[] = messagesArray.map((msg) => ({
         id: msg.id,
         class_id: msg.class_id,
         user_id: msg.user_id,
@@ -220,8 +205,8 @@ export default function ClassGroupChat({
         mentionedUser: msg.mentioned_user || msg.mentionedUser,
       }));
       setMessages(transformedMessages);
-    } catch (error) {
-      console.error("Error loading messages:", error);
+    } catch (err: unknown) {
+      // error loading messages - silent fail
     } finally {
       setIsLoading(false);
     }
@@ -295,7 +280,6 @@ export default function ClassGroupChat({
 
     // Add optimistic message
     setMessages((prev) => [...prev, optimisticMessage]);
-    console.log("⚡ Optimistic message added:", tempId);
 
     // Clear input immediately for better UX
     const currentMessage = newMessage;
@@ -320,32 +304,18 @@ export default function ClassGroupChat({
 
       const response = await classChatApi.sendMessage(classId, formData);
 
-      console.log("✅ Server response received, updating optimistic message");
-      console.log(
-        "🔄 Updating tempId:",
-        tempId,
-        "to real ID:",
-        response.data.id,
-      );
-
       // Update optimistic message in place (don't remove+add to avoid animation flicker)
       setMessages((prev) => {
         // Check if message already exists from broadcast
         const broadcastExists = prev.some((msg) => msg.id === response.data.id);
 
         if (broadcastExists) {
-          // Broadcast arrived first, just remove optimistic message
-          console.log(
-            "⏭️ Broadcast already added, removing optimistic:",
-            tempId,
-          );
           return prev.filter((msg) => msg.id !== tempId);
         }
 
         // Update optimistic message in place (keeps same position, no animation)
         return prev.map((msg) => {
           if (msg.id === tempId) {
-            console.log("✅ Updating optimistic to real message");
             const updatedMsg: Message = {
               ...msg,
               ...response.data,
@@ -365,8 +335,8 @@ export default function ClassGroupChat({
           return msg;
         });
       });
-    } catch (error) {
-      console.error("❌ Error sending message:", error);
+    } catch (err: unknown) {
+      // error sending message - handled below
 
       // Remove optimistic message on error
       setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
@@ -376,8 +346,8 @@ export default function ClassGroupChat({
       setMessageType(currentType);
 
       // Show user-friendly error message
-      if (error instanceof Error) {
-        toast.error(`Gagal mengirim pesan: ${error.message}. Silakan coba lagi.`);
+      if (err instanceof Error) {
+        toast.error(`Gagal mengirim pesan: ${err.message}. Silakan coba lagi.`);
       } else {
         toast.error(
           "Gagal mengirim pesan. Silakan periksa koneksi internet Anda dan coba lagi.",
@@ -420,8 +390,8 @@ export default function ClassGroupChat({
             : msg,
         ),
       );
-    } catch (error) {
-      console.error("Error marking as answered:", error);
+    } catch (err: unknown) {
+      // error marking as answered - silent fail
     }
   };
 
@@ -480,6 +450,8 @@ export default function ClassGroupChat({
         {isInstructor && (
           <button
             onClick={() => setShowOnlyUnanswered(!showOnlyUnanswered)}
+            aria-label={showOnlyUnanswered ? "Show all messages" : "Show unanswered questions only"}
+            aria-pressed={showOnlyUnanswered}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
               showOnlyUnanswered
                 ? "bg-white text-pln-primary"
@@ -522,6 +494,7 @@ export default function ClassGroupChat({
                   e.stopPropagation();
                   setReplyNotification(null);
                 }}
+                aria-label="Close notification"
                 className="flex-shrink-0 p-1 rounded-full hover:bg-white/20"
               >
                 <XMarkIcon className="h-4 w-4" />
@@ -574,16 +547,6 @@ export default function ClassGroupChat({
               const isOwnMessage = msgUserId === currentUserIdNum;
               const isQuestion = msg.message_type === "question";
 
-              // Debug log - hapus setelah testing
-              console.log("🔍 Message Comparison:", {
-                message_id: msg.id,
-                msg_user_id: msg.user_id,
-                msg_user_id_converted: msgUserId,
-                currentUserId: currentUserId,
-                currentUserId_converted: currentUserIdNum,
-                isOwnMessage: isOwnMessage,
-                user_name: msg.user?.name,
-              });
 
               return (
                 <motion.div
@@ -854,8 +817,8 @@ export default function ClassGroupChat({
               {/* Cancel button */}
               <button
                 onClick={cancelReply}
+                aria-label="Cancel reply"
                 className="flex-shrink-0 p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
-                title="Batal membalas"
               >
                 <XMarkIcon className="h-4 w-4" />
               </button>
@@ -873,6 +836,7 @@ export default function ClassGroupChat({
             />
             <button
               onClick={handleRemoveImage}
+              aria-label="Remove image"
               className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 shadow-lg"
             >
               <XMarkIcon className="h-4 w-4" />
@@ -893,8 +857,8 @@ export default function ClassGroupChat({
         <div className="flex items-end gap-3">
           <button
             onClick={() => fileInputRef.current?.click()}
+            aria-label="Upload image"
             className="flex-shrink-0 p-3 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
-            title="Upload Gambar"
           >
             <PhotoIcon className="h-5 w-5" />
           </button>
@@ -922,6 +886,7 @@ export default function ClassGroupChat({
             whileTap={{ scale: 0.95 }}
             onClick={handleSendMessage}
             disabled={(!newMessage.trim() && !selectedImage) || isSending}
+            aria-label="Send message"
             className={`flex h-12 w-12 items-center justify-center rounded-xl transition-all ${
               newMessage.trim() || selectedImage
                 ? "bg-pln-primary text-white hover:bg-pln-dark"

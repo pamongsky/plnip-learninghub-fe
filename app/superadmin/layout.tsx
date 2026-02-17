@@ -10,7 +10,7 @@ export default function SuperadminLayout({
   children: React.ReactNode;
 }) {
   return (
-    <RoleGuard allowedRoles={["super-admin"]} redirectTo="/dashboard">
+    <RoleGuard allowedRoles={["super-admin"]}>
       <SuperadminShell>{children}</SuperadminShell>
       <AIChatWidget />
     </RoleGuard>

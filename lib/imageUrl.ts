@@ -12,8 +12,7 @@ export function getImageUrl(path: string | null | undefined): string {
   }
 
   // If relative path, construct full URL
-  const backendUrl =
-    process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000";
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL ?? "";
 
   // Remove leading slash if exists (backend URL already has it)
   const cleanPath = path.startsWith("/") ? path : `/${path}`;

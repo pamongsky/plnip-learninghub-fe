@@ -77,7 +77,6 @@ export default function SuperadminLeadersPage() {
         setLeaders(response.data.leaders);
       }
     } catch (error) {
-      console.error("Failed to fetch leaders", error);
       showToast({ type: "error", message: "Gagal memuat data pimpinan" });
     }
   };

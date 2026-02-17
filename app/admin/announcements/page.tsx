@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 // import { useAuth } from "@/contexts/AuthContext"; // Commented out for Admin context
 import api from "@/lib/axios";
+import { sanitizeHtml } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
@@ -57,6 +58,24 @@ const priorityConfig = {
 
 type PriorityType = keyof typeof priorityConfig;
 
+interface Announcement {
+  id: string;
+  title: string;
+  content: string;
+  priority: string;
+  target_role?: "all" | "learner" | "instructor";
+  created_at: string;
+  published_at?: string;
+  expires_at?: string;
+  creator?: {
+    id: number;
+    name: string;
+    department?: string;
+    position?: string;
+  };
+  creator_role?: string;
+}
+
 export default function AdminAnnouncementsPage() {
   // const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"all" | "mine">("all");
@@ -74,14 +93,14 @@ export default function AdminAnnouncementsPage() {
   );
 
   // Data state
-  const [allAnnouncements, setAllAnnouncements] = useState<any[]>([]);
-  const [myAnnouncements, setMyAnnouncements] = useState<any[]>([]);
+  const [allAnnouncements, setAllAnnouncements] = useState<Announcement[]>([]);
+  const [myAnnouncements, setMyAnnouncements] = useState<Announcement[]>([]);
 
   // Form state
   const [newAnnouncement, setNewAnnouncement] = useState({
     title: "",
     content: "",
-    target_role: "all" as "all" | "user" | "instructor", // Role targeting
+    target_role: "learner" as "all" | "learner" | "instructor", // Role targeting
     priority: "normal" as PriorityType,
     published_at: "", // Optional publish date
     expires_at: "", // Optional expires date
@@ -100,7 +119,7 @@ export default function AdminAnnouncementsPage() {
         setMyAnnouncements(response.data.data.mine);
       }
     } catch (error) {
-      console.error("Failed to fetch announcements:", error);
+      // error handled silently
     } finally {
       setIsLoading(false);
     }
@@ -186,16 +205,19 @@ export default function AdminAnnouncementsPage() {
 
       // Refresh data
       fetchAnnouncements();
-    } catch (error: any) {
-      console.error("Failed to save announcement:", error);
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Object && "response" in err
+          ? (err as { response?: { data?: { message?: string } } }).response
+              ?.data?.message
+          : undefined;
       toast.error(
-        error.response?.data?.message ||
-          "Gagal menyimpan pengumuman. Silakan coba lagi.",
+        errorMessage || "Gagal menyimpan pengumuman. Silakan coba lagi.",
       );
     }
   };
 
-  const handleEditAnnouncement = (announcement: any) => {
+  const handleEditAnnouncement = (announcement: Announcement) => {
     setEditingId(announcement.id);
 
     // Map backend priority back to frontend
@@ -203,7 +225,7 @@ export default function AdminAnnouncementsPage() {
     setNewAnnouncement({
       title: announcement.title,
       content: announcement.content,
-      target_role: announcement.target_role || "all",
+      target_role: (announcement.target_role === "user" ? "learner" : announcement.target_role || "all") as "all" | "learner" | "instructor",
       priority: getMappedPriority(announcement.priority), // Use the new helper
       published_at: announcement.published_at || "",
       expires_at: announcement.expires_at || "",
@@ -221,7 +243,7 @@ export default function AdminAnnouncementsPage() {
       setExpandedId(null);
       toast.success("Pengumuman berhasil dihapus");
     } catch (error) {
-      console.error("Failed to delete announcement:", error);
+      // error handled silently
       toast.error("Gagal menghapus pengumuman.");
     }
   };
@@ -232,7 +254,7 @@ export default function AdminAnnouncementsPage() {
     setNewAnnouncement({
       title: "",
       content: "",
-      target_role: "all",
+      target_role: "learner",
       priority: "normal",
       published_at: "",
       expires_at: "",
@@ -473,7 +495,7 @@ export default function AdminAnnouncementsPage() {
                               <div
                                 className="mt-4 text-sm text-slate-600 dark:text-slate-300 leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_h3]:text-lg [&_h3]:font-bold"
                                 dangerouslySetInnerHTML={{
-                                  __html: announcement.content,
+                                  __html: sanitizeHtml(announcement.content),
                                 }}
                               />
                             </motion.div>
@@ -564,9 +586,9 @@ export default function AdminAnnouncementsPage() {
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium rounded bg-pln-primary/10 dark:bg-pln-primary/20 text-pln-primary">
                             <UserGroupIcon className="w-3 h-3" />
                             {announcement.target_role === "all"
-                              ? "User + Instructor"
-                              : announcement.target_role === "user"
-                                ? "User Only"
+                              ? "Learner + Instructor"
+                              : announcement.target_role === "learner" || announcement.target_role === "user"
+                                ? "Learner Only"
                                 : "Instructor Only"}
                           </span>
                         </div>
@@ -590,7 +612,7 @@ export default function AdminAnnouncementsPage() {
                               <div
                                 className="mt-4 text-sm text-slate-600 dark:text-slate-300 leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_h3]:text-lg [&_h3]:font-bold"
                                 dangerouslySetInnerHTML={{
-                                  __html: announcement.content,
+                                  __html: sanitizeHtml(announcement.content),
                                 }}
                               />
                               <div className="mt-4 flex gap-2">
@@ -679,13 +701,13 @@ export default function AdminAnnouncementsPage() {
                   </label>
                   <div className="grid grid-cols-3 gap-2">
                     <label
-                      className={`flex items-center gap-2 p-3 rounded-lg border-2 cursor-pointer transition-all ${newAnnouncement.target_role === "user" ? "border-pln-primary bg-pln-primary/5 dark:bg-pln-primary/10" : "border-slate-200 dark:border-slate-600 hover:border-slate-300"}`}
+                      className={`flex items-center gap-2 p-3 rounded-lg border-2 cursor-pointer transition-all ${newAnnouncement.target_role === "learner" ? "border-pln-primary bg-pln-primary/5 dark:bg-pln-primary/10" : "border-slate-200 dark:border-slate-600 hover:border-slate-300"}`}
                     >
                       <input
                         type="radio"
                         name="target_role"
-                        value="user"
-                        checked={newAnnouncement.target_role === "user"}
+                        value="learner"
+                        checked={newAnnouncement.target_role === "learner"}
                         onChange={(e) =>
                           setNewAnnouncement({
                             ...newAnnouncement,
@@ -696,7 +718,7 @@ export default function AdminAnnouncementsPage() {
                         className="w-4 h-4 text-pln-primary"
                       />
                       <span className="text-sm font-medium text-slate-800 dark:text-white">
-                        👥 User Only
+                        👥 Learner Only
                       </span>
                     </label>
 
@@ -740,16 +762,16 @@ export default function AdminAnnouncementsPage() {
                         className="w-4 h-4 text-pln-primary"
                       />
                       <span className="text-sm font-medium text-slate-800 dark:text-white">
-                        🌐 User + Instructor
+                        🌐 Learner + Instructor
                       </span>
                     </label>
                   </div>
                   <p className="text-xs text-slate-400 mt-2">
-                    {newAnnouncement.target_role === "user"
-                      ? "Pengumuman hanya akan dikirim ke User"
+                    {newAnnouncement.target_role === "learner"
+                      ? "Pengumuman hanya akan dikirim ke Learner"
                       : newAnnouncement.target_role === "instructor"
                         ? "Pengumuman hanya akan dikirim ke Instructor"
-                        : "Pengumuman akan dikirim ke User dan Instructor"}
+                        : "Pengumuman akan dikirim ke Learner dan Instructor"}
                   </p>
                 </div>
 

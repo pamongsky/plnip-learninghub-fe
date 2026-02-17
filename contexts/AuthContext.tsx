@@ -7,9 +7,9 @@ import React, {
   useEffect,
   ReactNode,
 } from "react";
-import Cookies from "js-cookie";
 import api from "@/lib/axios";
 import { useRouter } from "next/navigation";
+import Cookies from "js-cookie";
 
 interface User {
   id: number;
@@ -32,12 +32,7 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  register: (
-    name: string,
-    email: string,
-    password: string,
-    passwordConfirmation: string,
-  ) => Promise<void>;
+  // register: removed - users from ERP only
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -52,12 +47,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const checkAuth = async () => {
-    const token = Cookies.get("auth_token");
+    const token = sessionStorage.getItem("auth_token");
     if (token) {
       try {
         const response = await api.get("/user");
         setUser(response.data.data.user);
       } catch (error) {
+        // Clear both storages on error
+        sessionStorage.removeItem("auth_token");
         Cookies.remove("auth_token");
       }
     }
@@ -67,32 +64,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     try {
       const response = await api.post("/login", { email, password });
-      const { token, user } = response.data.data;
+      const { token, user, requires_password_change } = response.data.data;
 
-      Cookies.set("auth_token", token, { expires: 7 }); // 7 days
+      // Hybrid approach: Set BOTH for double-layer security
+      // 1. Session cookie (auto-clear on browser close) - for middleware
+      Cookies.set("auth_token", token);
+
+      // 2. sessionStorage (auto-clear on tab close) - stricter, for client-side
+      sessionStorage.setItem("auth_token", token);
+
       setUser(user);
 
-      // Role-based redirect
-      const roles = user.roles || [];
-
-      if (roles.includes("super-admin")) {
-        router.push("/superadmin");
-        return;
+      // Check if user needs to change password
+      if (requires_password_change) {
+        router.replace("/change-password-required");
+      } else {
+        // Use replace to force navigation (can't go back to login)
+        router.replace("/welcome");
       }
-
-      if (roles.includes("admin")) {
-        router.push("/admin");
-        return;
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as { response?: { data?: { message?: string } } };
+        throw new Error(axiosError.response?.data?.message || "Login failed");
       }
-
-      if (roles.includes("instructor")) {
-        router.push("/instructor");
-        return;
-      }
-
-      router.push("/dashboard");
-    } catch (error: any) {
-      throw new Error(error.response?.data?.message || "Login failed");
+      throw new Error("Login failed");
     }
   };
 
@@ -100,40 +95,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await api.post("/logout");
     } catch (error) {
-      console.error("Logout error:", error);
+      // logout error - silent fail
     } finally {
+      // Clear BOTH storages
+      sessionStorage.removeItem("auth_token");
       Cookies.remove("auth_token");
       setUser(null);
       router.push("/login");
     }
   };
 
-  const register = async (
-    name: string,
-    email: string,
-    password: string,
-    passwordConfirmation: string,
-  ) => {
-    try {
-      const response = await api.post("/register", {
-        name,
-        email,
-        password,
-        password_confirmation: passwordConfirmation,
-      });
-      const { token, user } = response.data.data;
-
-      Cookies.set("auth_token", token, { expires: 7 });
-      setUser(user);
-      router.push("/dashboard");
-    } catch (error: any) {
-      throw new Error(error.response?.data?.message || "Registration failed");
-    }
-  };
+  // Register function removed - users are managed via ERP system
+  // const register = async (
+  //   name: string,
+  //   email: string,
+  //   password: string,
+  //   passwordConfirmation: string,
+  // ) => {
+  //   try {
+  //     const response = await api.post("/register", {
+  //       name,
+  //       email,
+  //       password,
+  //       password_confirmation: passwordConfirmation,
+  //     });
+  //     const { token, user } = response.data.data;
+  //
+  //     Cookies.set("auth_token", token, { expires: 7 });
+  //     setUser(user);
+  //     router.push("/dashboard");
+  //   } catch (error: unknown) {
+  //     throw new Error(error.response?.data?.message || "Registration failed");
+  //   }
+  // };
 
   return (
     <AuthContext.Provider
-      value={{ user, setUser, loading, login, logout, register }}
+      value={{ user, setUser, loading, login, logout }}
     >
       {children}
     </AuthContext.Provider>

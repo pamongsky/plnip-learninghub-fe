@@ -65,7 +65,7 @@ export default function AdminCoursesPage() {
       // Handle pagination structure if needed
       setCourses(data.data || []);
     } catch (error) {
-      console.error("Failed to load courses:", error);
+      // error handled silently
     } finally {
       setLoading(false);
     }
@@ -74,12 +74,14 @@ export default function AdminCoursesPage() {
   const handleSync = async () => {
     try {
       setLoading(true);
-      const res: any = await coursesApi.sync();
+      const res = await coursesApi.sync() as { message: string };
       toast.success(res.message);
       await loadCourses();
-    } catch (error: any) {
-      console.error(error);
-      toast.error(error.response?.data?.message || "Gagal sinkronisasi");
+    } catch (error: unknown) {
+      const errorMessage = error && typeof error === 'object' && 'response' in error
+        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message || "Gagal sinkronisasi"
+        : error instanceof Error ? error.message : "Gagal sinkronisasi";
+      toast.error(errorMessage);
       setLoading(false);
     }
   };
@@ -89,6 +91,55 @@ export default function AdminCoursesPage() {
       course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       course.short_name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
+
+  if (loading) {
+    return (
+      <div className="p-6 lg:p-8 space-y-6 animate-pulse">
+        {/* Header Skeleton */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-2">
+            <div className="h-4 w-20 bg-slate-200 dark:bg-slate-800 rounded" />
+            <div className="h-8 w-48 bg-slate-200 dark:bg-slate-800 rounded-lg" />
+            <div className="h-4 w-72 bg-slate-200 dark:bg-slate-800 rounded" />
+          </div>
+          <div className="h-10 w-40 bg-slate-200 dark:bg-slate-800 rounded-lg flex-shrink-0" />
+        </div>
+
+        {/* Search & Table Skeleton */}
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden space-y-4 p-6">
+          <div className="h-10 w-full md:w-64 bg-slate-200 dark:bg-slate-800 rounded-lg" />
+
+          {/* Table Skeleton */}
+          <div className="space-y-3 mt-6">
+            {/* Header row */}
+            <div className="flex gap-4 bg-slate-100 dark:bg-slate-800 p-4 rounded-lg">
+              <div className="flex-1 h-4 bg-slate-200 dark:bg-slate-700 rounded" />
+              <div className="flex-1 h-4 bg-slate-200 dark:bg-slate-700 rounded" />
+              <div className="flex-1 h-4 bg-slate-200 dark:bg-slate-700 rounded" />
+              <div className="w-20 h-4 bg-slate-200 dark:bg-slate-700 rounded" />
+              <div className="w-20 h-4 bg-slate-200 dark:bg-slate-700 rounded" />
+              <div className="w-12 h-4 bg-slate-200 dark:bg-slate-700 rounded" />
+            </div>
+
+            {/* Data rows */}
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="flex gap-4 p-4 border border-slate-200 dark:border-slate-800 rounded-lg">
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 w-40 bg-slate-200 dark:bg-slate-700 rounded" />
+                  <div className="h-3 w-24 bg-slate-200 dark:bg-slate-700 rounded" />
+                </div>
+                <div className="flex-1 h-4 bg-slate-200 dark:bg-slate-700 rounded" />
+                <div className="flex-1 h-4 bg-slate-200 dark:bg-slate-700 rounded" />
+                <div className="w-20 h-4 bg-slate-200 dark:bg-slate-700 rounded" />
+                <div className="w-20 h-4 bg-slate-200 dark:bg-slate-700 rounded" />
+                <div className="w-12 h-4 bg-slate-200 dark:bg-slate-700 rounded" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 lg:p-8">
@@ -142,8 +193,8 @@ export default function AdminCoursesPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
-                <Table>
+              <div className="rounded-lg border border-slate-200 dark:border-slate-700 overflow-x-auto">
+                <Table className="min-w-[700px]">
                   <TableHeader>
                     <TableRow className="bg-slate-50 dark:bg-slate-800/50">
                       <TableHead>Nama Kelas</TableHead>
@@ -155,13 +206,7 @@ export default function AdminCoursesPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {loading ? (
-                      <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8">
-                          Loading...
-                        </TableCell>
-                      </TableRow>
-                    ) : filteredCourses.length === 0 ? (
+                    {filteredCourses.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={6} className="text-center py-8">
                           <div className="flex flex-col items-center gap-2">
@@ -205,16 +250,16 @@ export default function AdminCoursesPage() {
                               </div>
                             </div>
                           </TableCell>
-                          <TableCell className="text-slate-600 font-mono text-sm">
+                          <TableCell className="text-slate-600 font-mono text-sm whitespace-nowrap">
                             {course.short_name}
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="whitespace-nowrap">
                             {course.instructor ? (
                               <div className="flex items-center gap-2">
-                                <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-xs">
+                                <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-xs flex-shrink-0">
                                   {course.instructor.name.charAt(0)}
                                 </div>
-                                <span className="text-sm text-slate-600 dark:text-slate-300">
+                                <span className="text-sm text-slate-600 dark:text-slate-300 truncate">
                                   {course.instructor.name}
                                 </span>
                               </div>
@@ -222,13 +267,13 @@ export default function AdminCoursesPage() {
                               "-"
                             )}
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="whitespace-nowrap">
                             <div className="flex items-center gap-1 text-slate-600">
-                              <UserGroupIcon className="w-4 h-4" />
+                              <UserGroupIcon className="w-4 h-4 flex-shrink-0" />
                               <span>{course.enrollments_count || 0}</span>
                             </div>
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="whitespace-nowrap">
                             {course.is_active ? (
                               <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
                                 Active

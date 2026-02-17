@@ -69,12 +69,14 @@ export default function AdminSupportPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [filterPriority, setFilterPriority] = useState("all");
+  const [filterSource, setFilterSource] = useState("all");
   const [page, setPage] = useState(1);
   const [meta, setMeta] = useState({ current_page: 1, last_page: 1, total: 0 });
 
   useEffect(() => {
     fetchData();
-  }, [filterStatus, page]);
+  }, [filterStatus, filterPriority, filterSource, page]);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -82,6 +84,8 @@ export default function AdminSupportPage() {
       const [ticketsData, statsData] = await Promise.all([
         supportApi.getTickets({
           status: filterStatus === "all" ? undefined : filterStatus,
+          priority: filterPriority === "all" ? undefined : filterPriority,
+          source: filterSource === "all" ? undefined : filterSource,
           page,
         }),
         supportApi.getStats(),
@@ -91,7 +95,7 @@ export default function AdminSupportPage() {
       setMeta(ticketsData.meta);
       setStats(statsData);
     } catch (error) {
-      console.error("Error fetching support data:", error);
+      // error handled silently
     } finally {
       setIsLoading(false);
     }
@@ -210,26 +214,26 @@ export default function AdminSupportPage() {
               <SelectItem value="closed">Closed</SelectItem>
             </SelectContent>
           </Select>
-          {/* Placeholder filters to match screenshot (functionality can be added later if needed) */}
-          <Select defaultValue="all">
+          <Select value={filterPriority} onValueChange={setFilterPriority}>
             <SelectTrigger className="w-[140px] border-0 bg-slate-50 hover:bg-slate-100 h-9 rounded-lg text-xs font-medium">
               <SelectValue placeholder="Semua Prioritas" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Semua Prioritas</SelectItem>
+              <SelectItem value="urgent">Urgent</SelectItem>
               <SelectItem value="high">High</SelectItem>
               <SelectItem value="medium">Medium</SelectItem>
               <SelectItem value="low">Low</SelectItem>
             </SelectContent>
           </Select>
-          <Select defaultValue="all">
+          <Select value={filterSource} onValueChange={setFilterSource}>
             <SelectTrigger className="w-[140px] border-0 bg-slate-50 hover:bg-slate-100 h-9 rounded-lg text-xs font-medium">
               <SelectValue placeholder="Semua Sumber" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Semua Sumber</SelectItem>
               <SelectItem value="instructor">Instructor</SelectItem>
-              <SelectItem value="student">Student</SelectItem>
+              <SelectItem value="learner">Learner</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -287,7 +291,7 @@ export default function AdminSupportPage() {
                         <UserCircleIcon className="w-3 h-3" />
                         {ticket.user?.role === "instructor"
                           ? "Instruktur"
-                          : "Peserta"}
+                          : "Learner"}
                       </span>
 
                       <span className="font-mono text-[10px] text-slate-400">

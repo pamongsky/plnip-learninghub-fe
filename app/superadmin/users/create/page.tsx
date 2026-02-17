@@ -46,9 +46,7 @@ export default function CreateUserPage() {
     employee_id: "",
     department: "",
     position: "",
-    role: "user",
-    password: "",
-    password_confirmation: "",
+    role: "learner",
   });
 
   const handleChange = (
@@ -74,17 +72,6 @@ export default function CreateUserPage() {
       return;
     }
 
-    if (
-      formData.password &&
-      formData.password !== formData.password_confirmation
-    ) {
-      showToast({
-        type: "error",
-        message: "Password tidak cocok",
-      });
-      return;
-    }
-
     setLoading(true);
     try {
       const response = await axios.post("/superadmin/users", {
@@ -95,22 +82,44 @@ export default function CreateUserPage() {
         department: formData.department || null,
         position: formData.position || null,
         role: formData.role,
-        password: formData.password || null,
       });
+
+      // Download PDF with user credentials
+      if (response.data.pdf) {
+        const base64ToBlob = (base64: string, type: string) => {
+          const byteCharacters = atob(base64);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+          }
+          const byteArray = new Uint8Array(byteNumbers);
+          return new Blob([byteArray], { type });
+        };
+
+        const pdfBlob = base64ToBlob(response.data.pdf, "application/pdf");
+        const url = window.URL.createObjectURL(pdfBlob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `user-credential-${formData.email}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      }
 
       showToast({
         type: "success",
-        message: "User berhasil dibuat!",
+        message: "User berhasil dibuat! PDF credentials telah didownload.",
       });
 
       setTimeout(() => {
         router.push("/superadmin/users");
       }, 2000);
-    } catch (error: any) {
-      console.error("Error creating user:", error);
+    } catch (error) {
+      const err = error as any;
       showToast({
         type: "error",
-        message: error.response?.data?.message || "Gagal membuat user",
+        message: err?.response?.data?.message || "Gagal membuat user",
       });
     } finally {
       setLoading(false);
@@ -128,21 +137,32 @@ export default function CreateUserPage() {
         className="space-y-8"
       >
         {/* Header */}
-        <motion.div variants={itemVariants} className="flex items-center gap-4">
-          <button
-            onClick={() => router.back()}
-            className="flex items-center justify-center w-10 h-10 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-          >
-            <ArrowLeftIcon className="h-5 w-5" />
-          </button>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white md:text-3xl">
-              Tambah User Manual
-            </h1>
-            <p className="mt-1 text-slate-500 dark:text-slate-400">
-              Buat user baru untuk fase development
-            </p>
+        <motion.div variants={itemVariants} className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4 min-w-0">
+            <button
+              onClick={() => router.back()}
+              className="flex items-center justify-center w-10 h-10 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex-shrink-0"
+            >
+              <ArrowLeftIcon className="h-5 w-5" />
+            </button>
+            <div className="min-w-0">
+              <h1 className="text-2xl font-bold text-slate-900 dark:text-white md:text-3xl truncate">
+                Tambah User Manual
+              </h1>
+              <p className="mt-1 text-slate-500 dark:text-slate-400 truncate">
+                Buat user baru untuk fase development
+              </p>
+            </div>
           </div>
+          <button
+            onClick={() => router.push("/superadmin/users/create-bulk")}
+            className="px-4 py-2 bg-gradient-to-r from-pln-primary to-pln-light hover:shadow-lg text-white text-sm font-semibold rounded-lg transition-all flex items-center gap-2 flex-shrink-0 whitespace-nowrap"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            Buat Banyak User
+          </button>
         </motion.div>
 
         {/* Info Banner */}
@@ -291,8 +311,8 @@ export default function CreateUserPage() {
                       <SelectItem value="instructor">
                         Instructor (Pembuat Kelas)
                       </SelectItem>
-                      <SelectItem value="user">
-                        User (Peserta Belajar)
+                      <SelectItem value="learner">
+                        Learner (Peserta Belajar)
                       </SelectItem>
                     </SelectContent>
                   </Select>
@@ -301,40 +321,12 @@ export default function CreateUserPage() {
                   </p>
                 </div>
 
-                {/* Password */}
-                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4 space-y-4">
-                  <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                    Password (opsional)
-                  </p>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium block mb-1.5">
-                        Password
-                      </label>
-                      <Input
-                        name="password"
-                        type="password"
-                        value={formData.password}
-                        onChange={handleChange}
-                        placeholder="Kosongkan untuk generate otomatis"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium block mb-1.5">
-                        Konfirmasi Password
-                      </label>
-                      <Input
-                        name="password_confirmation"
-                        type="password"
-                        value={formData.password_confirmation}
-                        onChange={handleChange}
-                        placeholder="Ulangi password"
-                      />
-                    </div>
-                  </div>
-                  <p className="text-xs text-slate-500">
-                    Minimal 8 karakter. Jika kosong, sistem akan generate
-                    password otomatis.
+                {/* Info - Password Auto-Generated */}
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                  <p className="text-sm text-blue-800 dark:text-blue-300">
+                    ℹ️ <strong>Password otomatis:</strong> Sistem akan generate
+                    password aman secara otomatis. Setelah user dibuat, PDF berisi
+                    credentials akan otomatis terdownload.
                   </p>
                 </div>
 

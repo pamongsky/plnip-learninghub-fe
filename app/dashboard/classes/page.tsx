@@ -57,7 +57,18 @@ export default function UserClassesPage() {
           return "active";
         };
 
-        const mapped: EnrolledClass[] = data.map((c: any) => ({
+        interface CourseData {
+          id: number;
+          title: string;
+          description?: string | null;
+          instructor?: { name: string };
+          enrollments_count: number;
+          start_date?: string | null;
+          end_date?: string | null;
+          moodle_url?: string | null;
+        }
+
+        const mapped: EnrolledClass[] = (data as CourseData[]).map((c) => ({
           id: c.id,
           title: c.title,
           description: c.description || null,
@@ -70,8 +81,7 @@ export default function UserClassesPage() {
         }));
 
         setClasses(mapped);
-      } catch (error) {
-        console.error("Failed to load classes:", error);
+      } catch (err: unknown) {
         setClasses([]);
       } finally {
         setLoading(false);
@@ -119,6 +129,47 @@ export default function UserClassesPage() {
         return "bg-gray-100 text-gray-800 dark:bg-gray-500/20 dark:text-gray-400";
     }
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-6 animate-pulse">
+        {/* Header Skeleton */}
+        <div className="space-y-2">
+          <div className="h-8 w-48 bg-slate-200 dark:bg-slate-800 rounded-lg" />
+          <div className="h-4 w-96 bg-slate-200 dark:bg-slate-800 rounded-lg" />
+        </div>
+
+        {/* Search and Filter Skeleton */}
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex-1 h-10 bg-slate-200 dark:bg-slate-800 rounded-xl" />
+          <div className="w-40 h-10 bg-slate-200 dark:bg-slate-800 rounded-xl" />
+        </div>
+
+        {/* Classes Grid Skeleton */}
+        <div className="grid gap-4">
+          {[1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 space-y-3"
+            >
+              <div className="flex gap-4">
+                <div className="w-14 h-14 bg-slate-200 dark:bg-slate-700 rounded-xl flex-shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 w-32 bg-slate-200 dark:bg-slate-700 rounded" />
+                  <div className="h-5 w-48 bg-slate-200 dark:bg-slate-700 rounded" />
+                  <div className="h-3 w-40 bg-slate-200 dark:bg-slate-700 rounded" />
+                </div>
+              </div>
+              <div className="flex gap-2 pt-2">
+                <div className="flex-1 h-9 bg-slate-200 dark:bg-slate-700 rounded-lg" />
+                <div className="flex-1 h-9 bg-slate-200 dark:bg-slate-700 rounded-lg" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -177,14 +228,7 @@ export default function UserClassesPage() {
         transition={{ delay: 0.2 }}
         className="grid gap-4"
       >
-        {loading && (
-          <div className="text-center py-10 text-sm text-slate-500 dark:text-slate-400">
-            Memuat kelas Anda...
-          </div>
-        )}
-
-        {!loading &&
-          filteredClasses.map((cls, index) => (
+        {filteredClasses.map((cls, index) => (
             <motion.div
               key={cls.id}
               initial={{ opacity: 0, y: 20 }}
@@ -225,7 +269,7 @@ export default function UserClassesPage() {
                       {typeof cls.participants === "number" && (
                         <span className="flex items-center gap-1">
                           <UserGroupIcon className="w-4 h-4" />
-                          {cls.participants} peserta
+                          {cls.participants} learners
                         </span>
                       )}
                       {(cls.startDate || cls.endDate) && (
@@ -296,7 +340,7 @@ export default function UserClassesPage() {
             </motion.div>
           ))}
 
-        {!loading && filteredClasses.length === 0 && (
+        {filteredClasses.length === 0 && (
           <div className="text-center py-12">
             <AcademicCapIcon className="w-16 h-16 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-slate-800 dark:text-white mb-2">

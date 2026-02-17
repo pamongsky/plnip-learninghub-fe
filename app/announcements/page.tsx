@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import api from "@/lib/axios";
-import { getStorageUrl, getPriorityColor } from "@/lib/utils";
+import { getStorageUrl, getPriorityColor, sanitizeHtml } from "@/lib/utils";
 import Link from "next/link";
 import {
   MagnifyingGlassIcon,
@@ -61,7 +61,7 @@ export default function AnnouncementsPage() {
       setAnnouncements(response.data.data.announcements);
       setPagination(response.data.data.pagination);
     } catch (error) {
-      console.error("Failed to fetch announcements:", error);
+      // error handled silently
     } finally {
       setLoading(false);
     }
@@ -208,7 +208,7 @@ export default function AnnouncementsPage() {
                     <div
                       className="text-gray-600 text-sm line-clamp-3 mb-4 flex-1 prose prose-sm"
                       dangerouslySetInnerHTML={{
-                        __html: item.content,
+                        __html: sanitizeHtml(item.content),
                       }}
                     />
                   </div>

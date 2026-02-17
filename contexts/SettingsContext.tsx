@@ -41,7 +41,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         });
       }
     } catch (error) {
-      console.error("Failed to fetch settings:", error);
+      // settings fetch error - silent fail
     } finally {
       setIsLoading(false);
     }

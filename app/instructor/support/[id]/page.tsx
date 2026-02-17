@@ -81,16 +81,15 @@ const priorityConfig: Record<
   },
 };
 
-const statusConfig: Record<
-  string,
-  {
-    label: string;
-    color: string;
-    bgColor: string;
-    textColor: string;
-    icon: any;
-  }
-> = {
+interface StatusConfigDetail {
+  label: string;
+  color: string;
+  bgColor: string;
+  textColor: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
+
+const statusConfig: Record<string, StatusConfigDetail> = {
   open: {
     label: "Menunggu Respon",
     color: "border-blue-500",
@@ -133,7 +132,7 @@ export default function InstructorSupportDetailPage() {
 
   // Real-time: Handle new replies
   const handleNewReply = useCallback(
-    (data: any) => {
+    (data: Reply) => {
       // Skip if this is our own reply
       if (user && data.user_id === user.id) {
         return;
@@ -165,15 +164,15 @@ export default function InstructorSupportDetailPage() {
   );
 
   // Real-time: Handle status updates
-  const handleStatusUpdate = useCallback((data: any) => {
+  const handleStatusUpdate = useCallback((data: Partial<TicketDetail>) => {
     setTicket((prev) => {
       if (!prev) return prev;
 
       return {
         ...prev,
-        status: data.status,
+        status: data.status || prev.status,
         resolved_at: data.resolved_at || prev.resolved_at,
-        updated_at: data.updated_at,
+        updated_at: data.updated_at || prev.created_at,
       };
     });
   }, []);

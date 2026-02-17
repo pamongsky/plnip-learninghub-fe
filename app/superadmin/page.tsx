@@ -156,7 +156,7 @@ export default function SuperadminDashboardPage() {
         // Calculate admin count from users
         const admins = Array.isArray(usersData)
           ? usersData.filter(
-              (u: any) =>
+              (u: { role?: string; effective_role?: string }) =>
                 u.role === "admin" ||
                 u.role === "super-admin" ||
                 u.effective_role === "admin",
@@ -179,7 +179,7 @@ export default function SuperadminDashboardPage() {
 
         // Set admin activities from real data
         setRecentAdmins(
-          admins.slice(0, 4).map((admin: any, idx: number) => ({
+          admins.slice(0, 4).map((admin: { id: number; name: string; department?: string; last_login_at?: string; is_active: boolean }, idx: number) => ({
             id: admin.id,
             name: admin.name,
             unit: admin.department || "Pusat",
@@ -222,7 +222,7 @@ export default function SuperadminDashboardPage() {
           }
         }
       } catch (error) {
-        console.error("Failed to load dashboard:", error);
+        // error handled silently
       } finally {
         setLoading(false);
       }
@@ -254,9 +254,11 @@ export default function SuperadminDashboardPage() {
           message: response.data?.message || "Gagal mendapatkan akses Moodle",
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       const errorMsg =
-        error.response?.data?.message || "Gagal mengakses LMS Moodle";
+        error && typeof error === 'object' && 'response' in error
+          ? (error as { response?: { data?: { message?: string } } }).response?.data?.message || "Gagal mengakses LMS Moodle"
+          : error instanceof Error ? error.message : "Gagal mengakses LMS Moodle";
       showToast({
         type: "error",
         message: errorMsg,
@@ -288,9 +290,11 @@ export default function SuperadminDashboardPage() {
           pending_sync: moodleRes.data.stats?.pending_sync || 0,
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       const errorMsg =
-        error.response?.data?.message || "Gagal melakukan sinkronisasi";
+        error && typeof error === 'object' && 'response' in error
+          ? (error as { response?: { data?: { message?: string } } }).response?.data?.message || "Gagal melakukan sinkronisasi"
+          : error instanceof Error ? error.message : "Gagal melakukan sinkronisasi";
       showToast({
         type: "error",
         message: errorMsg,

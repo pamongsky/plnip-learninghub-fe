@@ -304,7 +304,7 @@ For each chat interaction:
 
 ## 📝 Notes
 
-- Widget only shows for **employee** and **instructor** roles
+- Widget only shows for **learner** and **instructor** roles
 - Admin/superadmin have full CRUD access to FAQs
 - FAQ matching uses **keyword-based algorithm** (can be improved with vector search)
 - Gemini API key required for AI fallback

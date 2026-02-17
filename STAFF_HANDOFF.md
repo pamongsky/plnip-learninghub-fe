@@ -23,7 +23,7 @@ Kamu adalah staf all-in-one. Fokus eksekusi cepat, rapi, dan konsisten dengan ke
 #### 1. Support Ticketing System
 Sistem tiket bantuan dengan 3 level berbeda:
 
-**User (Peserta):**
+**User (Learner):**
 - `app/dashboard/support/page.tsx` - List tiket (UI sederhana, tanpa stats)
 - `app/dashboard/support/[id]/page.tsx` - Detail tiket + reply
 - `app/dashboard/support/create/page.tsx` - Buat tiket
@@ -153,7 +153,7 @@ Database (Oracle)
 - **DM ke Super Admin** ✅
 
 ### Instructor:
-- Lihat daftar peserta kelas
+- Lihat daftar learner kelas
 - Lihat siapa yang sudah mengerjakan tugas/ujian
 - Status proses sederhana: belum mulai / sudah dikerjakan
 - **Buat Support Ticket ke Admin** ✅

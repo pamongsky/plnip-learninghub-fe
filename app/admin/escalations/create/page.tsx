@@ -91,8 +91,11 @@ export default function CreateEscalationPage() {
     try {
       await escalationApi.createTicket(formData);
       router.push("/admin/escalations");
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Gagal membuat tiket");
+    } catch (err: unknown) {
+      const errorMessage = err && typeof err === 'object' && 'response' in err
+        ? (err as { response?: { data?: { message?: string } } }).response?.data?.message || "Gagal membuat tiket"
+        : err instanceof Error ? err.message : "Gagal membuat tiket";
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

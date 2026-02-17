@@ -18,6 +18,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSettings } from "@/contexts/SettingsContext";
+import RoleGuard from "@/components/guards/RoleGuard";
 import { getImageUrl } from "@/lib/imageUrl";
 import {
   DropdownMenu,
@@ -132,6 +133,7 @@ export default function InstructorLayout({
   };
 
   return (
+    <RoleGuard allowedRoles={["instructor"]}>
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       {/* Sidebar Desktop */}
       <aside
@@ -506,5 +508,6 @@ export default function InstructorLayout({
       {/* AI Chat Widget */}
       <AIChatWidget />
     </div>
+    </RoleGuard>
   );
 }

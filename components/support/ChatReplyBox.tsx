@@ -96,6 +96,7 @@ export function ChatReplyBox({
                 {onRemoveFile && (
                   <button
                     onClick={() => onRemoveFile(index)}
+                    aria-label={`Remove attachment ${index + 1}`}
                     className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100"
                   >
                     <XMarkIcon className="h-3.5 w-3.5" />
@@ -122,8 +123,8 @@ export function ChatReplyBox({
               type="button"
               onClick={triggerFileInput}
               disabled={disabled || isSubmitting}
+              aria-label="Attach file"
               className="flex-shrink-0 p-2 text-slate-400 hover:text-pln-primary transition-colors disabled:opacity-50"
-              title="Lampirkan file"
             >
               <PaperClipIcon className="h-4 w-4" />
             </button>
@@ -164,6 +165,7 @@ export function ChatReplyBox({
             type="button"
             onClick={onSend}
             disabled={!value.trim() || isSubmitting || disabled}
+            aria-label="Send message"
             whileHover={{ scale: value.trim() ? 1.05 : 1 }}
             whileTap={{ scale: value.trim() ? 0.95 : 1 }}
             className={`flex-shrink-0 m-1 p-2 rounded-lg transition-all ${

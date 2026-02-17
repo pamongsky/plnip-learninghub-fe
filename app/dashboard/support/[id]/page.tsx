@@ -31,16 +31,15 @@ const categoryLabels: Record<string, { label: string; icon: string }> = {
   other: { label: "Lainnya", icon: "💬" },
 };
 
-const statusConfig: Record<
-  string,
-  {
-    label: string;
-    color: string;
-    bgColor: string;
-    textColor: string;
-    icon: any;
-  }
-> = {
+interface StatusConfigDetail {
+  label: string;
+  color: string;
+  bgColor: string;
+  textColor: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
+
+const statusConfig: Record<string, StatusConfigDetail> = {
   open: {
     label: "Menunggu Respon",
     color: "border-blue-500",
@@ -99,12 +98,9 @@ export default function UserSupportDetailPage() {
 
   // Real-time: Listen for new replies
   const handleNewReply = useCallback(
-    (data: any) => {
-      console.log("handleNewReply called with data:", data);
-
+    (data: SupportReply) => {
       // Skip if this is our own reply (already added via optimistic update)
       if (user && data.user_id === user.id) {
-        console.log("Skipping own reply from broadcast:", data.id);
         return;
       }
 
@@ -122,18 +118,15 @@ export default function UserSupportDetailPage() {
 
       setTicket((prev) => {
         if (!prev) {
-          console.log("No previous ticket state");
           return prev;
         }
 
         // Avoid duplicates - check by ID
         const exists = prev.replies.some((r) => r.id === newReply.id);
         if (exists) {
-          console.log("Reply already exists, skipping:", newReply.id);
           return prev;
         }
 
-        console.log("Adding new reply from broadcast:", newReply.id);
         return {
           ...prev,
           replies: [...prev.replies, newReply],
@@ -144,13 +137,10 @@ export default function UserSupportDetailPage() {
   );
 
   // Real-time: Handle status updates from broadcasting
-  const handleStatusUpdate = useCallback((data: any) => {
-    console.log("handleStatusUpdate called:", data);
-
+  const handleStatusUpdate = useCallback((data: Partial<SupportTicket>) => {
     setTicket((prev) => {
       if (!prev) return prev;
 
-      console.log("Updating ticket status to:", data.status);
       return {
         ...prev,
         status: data.status,
@@ -170,9 +160,10 @@ export default function UserSupportDetailPage() {
     try {
       const data = await supportApi.getTicket(ticketId);
       setTicket(data as TicketWithReplies);
-    } catch (err: any) {
-      console.error("Error loading ticket:", err);
-      setError(err.response?.data?.message || "Gagal memuat tiket");
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Gagal memuat tiket";
+      const apiMessage = err && typeof err === 'object' && 'response' in err ? (err as any).response?.data?.message : undefined;
+      setError(apiMessage || errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -223,8 +214,7 @@ export default function UserSupportDetailPage() {
   const renderAttachments = (urls: string[] | null | undefined) => {
     if (!urls || urls.length === 0) return null;
 
-    const baseURL =
-      process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+    const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "";
 
     return (
       <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -294,9 +284,10 @@ export default function UserSupportDetailPage() {
       });
 
       setReplyMessage("");
-    } catch (err: any) {
-      console.error("Error sending reply:", err);
-      setError(err.response?.data?.message || "Gagal mengirim balasan");
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Gagal mengirim balasan";
+      const apiMessage = err && typeof err === 'object' && 'response' in err ? (err as any).response?.data?.message : undefined;
+      setError(apiMessage || errorMessage);
     } finally {
       setIsSubmitting(false);
     }

@@ -84,6 +84,7 @@ export const supportApi = {
   getTickets: async (params?: {
     status?: string;
     priority?: string;
+    source?: string;
     page?: number;
     per_page?: number;
   }): Promise<{

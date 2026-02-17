@@ -106,7 +106,7 @@ export default function SuperadminEscalationsPage() {
       setTickets(ticketsRes.tickets);
       setStats(statsRes);
     } catch (error) {
-      console.error("Error loading escalations:", error);
+      // error handled silently
     } finally {
       setLoading(false);
     }
@@ -120,7 +120,7 @@ export default function SuperadminEscalationsPage() {
       });
       setGlobalTickets(res.tickets);
     } catch (error) {
-      console.error("Error loading global tickets:", error);
+      // error handled silently
     } finally {
       setGlobalLoading(false);
     }

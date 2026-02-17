@@ -17,29 +17,17 @@ import {
   ArrowLeftIcon,
 } from "@heroicons/react/24/outline";
 
-// Default background images (fallback)
-const defaultBackgroundImages = [
-  {
-    url: "https://images.unsplash.com/photo-1497366216548-37526070297c?w=1920&q=80",
-    title: "Modern Learning Environment",
-  },
-  {
-    url: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1920&q=80",
-    title: "Collaborative Workspace",
-  },
-  {
-    url: "https://images.unsplash.com/photo-1531482615713-2afd69097998?w=1920&q=80",
-    title: "Professional Development",
-  },
-  {
-    url: "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=1920&q=80",
-    title: "Interactive Sessions",
-  },
-  {
-    url: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=1920&q=80",
-    title: "Team Excellence",
-  },
-];
+// Type definitions
+interface LoginBackground {
+  image_path: string;
+  title?: string;
+}
+
+interface BackgroundImage {
+  url: string;
+  title: string;
+}
+
 
 export default function LoginPage() {
   const { login, user, loading: authLoading } = useAuth();
@@ -50,9 +38,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isMounted, setIsMounted] = useState(false);
-  const [backgroundImages, setBackgroundImages] = useState(
-    defaultBackgroundImages,
-  );
+  const [backgroundImages, setBackgroundImages] = useState<BackgroundImage[]>([]);
   const [loginContent, setLoginContent] = useState({
     title: "PLN IP",
     subtitle: "Learning Hub",
@@ -63,10 +49,17 @@ export default function LoginPage() {
   });
   const router = useRouter();
 
-  // Mount detection (client-side only)
+  // Mount detection + flash message from session expiry
   useEffect(() => {
     setIsMounted(true);
     fetchLoginPageData();
+
+    // Show flash message if redirected due to expired session
+    const flash = sessionStorage.getItem("login_flash");
+    if (flash) {
+      setError(flash);
+      sessionStorage.removeItem("login_flash");
+    }
   }, []);
 
   // Fetch login page data from API
@@ -78,7 +71,7 @@ export default function LoginPage() {
       // Set login backgrounds if available
       if (data.login_backgrounds && data.login_backgrounds.length > 0) {
         setBackgroundImages(
-          data.login_backgrounds.map((bg: any) => ({
+          data.login_backgrounds.map((bg: LoginBackground): BackgroundImage => ({
             url: getImageUrl(bg.image_path),
             title: bg.title || "Background",
           })),
@@ -102,24 +95,22 @@ export default function LoginPage() {
         });
       }
     } catch (error) {
-      console.error("Failed to fetch login page data:", error);
+      // error handled silently
       // Keep default values
     }
   };
 
   // Background image rotation
   useEffect(() => {
+    if (backgroundImages.length === 0) return;
     const interval = setInterval(() => {
       setCurrentImageIndex((prev) => (prev + 1) % backgroundImages.length);
     }, 6000);
     return () => clearInterval(interval);
-  }, []);
+  }, [backgroundImages]);
 
-  useEffect(() => {
-    if (authLoading || !user) return;
-    // Redirect to welcome page for all roles
-    router.replace("/welcome");
-  }, [authLoading, router, user]);
+  // Redirect handled by AuthContext (role-based redirect)
+  // No redirect here to avoid conflict
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -128,10 +119,11 @@ export default function LoginPage() {
 
     try {
       await login(email, password);
-    } catch (err: any) {
-      setError(err.message || "Login failed. Please try again.");
-    } finally {
-      setSubmitting(false);
+      // Success - don't set submitting to false, we're navigating away
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Login failed. Please try again.";
+      setError(errorMessage);
+      setSubmitting(false); // Only reset on error
     }
   };
 
@@ -147,7 +139,9 @@ export default function LoginPage() {
           transition={{ duration: 1.5 }}
           className="absolute inset-0 bg-cover bg-center"
           style={{
-            backgroundImage: `url('${backgroundImages[currentImageIndex].url}')`,
+            backgroundImage: backgroundImages[currentImageIndex]
+              ? `url('${backgroundImages[currentImageIndex].url}')`
+              : "none",
           }}
         />
       </AnimatePresence>
@@ -236,6 +230,8 @@ export default function LoginPage() {
               <button
                 key={index}
                 onClick={() => setCurrentImageIndex(index)}
+                aria-label={`View background ${index + 1}`}
+                aria-pressed={index === currentImageIndex}
                 className={`h-1.5 rounded-full transition-all duration-300 ${
                   index === currentImageIndex
                     ? "w-8 bg-white"
@@ -339,6 +335,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                   >
                     {showPassword ? (
@@ -350,14 +347,7 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between text-sm">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="w-4 h-4 rounded border-slate-300 text-pln-primary focus:ring-pln-primary/20"
-                  />
-                  <span className="text-slate-600">Remember me</span>
-                </label>
+              <div className="flex items-center justify-end text-sm">
                 <Link
                   href="/forgot-password"
                   className="text-pln-primary hover:text-pln-dark font-medium"
@@ -399,18 +389,6 @@ export default function LoginPage() {
                 )}
               </button>
             </form>
-
-            <div className="mt-6 text-center">
-              <p className="text-sm text-slate-500">
-                Don&apos;t have an account?{" "}
-                <Link
-                  href="/register"
-                  className="text-pln-primary hover:text-pln-dark font-semibold"
-                >
-                  Register here
-                </Link>
-              </p>
-            </div>
 
             <div className="mt-6 pt-4 border-t border-slate-100">
               <p className="text-xs text-slate-400 text-center">

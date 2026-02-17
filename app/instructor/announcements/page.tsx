@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import api from "@/lib/axios";
+import { sanitizeHtml } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
@@ -130,7 +131,7 @@ export default function InstructorAnnouncementsPage() {
         setMyCourses(coursesRes.data.data);
       }
     } catch (error) {
-      console.error("Failed to fetch data:", error);
+      // error handled silently
     } finally {
       setIsLoading(false);
     }
@@ -205,18 +206,17 @@ export default function InstructorAnnouncementsPage() {
       handleCancelEdit();
       fetchData();
     } catch (error) {
-      console.error("Failed to save announcement:", error);
       toast.error("Gagal menyimpan pengumuman. Silakan coba lagi.");
     }
   };
 
-  const handleEditAnnouncement = (announcement: any) => {
+  const handleEditAnnouncement = (announcement: Announcement) => {
     setEditingId(announcement.id);
     setNewAnnouncement({
       title: announcement.title,
       content: announcement.content,
       targetClasses: announcement.target_classes || [],
-      priority: announcement.priority,
+      priority: getMappedPriority(announcement.priority),
       published_at: announcement.published_at || "",
       expires_at: announcement.expires_at || "",
     });
@@ -234,7 +234,6 @@ export default function InstructorAnnouncementsPage() {
       setExpandedId(null);
       fetchData();
     } catch (error) {
-      console.error("Failed to delete announcement:", error);
       toast.error("Gagal menghapus pengumuman");
     }
   };
@@ -265,7 +264,7 @@ export default function InstructorAnnouncementsPage() {
             Pengumuman
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Kelola dan publikasikan informasi untuk peserta pelatihan Anda
+            Manage and publish information for your learners
           </p>
         </div>
         <button
@@ -506,7 +505,7 @@ export default function InstructorAnnouncementsPage() {
                               <div
                                 className="mt-4 text-sm text-slate-600 dark:text-slate-300 leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_h3]:text-lg [&_h3]:font-bold"
                                 dangerouslySetInnerHTML={{
-                                  __html: announcement.content,
+                                  __html: sanitizeHtml(announcement.content),
                                 }}
                               />
                               {(isMyAnnouncement || activeTab === "mine") && (
@@ -577,7 +576,7 @@ export default function InstructorAnnouncementsPage() {
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                     {editingId
                       ? "Perbarui informasi pengumuman"
-                      : "Publikasikan informasi untuk peserta pelatihan"}
+                      : "Publish information for learners"}
                   </p>
                 </div>
                 <button
@@ -626,7 +625,7 @@ export default function InstructorAnnouncementsPage() {
                           Semua Kelas
                         </span>
                         <span className="block text-xs text-slate-500">
-                          Kirim ke seluruh peserta kelas Anda
+                          Send to all class learners
                         </span>
                       </div>
                     </label>
@@ -676,7 +675,7 @@ export default function InstructorAnnouncementsPage() {
                             {course.title || course.name}
                           </span>
                           <span className="block text-xs text-slate-500">
-                            {course.participants_count || 0} Peserta
+                            {course.participants_count || 0} Learners
                           </span>
                         </div>
                       </label>
@@ -684,7 +683,7 @@ export default function InstructorAnnouncementsPage() {
                   </div>
                   <p className="text-xs text-slate-400 mt-2">
                     {(newAnnouncement.targetClasses || []).includes("all")
-                      ? "📢 Pengumuman akan dikirim ke semua peserta di seluruh kelas Anda"
+                      ? "📢 Announcement will be sent to all learners in all your classes"
                       : (newAnnouncement.targetClasses || []).length === 0
                         ? "⚠️ Pilih minimal satu kelas atau 'Semua Kelas'"
                         : `✓ ${(newAnnouncement.targetClasses || []).length} kelas dipilih`}
@@ -880,8 +879,7 @@ export default function InstructorAnnouncementsPage() {
                   Hapus Pengumuman?
                 </h3>
                 <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-6">
-                  Pengumuman yang dihapus tidak dapat dikembalikan. Peserta
-                  tidak akan bisa melihat pengumuman ini lagi.
+                  Pengumuman yang dihapus tidak dapat dikembalikan. Learners won't be able to see this announcement anymore.
                 </p>
                 <div className="flex gap-3">
                   <button

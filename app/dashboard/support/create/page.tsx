@@ -13,6 +13,7 @@ import {
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { supportApi } from "@/lib/api";
+import { SUPPORT_CATEGORIES } from "@/lib/constants/support";
 
 interface Category {
   value: string;
@@ -21,32 +22,7 @@ interface Category {
   icon: string;
 }
 
-const categories: Category[] = [
-  {
-    value: "technical",
-    label: "Masalah Teknis",
-    description: "Kendala login, error sistem, bug, atau akses platform",
-    icon: "🔐",
-  },
-  {
-    value: "learning",
-    label: "Masalah Pembelajaran",
-    description: "Masalah konten, video, kuis, atau materi kelas",
-    icon: "📚",
-  },
-  {
-    value: "certificate",
-    label: "Masalah Sertifikat",
-    description: "Sertifikat belum muncul, salah nama, atau gagal download",
-    icon: "🏆",
-  },
-  {
-    value: "other",
-    label: "Lainnya",
-    description: "Pertanyaan umum atau kendala di luar kategori di atas",
-    icon: "💬",
-  },
-];
+const categories: Category[] = Object.values(SUPPORT_CATEGORIES);
 
 export default function CreateTicketPage() {
   const router = useRouter();
@@ -81,15 +57,11 @@ export default function CreateTicketPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("=== HANDLE SUBMIT CALLED ===");
-    console.log("Form Data:", { selectedCategory, subject, description });
 
     if (!validate()) {
-      console.log("=== VALIDATION FAILED ===", errors);
       return;
     }
 
-    console.log("=== VALIDATION PASSED ===");
     setIsSubmitting(true);
 
     try {
@@ -101,23 +73,15 @@ export default function CreateTicketPage() {
         attachments: attachments,
       };
 
-      console.log("=== CREATING TICKET ===");
-      console.log("Selected Category:", selectedCategory);
-      console.log("Ticket Data:", {
-        ...ticketData,
-        attachments: `${attachments.length} files`,
-      });
-
       await supportApi.createTicket(ticketData);
 
       // Redirect to support list with success
       router.push("/dashboard/support?created=true");
-    } catch (err: any) {
-      console.error("Error creating ticket:", err);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Gagal membuat tiket. Silakan coba lagi.";
+      const apiMessage = err && typeof err === 'object' && 'response' in err ? (err as any).response?.data?.message : undefined;
       setErrors({
-        submit:
-          err.response?.data?.message ||
-          "Gagal membuat tiket. Silakan coba lagi.",
+        submit: apiMessage || errorMessage,
       });
       setIsSubmitting(false);
     }

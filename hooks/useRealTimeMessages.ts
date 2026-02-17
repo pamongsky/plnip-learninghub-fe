@@ -44,6 +44,23 @@ interface ClassMessageData {
   };
 }
 
+// Types for Status Updates
+interface StatusUpdateData {
+  status: string;
+  updated_at: string;
+  updated_by?: {
+    id: number;
+    name: string;
+  };
+}
+
+// Types for Pusher Subscription Error
+interface PusherSubscriptionError {
+  type: string;
+  error: string;
+  status?: number;
+}
+
 // Types for Support Replies
 interface SupportReplyData {
   id: number;
@@ -141,7 +158,7 @@ export function useClassChatChannel(
 export function useSupportTicketChannel(
   ticketId: number | null,
   onNewReply: (data: SupportReplyData) => void,
-  onStatusUpdate?: (data: any) => void,
+  onStatusUpdate?: (data: StatusUpdateData) => void,
 ) {
   const callbackRef = useRef(onNewReply);
   const statusCallbackRef = useRef(onStatusUpdate);
@@ -152,51 +169,46 @@ export function useSupportTicketChannel(
     if (!ticketId) return;
 
     const echo = getEcho();
-    if (!echo) {
-      console.warn("Echo not available for support ticket channel");
-      return;
-    }
+    if (!echo) return;
 
     const channelName = `support-ticket.${ticketId}`;
-    console.log("Subscribing to channel:", channelName);
-
     const channel = echo.private(channelName);
 
-    // Listen for new replies
     channel.listen(".reply.new", (data: SupportReplyData) => {
-      console.log("Received reply.new event:", data);
       callbackRef.current(data);
     });
 
-    // Listen for status updates
-    channel.listen(".status.updated", (data: any) => {
-      console.log("Received status.updated event:", data);
+    channel.listen(".status.updated", (data: StatusUpdateData) => {
       if (statusCallbackRef.current) {
         statusCallbackRef.current(data);
       }
     });
 
-    // Debug channel connection
-    channel.subscription.bind("pusher:subscription_succeeded", () => {
-      console.log("Successfully subscribed to:", channelName);
-    });
-
-    channel.subscription.bind("pusher:subscription_error", (status: any) => {
-      console.error("Subscription error:", status);
-    });
-
     return () => {
-      console.log("Unsubscribing from channel:", channelName);
       echo.leave(channelName);
     };
   }, [ticketId]);
 }
 
 // Hook for Escalation Ticket (Admin <-> Super Admin)
+// Types for Escalation Reply
+interface EscalationReplyData {
+  id: number;
+  ticket_id: number;
+  user_id: number;
+  content: string;
+  created_at: string;
+  user: {
+    id: number;
+    name: string;
+    role: string;
+  };
+}
+
 export function useEscalationTicketChannel(
   ticketId: number | null,
-  onNewReply: (data: any) => void,
-  onStatusUpdate?: (data: any) => void,
+  onNewReply: (data: EscalationReplyData) => void,
+  onStatusUpdate?: (data: StatusUpdateData) => void,
 ) {
   const callbackRef = useRef(onNewReply);
   const statusCallbackRef = useRef(onStatusUpdate);
@@ -207,41 +219,22 @@ export function useEscalationTicketChannel(
     if (!ticketId) return;
 
     const echo = getEcho();
-    if (!echo) {
-      console.warn("Echo not available for escalation ticket channel");
-      return;
-    }
+    if (!echo) return;
 
     const channelName = `escalation-ticket.${ticketId}`;
-    console.log("Subscribing to escalation channel:", channelName);
-
     const channel = echo.private(channelName);
 
-    // Listen for new replies
-    channel.listen(".reply.new", (data: any) => {
-      console.log("Received escalation reply.new event:", data);
+    channel.listen(".reply.new", (data: EscalationReplyData) => {
       callbackRef.current(data);
     });
 
-    // Listen for status updates
-    channel.listen(".status.updated", (data: any) => {
-      console.log("Received escalation status.updated event:", data);
+    channel.listen(".status.updated", (data: StatusUpdateData) => {
       if (statusCallbackRef.current) {
         statusCallbackRef.current(data);
       }
     });
 
-    // Debug channel connection
-    channel.subscription.bind("pusher:subscription_succeeded", () => {
-      console.log("Successfully subscribed to:", channelName);
-    });
-
-    channel.subscription.bind("pusher:subscription_error", (status: any) => {
-      console.error("Escalation subscription error:", status);
-    });
-
     return () => {
-      console.log("Unsubscribing from escalation channel:", channelName);
       echo.leave(channelName);
     };
   }, [ticketId]);

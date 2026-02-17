@@ -2,14 +2,27 @@ import Echo from "laravel-echo";
 import Pusher from "pusher-js";
 import api from "./axios";
 
-// Make Pusher available globally for Laravel Echo
-if (typeof window !== "undefined") {
-  (window as any).Pusher = Pusher;
+// Type definitions for Echo/Pusher
+interface BroadcastChannel {
+  name: string;
 }
 
-let echoInstance: Echo<any> | null = null;
+interface BroadcastAuthResponse {
+  auth?: string;
+  channel_data?: string;
+  shared_secret?: string;
+}
 
-export function getEcho(): Echo<any> | null {
+type BroadcastCallback = (error: Error | null, data: BroadcastAuthResponse | null) => void;
+
+// Make Pusher available globally for Laravel Echo
+if (typeof window !== "undefined") {
+  (window as typeof window & { Pusher: typeof Pusher }).Pusher = Pusher;
+}
+
+let echoInstance: Echo<Pusher> | null = null;
+
+export function getEcho(): Echo<Pusher> | null {
   if (typeof window === "undefined") {
     return null;
   }
@@ -18,23 +31,23 @@ export function getEcho(): Echo<any> | null {
     echoInstance = new Echo({
       broadcaster: "reverb",
       key: process.env.NEXT_PUBLIC_REVERB_APP_KEY,
-      wsHost: process.env.NEXT_PUBLIC_REVERB_HOST || "localhost",
-      wsPort: parseInt(process.env.NEXT_PUBLIC_REVERB_PORT || "8080"),
-      wssPort: parseInt(process.env.NEXT_PUBLIC_REVERB_PORT || "8080"),
-      forceTLS: (process.env.NEXT_PUBLIC_REVERB_SCHEME || "http") === "https",
+      wsHost: process.env.NEXT_PUBLIC_REVERB_HOST,
+      wsPort: parseInt(process.env.NEXT_PUBLIC_REVERB_PORT ?? "443"),
+      wssPort: parseInt(process.env.NEXT_PUBLIC_REVERB_PORT ?? "443"),
+      forceTLS: (process.env.NEXT_PUBLIC_REVERB_SCHEME ?? "wss") === "wss",
       enabledTransports: ["ws", "wss"],
-      authEndpoint: `${process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000"}/broadcasting/auth`,
+      authEndpoint: `${process.env.NEXT_PUBLIC_API_BASE_URL}/broadcasting/auth`,
       auth: {
         headers: {
           Accept: "application/json",
         },
       },
       // Use axios for authorization (includes Sanctum token)
-      authorizer: (channel: any) => {
+      authorizer: (channel: BroadcastChannel) => {
         return {
           authorize: (
             socketId: string,
-            callback: (error: any, data: any) => void,
+            callback: BroadcastCallback,
           ) => {
             api
               .post("/broadcasting/auth", {
@@ -47,7 +60,7 @@ export function getEcho(): Echo<any> | null {
               .catch((error) => {
                 // Only log non-403 errors (403 can happen on reconnect/retry)
                 if (error.response?.status !== 403) {
-                  console.error("Broadcasting auth error:", error);
+                  // Broadcasting auth error - silent fail
                 }
                 callback(error, null);
               });
@@ -55,8 +68,6 @@ export function getEcho(): Echo<any> | null {
         };
       },
     });
-
-    console.log("Echo instance created with Reverb broadcaster");
   }
 
   return echoInstance;

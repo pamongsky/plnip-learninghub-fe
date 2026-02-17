@@ -40,7 +40,6 @@ export default function InstructorClassesPage() {
       const res = await api.get("/dashboard/instructor");
       setClasses(res.data.data.classes || []);
     } catch (error) {
-      console.error("Failed to fetch classes:", error);
       setClasses([]);
     } finally {
       setLoading(false);
@@ -226,7 +225,7 @@ export default function InstructorClassesPage() {
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3 text-xs text-slate-500 dark:text-slate-400">
                       <span className="flex items-center gap-1">
                         <UserGroupIcon className="w-4 h-4" />
-                        {cls.participants} peserta
+                        {cls.participants} learners
                       </span>
                       <span className="flex items-center gap-1">
                         <CalendarIcon className="w-4 h-4" />

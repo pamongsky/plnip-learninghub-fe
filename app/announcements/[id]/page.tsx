@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import api from "@/lib/axios";
-import { getStorageUrl, getPriorityColor } from "@/lib/utils";
+import { getStorageUrl, getPriorityColor, sanitizeHtml } from "@/lib/utils";
 import Link from "next/link";
 import {
   ArrowLeftIcon,
@@ -45,7 +45,7 @@ export default function AnnouncementDetailPage() {
       const response = await api.get(`/announcements/${id}`);
       setAnnouncement(response.data.data.announcement);
     } catch (error) {
-      console.error("Failed to fetch announcement:", error);
+      // error handled silently
     } finally {
       setLoading(false);
     }
@@ -177,7 +177,7 @@ export default function AnnouncementDetailPage() {
           <div className="p-8 md:p-10">
             <div
               className="prose prose-lg max-w-none text-gray-700 prose-headings:text-pln-primary prose-a:text-pln-primary"
-              dangerouslySetInnerHTML={{ __html: announcement.content }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(announcement.content) }}
             />
           </div>
         </div>

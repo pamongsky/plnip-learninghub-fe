@@ -75,12 +75,9 @@ export default function SuperadminEscalationDetailPage() {
 
   // Real-time: Handle new replies from broadcasting
   const handleNewReply = useCallback(
-    (data: any) => {
-      console.log("handleNewReply called with escalation data:", data);
-
+    (data: { id: number; escalation_ticket_id: number; user_id: number; message: string; attachments?: string[] | null; is_internal?: boolean; created_at: string; user: { name: string; role?: string } }) => {
       // Skip if this is our own reply (already added via optimistic update)
       if (user && data.user_id === user.id) {
-        console.log("Skipping own escalation reply:", data.id);
         return;
       }
 
@@ -102,11 +99,9 @@ export default function SuperadminEscalationDetailPage() {
         // Avoid duplicates
         const exists = prev.replies?.some((r) => r.id === newReply.id);
         if (exists) {
-          console.log("Escalation reply already exists:", newReply.id);
           return prev;
         }
 
-        console.log("Adding new escalation reply:", newReply.id);
         return {
           ...prev,
           replies: [...(prev.replies || []), newReply],
@@ -120,13 +115,10 @@ export default function SuperadminEscalationDetailPage() {
   );
 
   // Real-time: Handle status updates from broadcasting
-  const handleStatusUpdate = useCallback((data: any) => {
-    console.log("handleStatusUpdate called:", data);
-
+  const handleStatusUpdate = useCallback((data: { status: string; resolved_at?: string; superadmin_id?: number; updated_at: string }) => {
     setTicket((prev) => {
       if (!prev) return prev;
 
-      console.log("Updating ticket status to:", data.status);
       return {
         ...prev,
         status: data.status,
@@ -146,7 +138,7 @@ export default function SuperadminEscalationDetailPage() {
       const data = await escalationApi.getTicket(ticketId);
       setTicket(data);
     } catch (error) {
-      console.error("Error loading ticket:", error);
+      // error handled silently
     } finally {
       if (!silent) setLoading(false);
     }
@@ -175,16 +167,13 @@ export default function SuperadminEscalationDetailPage() {
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
-    console.log("handleSendMessage called");
     e.preventDefault();
     e.stopPropagation();
 
     if ((!message.trim() && attachments.length === 0) || sending) {
-      console.log("Validation failed or already sending");
       return;
     }
 
-    console.log("Starting to send message:", message);
     setSending(true);
 
     const currentMessage = message;
@@ -198,13 +187,11 @@ export default function SuperadminEscalationDetailPage() {
     setPreviewUrls([]);
 
     try {
-      console.log("Calling API...");
       const response = await escalationApi.addReply(
         ticketId,
         currentMessage,
         currentAttachments,
       );
-      console.log("API call successful - adding reply optimistically");
 
       // Optimistic update - add our own reply immediately
       if (response.reply) {
@@ -220,13 +207,12 @@ export default function SuperadminEscalationDetailPage() {
       // No need to reload - broadcasting will update for other users
       setTimeout(() => scrollToBottom(), 100);
     } catch (error) {
-      console.error("Error sending message:", error);
+      // error handled silently
       // Restore message on error
       setMessage(currentMessage);
       setAttachments(currentAttachments);
     } finally {
       setSending(false);
-      console.log("Send complete");
     }
   };
 
@@ -234,7 +220,6 @@ export default function SuperadminEscalationDetailPage() {
     setUpdatingStatus(true);
     try {
       const response = await escalationApi.updateStatus(ticketId, newStatus);
-      console.log("Status updated successfully");
 
       // Optimistic update - update status immediately
       if (response.ticket) {
@@ -251,7 +236,7 @@ export default function SuperadminEscalationDetailPage() {
 
       // No need to reload - broadcasting will update for other users
     } catch (error) {
-      console.error("Error updating status:", error);
+      // error handled silently
     } finally {
       setUpdatingStatus(false);
     }
@@ -269,7 +254,7 @@ export default function SuperadminEscalationDetailPage() {
 
   const getAttachmentUrl = (attachment: string) => {
     if (attachment.startsWith("http")) return attachment;
-    return `http://127.0.0.1:8000${attachment.startsWith("/") ? "" : "/"}${attachment}`;
+    return `${process.env.NEXT_PUBLIC_BACKEND_URL ?? ""}${attachment.startsWith("/") ? "" : "/"}${attachment}`;
   };
 
   const renderAttachments = (urls: string[] | null | undefined) => {
@@ -585,9 +570,9 @@ export default function SuperadminEscalationDetailPage() {
               <ChatReplyBox
                 value={message}
                 onChange={setMessage}
-                onSend={(e?: any) => {
+                onSend={(e?: React.FormEvent) => {
                   e?.preventDefault?.();
-                  handleSendMessage(e || { preventDefault: () => {}, stopPropagation: () => {} } as any);
+                  handleSendMessage(e || { preventDefault: () => {}, stopPropagation: () => {} } as React.FormEvent);
                 }}
                 onFileSelect={handleFileSelect}
                 onRemoveFile={removeAttachment}

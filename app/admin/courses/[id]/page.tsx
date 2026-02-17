@@ -66,36 +66,71 @@ import axios from "@/lib/axios";
 import { toast } from "sonner";
 import { useConfirm } from "@/hooks/use-confirm";
 
+interface CourseStudent {
+  id: number;
+  name: string;
+  email: string;
+  employee_id?: string;
+  pivot?: {
+    moodle_role_id: number;
+    status: string;
+    enrolled_at: string;
+  };
+}
+
+interface CourseDetail extends Course {
+  students?: CourseStudent[];
+}
+
+interface ProgressData {
+  progress: number;
+  completed_activities: number;
+  total_with_completion: number;
+  total_activities: number;
+  course_grade?: string | null;
+  last_access?: string | null;
+  progress_mode?: string;
+  activities: Array<{
+    name: string;
+    type: string;
+    completion_status: number;
+    grade?: number | null;
+    grade_raw?: number | null;
+    grade_max?: number | null;
+    has_completion: boolean;
+  }>;
+}
+
 export default function CourseDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { confirm, ConfirmDialog } = useConfirm();
-  const [course, setCourse] = useState<any>(null); // TODO: Type properly
+  const [course, setCourse] = useState<CourseDetail | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Enrollment State
   const [isEnrollOpen, setIsEnrollOpen] = useState(false);
   const [searchUser, setSearchUser] = useState("");
-  const [users, setUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<CourseStudent[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
-  const [selectedUsers, setSelectedUsers] = useState<any[]>([]);
+  const [selectedUsers, setSelectedUsers] = useState<CourseStudent[]>([]);
   const [selectedRole, setSelectedRole] = useState("5"); // 5=Student
   const [enrolling, setEnrolling] = useState(false);
 
   // Change role state
-  const [roleTarget, setRoleTarget] = useState<any>(null);
+  const [roleTarget, setRoleTarget] = useState<CourseStudent | null>(null);
   const [newRole, setNewRole] = useState("");
 
   // Certificate upload state
-  const [uploadTarget, setUploadTarget] = useState<any>(null);
+  const [uploadTarget, setUploadTarget] = useState<CourseStudent | null>(null);
   const [uploadingCert, setUploadingCert] = useState(false);
   const [showZipUpload, setShowZipUpload] = useState(false);
   const [zipUploading, setZipUploading] = useState(false);
   const [zipResults, setZipResults] = useState<{ matched: string[]; unmatched: string[]; total_matched: number; total_unmatched: number } | null>(null);
 
   // Progress tracking state
-  const [progressTarget, setProgressTarget] = useState<any>(null);
-  const [progressData, setProgressData] = useState<any>(null);
+  const [progressTarget, setProgressTarget] = useState<CourseStudent | null>(null);
+  const [progressData, setProgressData] = useState<ProgressData | null>(null);
   const [progressLoading, setProgressLoading] = useState(false);
 
   useEffect(() => {
@@ -110,7 +145,6 @@ export default function CourseDetailPage() {
       const data = await coursesApi.getOne(id);
       setCourse(data);
     } catch (error) {
-      console.error("Error loading course:", error);
       toast.error("Gagal memuat detail kelas");
     } finally {
       setLoading(false);
@@ -130,7 +164,7 @@ export default function CourseDetailPage() {
         const res = await axios.get(`/users?search=${encodeURIComponent(searchUser)}`);
         setUsers(res.data.data || res.data);
       } catch (e) {
-        console.error(e);
+        // error handled silently
       } finally {
         setSearchLoading(false);
       }
@@ -162,8 +196,11 @@ export default function CourseDetailPage() {
       setSelectedUsers([]);
       setSearchUser("");
       loadCourse(course.id.toString());
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Gagal enroll user");
+    } catch (error: unknown) {
+      const errorMessage = error && typeof error === 'object' && 'response' in error
+        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message || "Gagal enroll user"
+        : error instanceof Error ? error.message : "Gagal enroll user";
+      toast.error(errorMessage);
     } finally {
       setEnrolling(false);
     }
@@ -176,13 +213,16 @@ export default function CourseDetailPage() {
       toast.success("Role berhasil diubah!");
       setRoleTarget(null);
       loadCourse(course.id.toString());
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Gagal mengubah role");
+    } catch (error: unknown) {
+      const errorMessage = error && typeof error === 'object' && 'response' in error
+        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message || "Gagal mengubah role"
+        : error instanceof Error ? error.message : "Gagal mengubah role";
+      toast.error(errorMessage);
     }
   };
 
   const handleUnenroll = async (userId: number) => {
-    const confirmed = await confirm({ title: "Hapus Peserta", description: "Yakin ingin mengeluarkan user ini dari kelas?", confirmText: "Ya, Hapus", variant: "destructive" });
+    const confirmed = await confirm({ title: "Remove Learner", description: "Yakin ingin mengeluarkan user ini dari kelas?", confirmText: "Ya, Hapus", variant: "destructive" });
     if (!confirmed) return;
 
     try {
@@ -194,15 +234,18 @@ export default function CourseDetailPage() {
     }
   };
 
-  const handleViewProgress = async (student: any) => {
+  const handleViewProgress = async (student: CourseStudent) => {
     setProgressTarget(student);
     setProgressData(null);
     setProgressLoading(true);
     try {
-      const data = await coursesApi.getUserProgress(course.id, student.id);
+      const data = await coursesApi.getUserProgress(course!.id, student.id);
       setProgressData(data);
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Gagal memuat data progress");
+    } catch (error: unknown) {
+      const errorMessage = error && typeof error === 'object' && 'response' in error
+        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message || "Gagal memuat data progress"
+        : error instanceof Error ? error.message : "Gagal memuat data progress";
+      toast.error(errorMessage);
       setProgressTarget(null);
     } finally {
       setProgressLoading(false);
@@ -234,14 +277,17 @@ export default function CourseDetailPage() {
     }
   };
 
-  const handleUploadCert = async (file: File, student: any) => {
+  const handleUploadCert = async (file: File, student: CourseStudent) => {
     try {
       setUploadingCert(true);
-      await certificateApi.uploadForUser(course.id, student.id, file);
+      await certificateApi.uploadForUser(course!.id, student.id, file);
       toast.success(`Sertifikat untuk ${student.name} berhasil diupload!`);
       setUploadTarget(null);
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Gagal upload sertifikat");
+    } catch (error: unknown) {
+      const errorMessage = error && typeof error === 'object' && 'response' in error
+        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message || "Gagal upload sertifikat"
+        : error instanceof Error ? error.message : "Gagal upload sertifikat";
+      toast.error(errorMessage);
     } finally {
       setUploadingCert(false);
     }
@@ -250,11 +296,14 @@ export default function CourseDetailPage() {
   const handleUploadZip = async (file: File) => {
     try {
       setZipUploading(true);
-      const result = await certificateApi.uploadBulkZip(course.id, file);
+      const result = await certificateApi.uploadBulkZip(course!.id, file);
       setZipResults(result);
       toast.success(`Selesai! ${result.total_matched} matched, ${result.total_unmatched} unmatched`);
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Gagal upload ZIP");
+    } catch (error: unknown) {
+      const errorMessage = error && typeof error === 'object' && 'response' in error
+        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message || "Gagal upload ZIP"
+        : error instanceof Error ? error.message : "Gagal upload ZIP";
+      toast.error(errorMessage);
     } finally {
       setZipUploading(false);
     }
@@ -301,7 +350,7 @@ export default function CourseDetailPage() {
       <Tabs defaultValue="enrollments" className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="enrollments">
-            Peserta ({course.enrollments?.length || 0})
+            Learners ({course.enrollments?.length || 0})
           </TabsTrigger>
           <TabsTrigger value="overview">Informasi Kelas</TabsTrigger>
         </TabsList>
@@ -347,7 +396,7 @@ export default function CourseDetailPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
-                <CardTitle>Daftar Peserta</CardTitle>
+                <CardTitle>Learner List</CardTitle>
                 <CardDescription>
                   User yang terdaftar dalam kelas ini di Moodle.
                 </CardDescription>
@@ -364,7 +413,7 @@ export default function CourseDetailPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Nama Peserta</TableHead>
+                    <TableHead>Learner Name</TableHead>
                     <TableHead>NIP</TableHead>
                     <TableHead>Role</TableHead>
                     <TableHead>Status</TableHead>
@@ -379,11 +428,11 @@ export default function CourseDetailPage() {
                         colSpan={6}
                         className="text-center py-8 text-slate-500"
                       >
-                        Belum ada peserta. Silakan Enroll Siswa baru.
+                        No learners yet. Enroll new learners.
                       </TableCell>
                     </TableRow>
                   ) : (
-                    course.students?.map((student: any) => (
+                    course.students?.map((student: CourseStudent) => (
                       <TableRow key={student.id}>
                         <TableCell>
                           <div>
@@ -457,7 +506,7 @@ export default function CourseDetailPage() {
                                 onClick={() => handleUnenroll(student.id)}
                               >
                                 <TrashIcon className="w-4 h-4 mr-2" />
-                                Hapus Peserta
+                                Remove Learner
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -506,7 +555,7 @@ export default function CourseDetailPage() {
           <DialogHeader>
             <DialogTitle>Upload Sertifikat Massal (ZIP)</DialogTitle>
             <DialogDescription>
-              Upload file ZIP berisi PDF sertifikat. Nama file harus NIP atau nama peserta.
+              Upload file ZIP berisi PDF sertifikat. Nama file harus NIP atau learner name.
               Matching: NIP tepat → nama tepat → nama sebagian.
             </DialogDescription>
           </DialogHeader>
@@ -553,7 +602,7 @@ export default function CourseDetailPage() {
       <Dialog open={!!progressTarget} onOpenChange={(o) => { if (!o) { setProgressTarget(null); setProgressData(null); } }}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Progress Peserta</DialogTitle>
+            <DialogTitle>Learner Progress</DialogTitle>
             <DialogDescription>
               {progressTarget?.name} — {progressTarget?.email}
             </DialogDescription>
@@ -617,7 +666,7 @@ export default function CourseDetailPage() {
                   Daftar Aktivitas ({progressData.total_activities})
                 </h4>
                 <div className="border border-slate-200 dark:border-slate-700 rounded-lg divide-y divide-slate-200 dark:divide-slate-700">
-                  {progressData.activities.map((activity: any, idx: number) => {
+                  {progressData.activities.map((activity: ProgressData['activities'][0], idx: number) => {
                     const completion = getCompletionLabel(activity.completion_status);
                     return (
                       <div key={idx} className="flex items-center justify-between px-3 py-2.5 text-sm">
@@ -660,7 +709,7 @@ export default function CourseDetailPage() {
       <Dialog open={isEnrollOpen} onOpenChange={(open) => { setIsEnrollOpen(open); if (!open) { setSearchUser(""); setSelectedUsers([]); setUsers([]); } }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Enroll Peserta Baru</DialogTitle>
+            <DialogTitle>Enroll New Learner</DialogTitle>
             <DialogDescription>
               Cari dan pilih beberapa user sekaligus. User akan otomatis
               dibuatkan akun Moodle jika belum ada.

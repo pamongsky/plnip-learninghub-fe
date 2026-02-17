@@ -20,7 +20,7 @@ const certificateApi = {
   // User: my certificates
   getMyCertificates: async (): Promise<Certificate[]> => {
     const response = await api.get("/certificates");
-    return response.data;
+    return response.data.data || response.data; // Handle both old and new structure
   },
 
   // User: download PDF

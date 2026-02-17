@@ -35,6 +35,20 @@ export interface Enrollment {
   };
 }
 
+export interface CourseUpdateData {
+  title?: string;
+  description?: string;
+  start_date?: string | null;
+  end_date?: string | null;
+  is_active?: boolean;
+  instructor_id?: number | null;
+}
+
+export interface EnrollmentResponse {
+  message: string;
+  data: Enrollment;
+}
+
 export const coursesApi = {
   getAll: async (page = 1) => {
     const response = await axios.get(`/courses?page=${page}`);
@@ -48,7 +62,7 @@ export const coursesApi = {
     const response = await axios.get(`/courses/${id}`);
     return response.data;
   },
-  update: async (id: number | string, data: any): Promise<Course> => {
+  update: async (id: number | string, data: CourseUpdateData): Promise<Course> => {
     const response = await axios.put(`/courses/${id}`, data);
     return response.data;
   },
@@ -56,7 +70,7 @@ export const coursesApi = {
     courseId: number | string,
     userId: number,
     roleId: number = 5,
-  ): Promise<any> => {
+  ): Promise<EnrollmentResponse> => {
     const response = await axios.post(`/courses/${courseId}/enroll`, {
       user_id: userId,
       role_id: roleId,

@@ -49,7 +49,10 @@ export default function WelcomePage() {
 
   useEffect(() => {
     if (loading) return;
-    if (!user) {
+
+    // Check both user state and sessionStorage (for race condition fix)
+    const hasToken = sessionStorage.getItem("auth_token");
+    if (!user && !hasToken) {
       router.replace("/login");
       return;
     }

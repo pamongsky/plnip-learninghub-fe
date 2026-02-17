@@ -20,8 +20,8 @@ export {
 } from "./classChat";
 export { default as usersApi, type User, type UsersResponse } from "./users";
 export { default as certificateApi, type Certificate } from "./certificates";
-export { default as coursesApi } from "./courses";
-export { default as escalationApi } from "./escalation";
+export { coursesApi, type Course, type Enrollment } from "./courses";
+export { escalationApi, type EscalationTicket, type EscalationReply, type EscalationStats } from "./escalation";
 export { aiAssistantApi } from "./ai-assistant";
 export {
   getMoodleSyncStatus,

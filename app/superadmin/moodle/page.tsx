@@ -84,8 +84,8 @@ export default function SuperadminMoodlePage() {
     try {
       const data = await getMoodleSyncStatus();
       setSyncStatus(data);
-    } catch (error: any) {
-      console.error("Failed to load sync status:", error);
+    } catch (error: unknown) {
+      // error handled silently
     } finally {
       setIsLoading(false);
     }
@@ -95,8 +95,8 @@ export default function SuperadminMoodlePage() {
     try {
       const data = await getSyncHistory();
       setSyncHistory(data.history);
-    } catch (error: any) {
-      console.error("Failed to load sync history:", error);
+    } catch (error: unknown) {
+      // error handled silently
     }
   };
 
@@ -156,11 +156,13 @@ export default function SuperadminMoodlePage() {
         loadSyncStatus();
         loadSyncHistory();
       }, 1000);
-    } catch (error: any) {
-      console.error("Sync Error:", error);
+    } catch (error: unknown) {
+      const errorMessage = error && typeof error === 'object' && 'response' in error
+        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message || `Gagal melakukan ${type}`
+        : error instanceof Error ? error.message : `Gagal melakukan ${type}`;
       showToast({
         type: "error",
-        message: error.response?.data?.message || `Gagal melakukan ${type}`,
+        message: errorMessage,
       });
     } finally {
       setIsSyncing(false);

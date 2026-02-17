@@ -138,10 +138,13 @@ export default function AdminDashboardPage() {
           window.open(response.data.login_url, "_blank");
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error && typeof error === 'object' && 'response' in error
+        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message || "Gagal mengakses Moodle"
+        : error instanceof Error ? error.message : "Gagal mengakses Moodle";
       showToast({
         type: "error",
-        message: error.response?.data?.message || "Gagal mengakses Moodle",
+        message: errorMessage,
       });
     } finally {
       setLoadingMoodle(false);
@@ -176,7 +179,7 @@ export default function AdminDashboardPage() {
         const usersData = usersRes?.data?.data || [];
         setRecentUsers(
           Array.isArray(usersData)
-            ? usersData.slice(0, 5).map((u: any) => ({
+            ? usersData.slice(0, 5).map((u: RecentUser) => ({
                 id: u.id,
                 name: u.name,
                 email: u.email,
@@ -271,7 +274,7 @@ export default function AdminDashboardPage() {
   const quickActions = [
     {
       title: "Kelola Kelas",
-      desc: "Atur kelas dan peserta",
+      desc: "Manage classes and learners",
       icon: AcademicCapIcon,
       href: "/admin/courses",
       gradient: "from-violet-500 to-purple-500",

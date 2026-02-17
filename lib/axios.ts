@@ -2,7 +2,7 @@ import axios from 'axios';
 import Cookies from 'js-cookie';
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api',
+  baseURL: process.env.NEXT_PUBLIC_API_URL,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
@@ -10,12 +10,14 @@ const api = axios.create({
   withCredentials: false,
 });
 
-// Request interceptor to add token
+// Request interceptor to add token from sessionStorage
 api.interceptors.request.use(
   (config) => {
-    const token = Cookies.get('auth_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    if (typeof window !== 'undefined') {
+      const token = sessionStorage.getItem('auth_token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
     return config;
   },
@@ -28,13 +30,23 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Clear token and redirect to login
+    if (typeof window === 'undefined') return Promise.reject(error);
+
+    const status = error.response?.status;
+
+    if (status === 401) {
+      // Token expired — show flash message then redirect to login
+      sessionStorage.removeItem('auth_token');
       Cookies.remove('auth_token');
-      if (typeof window !== 'undefined') {
-        window.location.href = '/login';
-      }
+      sessionStorage.setItem('login_flash', 'Sesi Anda telah berakhir. Silakan login kembali.');
+      window.location.href = '/login';
+    } else if (status === 403) {
+      // Forbidden — show toast without redirecting
+      window.dispatchEvent(new CustomEvent('api:forbidden', {
+        detail: 'Akses ditolak. Anda tidak memiliki izin untuk melakukan aksi ini.'
+      }));
     }
+
     return Promise.reject(error);
   }
 );
