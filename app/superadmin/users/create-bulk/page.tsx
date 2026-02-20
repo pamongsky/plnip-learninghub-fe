@@ -20,7 +20,6 @@ interface UserRow {
   employee_id: string;
   phone: string;
   department: string;
-  position: string;
   role: string;
 }
 
@@ -34,7 +33,6 @@ export default function CreateBulkUsersPage() {
       employee_id: "",
       phone: "",
       department: "",
-      position: "",
       role: "learner",
     },
   ]);
@@ -52,7 +50,6 @@ export default function CreateBulkUsersPage() {
         employee_id: "",
         phone: "",
         department: "",
-        position: "",
         role: "learner",
       },
     ]);
@@ -67,9 +64,7 @@ export default function CreateBulkUsersPage() {
   };
 
   const updateUser = (id: string, field: keyof UserRow, value: string) => {
-    setUsers(
-      users.map((u) => (u.id === id ? { ...u, [field]: value } : u))
-    );
+    setUsers(users.map((u) => (u.id === id ? { ...u, [field]: value } : u)));
   };
 
   const handleSubmit = async () => {
@@ -77,9 +72,7 @@ export default function CreateBulkUsersPage() {
     setSuccess("");
 
     // Validation
-    const filledUsers = users.filter(
-      (u) => u.name.trim() && u.email.trim()
-    );
+    const filledUsers = users.filter((u) => u.name.trim() && u.email.trim());
 
     if (filledUsers.length === 0) {
       setError("Minimal harus ada 1 user dengan nama dan email diisi");
@@ -89,7 +82,7 @@ export default function CreateBulkUsersPage() {
     // Check for duplicate emails
     const emails = filledUsers.map((u) => u.email.toLowerCase());
     const duplicateEmails = emails.filter(
-      (email, index) => emails.indexOf(email) !== index
+      (email, index) => emails.indexOf(email) !== index,
     );
     if (duplicateEmails.length > 0) {
       setError(`Email duplikat: ${duplicateEmails.join(", ")}`);
@@ -101,7 +94,7 @@ export default function CreateBulkUsersPage() {
       .map((u) => u.employee_id)
       .filter((id) => id.trim());
     const duplicateIds = employeeIds.filter(
-      (id, index) => employeeIds.indexOf(id) !== index
+      (id, index) => employeeIds.indexOf(id) !== index,
     );
     if (duplicateIds.length > 0) {
       setError(`NIP duplikat: ${duplicateIds.join(", ")}`);
@@ -117,13 +110,12 @@ export default function CreateBulkUsersPage() {
           employee_id: u.employee_id || null,
           phone: u.phone || null,
           department: u.department || null,
-          position: u.position || null,
           role: u.role,
         })),
       });
 
       setSuccess(
-        `${response.data.created_count} user berhasil dibuat! Download PDF untuk melihat passwords.`
+        `${response.data.created_count} user berhasil dibuat! Download PDF untuk melihat passwords.`,
       );
 
       // Download PDF
@@ -142,7 +134,7 @@ export default function CreateBulkUsersPage() {
       // Show errors if any
       if (response.data.errors && response.data.errors.length > 0) {
         setError(
-          "Beberapa user gagal dibuat:\n" + response.data.errors.join("\n")
+          "Beberapa user gagal dibuat:\n" + response.data.errors.join("\n"),
         );
       }
 
@@ -155,7 +147,7 @@ export default function CreateBulkUsersPage() {
       setError(
         error?.response?.data?.message ||
           error?.response?.data?.error ||
-          "Gagal membuat users"
+          "Gagal membuat users",
       );
     } finally {
       setLoading(false);
@@ -205,8 +197,18 @@ export default function CreateBulkUsersPage() {
             onClick={() => router.push("/superadmin/users/create")}
             className="px-4 py-2 bg-gradient-to-r from-pln-primary to-pln-light hover:shadow-lg text-white text-sm font-semibold rounded-lg transition-all flex items-center gap-2 flex-shrink-0 whitespace-nowrap"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+              />
             </svg>
             Buat User Tunggal
           </button>
@@ -275,10 +277,7 @@ export default function CreateBulkUsersPage() {
                   Phone
                 </th>
                 <th className="px-2 sm:px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase">
-                  Department
-                </th>
-                <th className="px-2 sm:px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase">
-                  Position
+                  Divisi
                 </th>
                 <th className="px-2 sm:px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase">
                   Role <span className="text-red-500">*</span>
@@ -350,17 +349,6 @@ export default function CreateBulkUsersPage() {
                       }
                       className="w-full px-2 sm:px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-pln-primary dark:text-white"
                       placeholder="IT"
-                    />
-                  </td>
-                  <td className="px-2 sm:px-4 py-3">
-                    <input
-                      type="text"
-                      value={user.position}
-                      onChange={(e) =>
-                        updateUser(user.id, "position", e.target.value)
-                      }
-                      className="w-full px-2 sm:px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-pln-primary dark:text-white"
-                      placeholder="Staff"
                     />
                   </td>
                   <td className="px-2 sm:px-4 py-3">

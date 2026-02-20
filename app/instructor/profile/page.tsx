@@ -41,7 +41,7 @@ export default function InstructorProfilePage() {
     email: user?.email || "-",
     phone: user?.phone || "",
     unit: user?.department || "-",
-    position: user?.position || "-",
+    employeeId: user?.employee_id || "-",
     joinDate: user?.created_at
       ? new Date(user.created_at).toLocaleDateString("id-ID", {
           day: "numeric",
@@ -285,7 +285,7 @@ export default function InstructorProfilePage() {
                 {profileData.fullName}
               </h2>
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                {profileData.position}
+                {profileData.employeeId}
               </p>
               <div className="flex items-center gap-2 mt-1">
                 <span className="px-2 py-0.5 text-[10px] font-medium bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 rounded-full flex items-center gap-1">
@@ -419,29 +419,11 @@ export default function InstructorProfilePage() {
                 >
                   <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">
                     <BuildingOfficeIcon className="w-3 h-3 inline mr-1" />
-                    Unit Kerja
+                    Divisi
                   </label>
                   <input
                     type="text"
                     value={profileData.unit}
-                    disabled
-                    className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400"
-                  />
-                  <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">
-                    Dari sistem ERP
-                  </p>
-                </motion.div>
-                <motion.div
-                  whileHover={{ y: -2 }}
-                  transition={{ type: "spring", stiffness: 300 }}
-                >
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">
-                    <MapPinIcon className="w-3 h-3 inline mr-1" />
-                    Posisi
-                  </label>
-                  <input
-                    type="text"
-                    value={profileData.position}
                     disabled
                     className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400"
                   />

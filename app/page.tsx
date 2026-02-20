@@ -433,15 +433,15 @@ export default function LandingPage() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 1.5 }}
-              className="absolute inset-0 bg-[length:100%_100%] bg-center bg-no-repeat" // Force Full Stretch
+              className="absolute inset-0 bg-fixed bg-cover bg-center bg-no-repeat transition-opacity duration-1000"
               style={{
                 backgroundImage: `url('${heroItems[currentImageIndex]?.url}')`,
               }}
             />
           </AnimatePresence>
-          {/* Modified Overlays: Minimal interference */}
-          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/70 via-slate-950/20 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent" />
+          {/* Modified Overlays: Lighter for better HD visibility */}
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/60 via-slate-950/30 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent" />
           {/* Removed/Reduced Blur Blobs to keep image sharp */}
           {/* <div className="absolute -top-32 right-0 h-[500px] w-[500px] rounded-full bg-pln-light/10 blur-[150px]" /> */}
           {/* <div className="absolute -bottom-32 left-0 h-[400px] w-[400px] rounded-full bg-pln-primary/10 blur-[120px]" /> */}

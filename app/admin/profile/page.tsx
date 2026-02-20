@@ -279,7 +279,7 @@ export default function AdminProfilePage() {
                 {profileData.fullName}
               </h2>
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                {profileData.position}
+                {profileData.employeeId}
               </p>
               <div className="flex items-center gap-2 mt-1">
                 <span className="px-2 py-0.5 text-[10px] font-medium bg-pln-100 text-pln-700 dark:bg-pln-primary/20 dark:text-pln-light rounded-full uppercase">
@@ -426,31 +426,14 @@ export default function AdminProfilePage() {
                     placeholder="0812..."
                   />
                 </motion.div>
-                <motion.div
-                  whileHover={{ y: -2 }}
-                  transition={{ type: "spring", stiffness: 300 }}
-                >
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">
-                    <BriefcaseIcon className="w-3 h-3 inline mr-1" />
-                    Posisi / Jabatan
-                  </label>
-                  <input
-                    type="text"
-                    value={profileData.position}
-                    disabled
-                    className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400"
-                  />
-                  <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">
-                    Dari sistem ERP
-                  </p>
-                </motion.div>
+
                 <motion.div
                   whileHover={{ y: -2 }}
                   transition={{ type: "spring", stiffness: 300 }}
                 >
                   <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">
                     <BuildingOfficeIcon className="w-3 h-3 inline mr-1" />
-                    Departemen
+                    Divisi
                   </label>
                   <input
                     type="text"

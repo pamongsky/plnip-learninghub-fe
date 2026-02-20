@@ -18,7 +18,7 @@ import {
 
 interface ActivityLog {
   id: number;
-  user: { id: number; name: string; email: string };
+  user: { id: number; name: string; email: string } | null;
   action: string;
   entity_type: string | null;
   entity_id: number | null;
@@ -600,18 +600,20 @@ export default function ActivityLogPage() {
                                     {/* User */}
                                     <div className="flex items-center gap-2">
                                       <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-pln-primary to-pln-light text-[10px] font-bold text-white">
-                                        {log.user.name
-                                          .split(" ")
-                                          .map((n) => n[0])
-                                          .join("")
-                                          .slice(0, 2)}
+                                        {log.user?.name
+                                          ? log.user.name
+                                              .split(" ")
+                                              .map((n) => n[0])
+                                              .join("")
+                                              .slice(0, 2)
+                                          : "?"}
                                       </div>
                                       <div>
                                         <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-                                          {log.user.name}
+                                          {log.user?.name || "Unknown User"}
                                         </p>
                                         <p className="text-[11px] text-slate-400">
-                                          {log.user.email}
+                                          {log.user?.email || "-"}
                                         </p>
                                       </div>
                                     </div>

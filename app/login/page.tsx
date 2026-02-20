@@ -141,7 +141,7 @@ export default function LoginPage() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 1.5 }}
-          className="absolute inset-0 bg-[length:100%_100%] bg-center bg-no-repeat"
+          className="absolute inset-0 bg-fixed bg-cover bg-center bg-no-repeat"
           style={{
             backgroundImage: backgroundImages[currentImageIndex]
               ? `url('${backgroundImages[currentImageIndex].url}')`
@@ -150,9 +150,9 @@ export default function LoginPage() {
         />
       </AnimatePresence>
 
-      {/* Overlay: Darker for focus on login form */}
-      <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-[2px]" />
-      <div className="absolute inset-0 bg-gradient-to-br from-pln-primary/40 via-transparent to-slate-900/60" />
+      {/* Overlay: Much lighter to show HD image */}
+      <div className="absolute inset-0 bg-slate-950/20" />
+      <div className="absolute inset-0 bg-gradient-to-br from-pln-primary/20 via-transparent to-slate-900/40" />
 
       {/* Decorative Elements: Subtler */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,rgba(255,255,255,0.05),transparent_40%)]" />

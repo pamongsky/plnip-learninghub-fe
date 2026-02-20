@@ -117,7 +117,7 @@ export default function AdminUsersPage() {
     } else {
       return (
         <Badge className="bg-slate-100 text-slate-700 hover:bg-slate-100">
-          User
+          Learner
         </Badge>
       );
     }
@@ -218,7 +218,7 @@ export default function AdminUsersPage() {
                       <SelectItem value="all">Semua Role</SelectItem>
                       <SelectItem value="admin">Admin</SelectItem>
                       <SelectItem value="instructor">Instructor</SelectItem>
-                      <SelectItem value="user">User</SelectItem>
+                      <SelectItem value="user">Learner</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -230,8 +230,8 @@ export default function AdminUsersPage() {
                   <TableHeader>
                     <TableRow className="bg-slate-50 dark:bg-slate-800/50">
                       <TableHead>User</TableHead>
-                      <TableHead>ID Karyawan</TableHead>
-                      <TableHead>Departemen</TableHead>
+                      <TableHead>NIP</TableHead>
+                      <TableHead>Divisi</TableHead>
                       <TableHead>Role</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Bergabung</TableHead>
@@ -286,9 +286,6 @@ export default function AdminUsersPage() {
                           <TableCell className="text-slate-600 dark:text-slate-400">
                             <div>
                               <p>{userItem.department}</p>
-                              <p className="text-sm text-slate-400">
-                                {userItem.position}
-                              </p>
                             </div>
                           </TableCell>
                           <TableCell>

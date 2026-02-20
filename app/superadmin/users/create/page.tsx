@@ -46,7 +46,6 @@ export default function CreateUserPage() {
     phone: "",
     employee_id: "",
     department: "",
-    position: "",
     role: "learner",
   });
 
@@ -89,7 +88,6 @@ export default function CreateUserPage() {
         phone: formData.phone || null,
         employee_id: formData.employee_id || null,
         department: formData.department || null,
-        position: formData.position || null,
         role: formData.role,
       });
 
@@ -267,7 +265,7 @@ export default function CreateUserPage() {
                 <div className="grid md:grid-cols-2 gap-6">
                   <div>
                     <label className="text-sm font-medium block mb-2">
-                     NIP
+                      NIP
                     </label>
                     <Input
                       name="employee_id"
@@ -305,17 +303,6 @@ export default function CreateUserPage() {
                         }))
                       }
                       placeholder="Contoh: Divisi Keuangan"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium block mb-2">
-                      Posisi/Jabatan
-                    </label>
-                    <Input
-                      name="position"
-                      value={formData.position}
-                      onChange={handleChange}
-                      placeholder="Contoh: Engineer"
                     />
                   </div>
                 </div>
