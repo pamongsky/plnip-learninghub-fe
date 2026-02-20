@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import MoodleLoginButton from "@/components/MoodleLoginButton";
 
 // Animation variants
 const containerVariants = {
@@ -97,7 +98,6 @@ type Activity = {
 export default function AdminDashboardPage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [loadingMoodle, setLoadingMoodle] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [stats, setStats] = useState<DashboardStats>({
     total_users: 0,
@@ -120,35 +120,6 @@ export default function AdminDashboardPage() {
     if (hour < 15) return "Selamat Siang";
     if (hour < 18) return "Selamat Sore";
     return "Selamat Malam";
-  };
-
-  // Handle Moodle access (admin = course creator, role_id 2)
-  const handleMoodleAccess = async () => {
-    try {
-      setLoadingMoodle(true);
-      const response = await api.post("/moodle/login-url", {
-        role_id: 2, // Admin = course creator di Moodle
-      });
-
-      if (response.data?.login_url) {
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-        if (isMobile) {
-          window.location.href = response.data.login_url;
-        } else {
-          window.open(response.data.login_url, "_blank");
-        }
-      }
-    } catch (error: unknown) {
-      const errorMessage = error && typeof error === 'object' && 'response' in error
-        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message || "Gagal mengakses Moodle"
-        : error instanceof Error ? error.message : "Gagal mengakses Moodle";
-      showToast({
-        type: "error",
-        message: errorMessage,
-      });
-    } finally {
-      setLoadingMoodle(false);
-    }
   };
 
   useEffect(() => {
@@ -428,18 +399,15 @@ export default function AdminDashboardPage() {
                   Administrator
                 </h1>
                 <p className="text-pln-100 max-w-2xl">
-                  Kelola user, pengumuman, sinkronisasi data, dan pantau aktivitas platform PLN IP Learning Hub.
+                  Kelola user, pengumuman, sinkronisasi data, dan pantau
+                  aktivitas platform PLN IP Learning Hub.
                 </p>
               </div>
               <div className="flex flex-wrap gap-3">
-                <Button
-                  onClick={handleMoodleAccess}
-                  disabled={loadingMoodle}
+                <MoodleLoginButton
+                  roleId={2}
                   className="bg-white text-pln-primary hover:bg-white/90"
-                >
-                  <BookOpenIcon className="h-4 w-4 mr-2" />
-                  {loadingMoodle ? "Memuat..." : "Akses LMS Moodle"}
-                </Button>
+                />
               </div>
             </div>
           </div>
@@ -735,7 +703,6 @@ export default function AdminDashboardPage() {
                       year: "numeric",
                     })}
                   </p>
-            
                 </div>
               </CardContent>
             </Card>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -32,6 +32,14 @@ export function UserDeleteModal({
     type: "success" | "error";
     text: string;
   } | null>(null);
+
+  // Reset state when modal opens
+  useEffect(() => {
+    if (open) {
+      setMessage(null);
+      setDeleting(false);
+    }
+  }, [open]);
 
   const handleDelete = async () => {
     setDeleting(true);
@@ -108,24 +116,36 @@ export function UserDeleteModal({
           )}
         </div>
 
-        <DialogFooter>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={deleting}
-          >
-            Batal
-          </Button>
-          <Button
-            type="button"
-            variant="destructive"
-            onClick={handleDelete}
-            disabled={deleting || message?.type === "success"}
-          >
-            {deleting ? "Menghapus..." : "Ya, Hapus User"}
-          </Button>
-        </DialogFooter>
+        {!message ? (
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={deleting}
+            >
+              Batal
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={deleting}
+            >
+              {deleting ? "Menghapus..." : "Ya, Hapus User"}
+            </Button>
+          </DialogFooter>
+        ) : message.type === "error" ? (
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => onOpenChange(false)}
+            >
+              Tutup
+            </Button>
+          </DialogFooter>
+        ) : null}
       </DialogContent>
     </Dialog>
   );

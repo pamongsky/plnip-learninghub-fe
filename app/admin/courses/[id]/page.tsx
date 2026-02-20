@@ -60,7 +60,14 @@ import certificateApi from "@/lib/api/certificates";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { Check } from "lucide-react";
 import axios from "@/lib/axios";
 import { toast } from "sonner";
@@ -126,10 +133,17 @@ export default function CourseDetailPage() {
   const [uploadingCert, setUploadingCert] = useState(false);
   const [showZipUpload, setShowZipUpload] = useState(false);
   const [zipUploading, setZipUploading] = useState(false);
-  const [zipResults, setZipResults] = useState<{ matched: string[]; unmatched: string[]; total_matched: number; total_unmatched: number } | null>(null);
+  const [zipResults, setZipResults] = useState<{
+    matched: string[];
+    unmatched: string[];
+    total_matched: number;
+    total_unmatched: number;
+  } | null>(null);
 
   // Progress tracking state
-  const [progressTarget, setProgressTarget] = useState<CourseStudent | null>(null);
+  const [progressTarget, setProgressTarget] = useState<CourseStudent | null>(
+    null,
+  );
   const [progressData, setProgressData] = useState<ProgressData | null>(null);
   const [progressLoading, setProgressLoading] = useState(false);
 
@@ -161,7 +175,9 @@ export default function CourseDetailPage() {
     const timer = setTimeout(async () => {
       try {
         setSearchLoading(true);
-        const res = await axios.get(`/users?search=${encodeURIComponent(searchUser)}`);
+        const res = await axios.get(
+          `/users?search=${encodeURIComponent(searchUser)}`,
+        );
         setUsers(res.data.data || res.data);
       } catch (e) {
         // error handled silently
@@ -197,9 +213,13 @@ export default function CourseDetailPage() {
       setSearchUser("");
       loadCourse(course.id.toString());
     } catch (error: unknown) {
-      const errorMessage = error && typeof error === 'object' && 'response' in error
-        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message || "Gagal enroll user"
-        : error instanceof Error ? error.message : "Gagal enroll user";
+      const errorMessage =
+        error && typeof error === "object" && "response" in error
+          ? (error as { response?: { data?: { message?: string } } }).response
+              ?.data?.message || "Gagal enroll user"
+          : error instanceof Error
+            ? error.message
+            : "Gagal enroll user";
       toast.error(errorMessage);
     } finally {
       setEnrolling(false);
@@ -209,20 +229,33 @@ export default function CourseDetailPage() {
   const handleChangeRole = async () => {
     if (!roleTarget || !newRole) return;
     try {
-      await coursesApi.updateEnrollmentRole(course.id, roleTarget.id, parseInt(newRole));
+      await coursesApi.updateEnrollmentRole(
+        course.id,
+        roleTarget.id,
+        parseInt(newRole),
+      );
       toast.success("Role berhasil diubah!");
       setRoleTarget(null);
       loadCourse(course.id.toString());
     } catch (error: unknown) {
-      const errorMessage = error && typeof error === 'object' && 'response' in error
-        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message || "Gagal mengubah role"
-        : error instanceof Error ? error.message : "Gagal mengubah role";
+      const errorMessage =
+        error && typeof error === "object" && "response" in error
+          ? (error as { response?: { data?: { message?: string } } }).response
+              ?.data?.message || "Gagal mengubah role"
+          : error instanceof Error
+            ? error.message
+            : "Gagal mengubah role";
       toast.error(errorMessage);
     }
   };
 
   const handleUnenroll = async (userId: number) => {
-    const confirmed = await confirm({ title: "Remove Learner", description: "Yakin ingin mengeluarkan user ini dari kelas?", confirmText: "Ya, Hapus", variant: "destructive" });
+    const confirmed = await confirm({
+      title: "Remove Learner",
+      description: "Yakin ingin mengeluarkan user ini dari kelas?",
+      confirmText: "Ya, Hapus",
+      variant: "destructive",
+    });
     if (!confirmed) return;
 
     try {
@@ -242,9 +275,13 @@ export default function CourseDetailPage() {
       const data = await coursesApi.getUserProgress(course!.id, student.id);
       setProgressData(data);
     } catch (error: unknown) {
-      const errorMessage = error && typeof error === 'object' && 'response' in error
-        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message || "Gagal memuat data progress"
-        : error instanceof Error ? error.message : "Gagal memuat data progress";
+      const errorMessage =
+        error && typeof error === "object" && "response" in error
+          ? (error as { response?: { data?: { message?: string } } }).response
+              ?.data?.message || "Gagal memuat data progress"
+          : error instanceof Error
+            ? error.message
+            : "Gagal memuat data progress";
       toast.error(errorMessage);
       setProgressTarget(null);
     } finally {
@@ -254,26 +291,49 @@ export default function CourseDetailPage() {
 
   const getCompletionLabel = (status: number) => {
     switch (status) {
-      case 1: return { text: "Selesai", color: "text-emerald-600", bg: "bg-emerald-100" };
-      case 2: return { text: "Lulus", color: "text-emerald-600", bg: "bg-emerald-100" };
-      case 3: return { text: "Tidak Lulus", color: "text-red-600", bg: "bg-red-100" };
-      default: return { text: "Belum", color: "text-slate-500", bg: "bg-slate-100" };
+      case 1:
+        return {
+          text: "Selesai",
+          color: "text-emerald-600",
+          bg: "bg-emerald-100",
+        };
+      case 2:
+        return {
+          text: "Lulus",
+          color: "text-emerald-600",
+          bg: "bg-emerald-100",
+        };
+      case 3:
+        return { text: "Tidak Lulus", color: "text-red-600", bg: "bg-red-100" };
+      default:
+        return { text: "Belum", color: "text-slate-500", bg: "bg-slate-100" };
     }
   };
 
   const getActivityIcon = (type: string) => {
     switch (type) {
-      case "quiz": return "📝";
-      case "assign": return "📋";
-      case "resource": return "📄";
-      case "url": return "🔗";
-      case "page": return "📃";
-      case "forum": return "💬";
-      case "book": return "📚";
-      case "lesson": return "📖";
-      case "feedback": return "📊";
-      case "scorm": return "🎓";
-      default: return "📌";
+      case "quiz":
+        return "📝";
+      case "assign":
+        return "📋";
+      case "resource":
+        return "📄";
+      case "url":
+        return "🔗";
+      case "page":
+        return "📃";
+      case "forum":
+        return "💬";
+      case "book":
+        return "📚";
+      case "lesson":
+        return "📖";
+      case "feedback":
+        return "📊";
+      case "scorm":
+        return "🎓";
+      default:
+        return "📌";
     }
   };
 
@@ -284,9 +344,13 @@ export default function CourseDetailPage() {
       toast.success(`Sertifikat untuk ${student.name} berhasil diupload!`);
       setUploadTarget(null);
     } catch (error: unknown) {
-      const errorMessage = error && typeof error === 'object' && 'response' in error
-        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message || "Gagal upload sertifikat"
-        : error instanceof Error ? error.message : "Gagal upload sertifikat";
+      const errorMessage =
+        error && typeof error === "object" && "response" in error
+          ? (error as { response?: { data?: { message?: string } } }).response
+              ?.data?.message || "Gagal upload sertifikat"
+          : error instanceof Error
+            ? error.message
+            : "Gagal upload sertifikat";
       toast.error(errorMessage);
     } finally {
       setUploadingCert(false);
@@ -298,11 +362,17 @@ export default function CourseDetailPage() {
       setZipUploading(true);
       const result = await certificateApi.uploadBulkZip(course!.id, file);
       setZipResults(result);
-      toast.success(`Selesai! ${result.total_matched} matched, ${result.total_unmatched} unmatched`);
+      toast.success(
+        `Selesai! ${result.total_matched} matched, ${result.total_unmatched} unmatched`,
+      );
     } catch (error: unknown) {
-      const errorMessage = error && typeof error === 'object' && 'response' in error
-        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message || "Gagal upload ZIP"
-        : error instanceof Error ? error.message : "Gagal upload ZIP";
+      const errorMessage =
+        error && typeof error === "object" && "response" in error
+          ? (error as { response?: { data?: { message?: string } } }).response
+              ?.data?.message || "Gagal upload ZIP"
+          : error instanceof Error
+            ? error.message
+            : "Gagal upload ZIP";
       toast.error(errorMessage);
     } finally {
       setZipUploading(false);
@@ -402,7 +472,10 @@ export default function CourseDetailPage() {
                 </CardDescription>
               </div>
               <button
-                onClick={() => { setShowZipUpload(true); setZipResults(null); }}
+                onClick={() => {
+                  setShowZipUpload(true);
+                  setZipResults(null);
+                }}
                 className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg border border-slate-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
               >
                 <ArchiveBoxArrowDownIcon className="w-4 h-4" />
@@ -489,15 +562,26 @@ export default function CourseDetailPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleViewProgress(student)}>
+                              <DropdownMenuItem
+                                onClick={() => handleViewProgress(student)}
+                              >
                                 <ChartBarIcon className="w-4 h-4 mr-2" />
                                 Lihat Progress
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => { setRoleTarget(student); setNewRole(String(student.pivot?.moodle_role_id || 5)); }}>
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setRoleTarget(student);
+                                  setNewRole(
+                                    String(student.pivot?.moodle_role_id || 5),
+                                  );
+                                }}
+                              >
                                 <UserPlusIcon className="w-4 h-4 mr-2" />
                                 Ubah Role
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => setUploadTarget(student)}>
+                              <DropdownMenuItem
+                                onClick={() => setUploadTarget(student)}
+                              >
                                 <ArrowUpTrayIcon className="w-4 h-4 mr-2" />
                                 Upload Sertifikat
                               </DropdownMenuItem>
@@ -522,12 +606,16 @@ export default function CourseDetailPage() {
       </Tabs>
 
       {/* Single Certificate Upload Dialog */}
-      <Dialog open={!!uploadTarget} onOpenChange={(o) => !o && setUploadTarget(null)}>
+      <Dialog
+        open={!!uploadTarget}
+        onOpenChange={(o) => !o && setUploadTarget(null)}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Upload Sertifikat</DialogTitle>
             <DialogDescription>
-              Upload file PDF sertifikat untuk <strong>{uploadTarget?.name}</strong>
+              Upload file PDF sertifikat untuk{" "}
+              <strong>{uploadTarget?.name}</strong>
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
@@ -541,10 +629,14 @@ export default function CourseDetailPage() {
               }}
               className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-pln-primary file:text-white hover:file:bg-pln-primary/90"
             />
-            {uploadingCert && <p className="text-sm text-slate-500 mt-2">Mengupload...</p>}
+            {uploadingCert && (
+              <p className="text-sm text-slate-500 mt-2">Mengupload...</p>
+            )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setUploadTarget(null)}>Tutup</Button>
+            <Button variant="outline" onClick={() => setUploadTarget(null)}>
+              Tutup
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -555,8 +647,8 @@ export default function CourseDetailPage() {
           <DialogHeader>
             <DialogTitle>Upload Sertifikat Massal (ZIP)</DialogTitle>
             <DialogDescription>
-              Upload file ZIP berisi PDF sertifikat. Nama file harus NIP atau learner name.
-              Matching: NIP tepat → nama tepat → nama sebagian.
+              Upload file ZIP berisi PDF sertifikat. Nama file harus NIP atau
+              learner name. Matching: NIP tepat → nama tepat → nama sebagian.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-4">
@@ -570,22 +662,40 @@ export default function CourseDetailPage() {
               }}
               className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-pln-primary file:text-white hover:file:bg-pln-primary/90"
             />
-            {zipUploading && <p className="text-sm text-slate-500">Memproses ZIP...</p>}
+            {zipUploading && (
+              <p className="text-sm text-slate-500">Memproses ZIP...</p>
+            )}
             {zipResults && (
-              <div className="space-y-2 text-sm">
+              <div className="space-y-2 text-sm bg-slate-50 dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
+                <div className="flex items-center gap-2 text-emerald-600 font-medium mb-2">
+                  <CheckCircleIcon className="w-5 h-5" />
+                  <span>
+                    Proses Selesai! Sertifikat yang cocok otomatis disimpan.
+                  </span>
+                </div>
                 <p className="font-medium text-emerald-700 dark:text-emerald-400">
-                  ✓ Matched ({zipResults.total_matched}):
+                  ✓ Berhasil Disimpan ({zipResults.total_matched}):
                 </p>
                 {zipResults.matched.map((m, i) => (
-                  <p key={i} className="pl-3 text-slate-600 dark:text-slate-400">{m}</p>
+                  <p
+                    key={i}
+                    className="pl-3 text-slate-600 dark:text-slate-400"
+                  >
+                    {m}
+                  </p>
                 ))}
                 {zipResults.unmatched.length > 0 && (
                   <>
                     <p className="font-medium text-red-600 mt-2">
-                      ✗ Tidak cocok ({zipResults.total_unmatched}):
+                      ✗ Tidak cocok / Gagal ({zipResults.total_unmatched}):
                     </p>
                     {zipResults.unmatched.map((u, i) => (
-                      <p key={i} className="pl-3 text-slate-600 dark:text-slate-400">{u}</p>
+                      <p
+                        key={i}
+                        className="pl-3 text-slate-600 dark:text-slate-400"
+                      >
+                        {u}
+                      </p>
                     ))}
                   </>
                 )}
@@ -593,13 +703,28 @@ export default function CourseDetailPage() {
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowZipUpload(false)}>Tutup</Button>
+            <Button
+              onClick={() => {
+                setShowZipUpload(false);
+                loadCourse(params.id as string);
+              }}
+            >
+              {zipResults ? "Selesai & Refresh" : "Tutup"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Progress Dialog */}
-      <Dialog open={!!progressTarget} onOpenChange={(o) => { if (!o) { setProgressTarget(null); setProgressData(null); } }}>
+      <Dialog
+        open={!!progressTarget}
+        onOpenChange={(o) => {
+          if (!o) {
+            setProgressTarget(null);
+            setProgressData(null);
+          }
+        }}
+      >
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Learner Progress</DialogTitle>
@@ -617,20 +742,27 @@ export default function CourseDetailPage() {
               {/* Progress Summary */}
               <div className="grid grid-cols-3 gap-3">
                 <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-3 text-center">
-                  <p className="text-2xl font-bold text-pln-primary">{progressData.progress}%</p>
+                  <p className="text-2xl font-bold text-pln-primary">
+                    {progressData.progress}%
+                  </p>
                   <p className="text-xs text-slate-500">Progress</p>
                 </div>
                 <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-3 text-center">
                   <p className="text-2xl font-bold text-slate-800 dark:text-white">
-                    {progressData.completed_activities}/{progressData.total_with_completion}
+                    {progressData.completed_activities}/
+                    {progressData.total_with_completion}
                   </p>
                   <p className="text-xs text-slate-500">
-                    {progressData.progress_mode === "grades" ? "Dinilai" : "Aktivitas Selesai"}
+                    {progressData.progress_mode === "grades"
+                      ? "Dinilai"
+                      : "Aktivitas Selesai"}
                   </p>
                 </div>
                 <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-3 text-center">
                   <p className="text-2xl font-bold text-slate-800 dark:text-white">
-                    {progressData.course_grade !== null ? `${progressData.course_grade}` : "-"}
+                    {progressData.course_grade !== null
+                      ? `${progressData.course_grade}`
+                      : "-"}
                   </p>
                   <p className="text-xs text-slate-500">Nilai Akhir</p>
                 </div>
@@ -639,14 +771,22 @@ export default function CourseDetailPage() {
               {/* Progress Bar */}
               <div>
                 <div className="flex justify-between text-xs text-slate-500 mb-1">
-                  <span>Progress Keseluruhan{progressData.progress_mode === "grades" ? " (berdasarkan nilai)" : ""}</span>
+                  <span>
+                    Progress Keseluruhan
+                    {progressData.progress_mode === "grades"
+                      ? " (berdasarkan nilai)"
+                      : ""}
+                  </span>
                   <span>{progressData.progress}%</span>
                 </div>
                 <div className="w-full h-2.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
                   <div
                     className={`h-full rounded-full transition-all ${
-                      progressData.progress >= 70 ? "bg-emerald-500" :
-                      progressData.progress >= 40 ? "bg-amber-500" : "bg-red-500"
+                      progressData.progress >= 70
+                        ? "bg-emerald-500"
+                        : progressData.progress >= 40
+                          ? "bg-amber-500"
+                          : "bg-red-500"
                     }`}
                     style={{ width: `${progressData.progress}%` }}
                   />
@@ -655,7 +795,8 @@ export default function CourseDetailPage() {
 
               {/* Last Access */}
               <p className="text-xs text-slate-500">
-                Terakhir diakses: {progressData.last_access
+                Terakhir diakses:{" "}
+                {progressData.last_access
                   ? new Date(progressData.last_access).toLocaleString("id-ID")
                   : "Belum pernah"}
               </p>
@@ -666,39 +807,60 @@ export default function CourseDetailPage() {
                   Daftar Aktivitas ({progressData.total_activities})
                 </h4>
                 <div className="border border-slate-200 dark:border-slate-700 rounded-lg divide-y divide-slate-200 dark:divide-slate-700">
-                  {progressData.activities.map((activity: ProgressData['activities'][0], idx: number) => {
-                    const completion = getCompletionLabel(activity.completion_status);
-                    return (
-                      <div key={idx} className="flex items-center justify-between px-3 py-2.5 text-sm">
-                        <div className="flex items-center gap-2 min-w-0 flex-1">
-                          <span className="flex-shrink-0">{getActivityIcon(activity.type)}</span>
-                          <div className="min-w-0">
-                            <p className="truncate text-slate-800 dark:text-white">{activity.name}</p>
-                            <p className="text-[10px] text-slate-400 capitalize">{activity.type}</p>
+                  {progressData.activities.map(
+                    (activity: ProgressData["activities"][0], idx: number) => {
+                      const completion = getCompletionLabel(
+                        activity.completion_status,
+                      );
+                      return (
+                        <div
+                          key={idx}
+                          className="flex items-center justify-between px-3 py-2.5 text-sm"
+                        >
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <span className="flex-shrink-0">
+                              {getActivityIcon(activity.type)}
+                            </span>
+                            <div className="min-w-0">
+                              <p className="truncate text-slate-800 dark:text-white">
+                                {activity.name}
+                              </p>
+                              <p className="text-[10px] text-slate-400 capitalize">
+                                {activity.type}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3 flex-shrink-0 ml-3">
+                            {activity.grade !== null && (
+                              <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
+                                {activity.grade_raw}/{activity.grade_max}
+                              </span>
+                            )}
+                            {activity.has_completion && (
+                              <span
+                                className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${completion.bg} ${completion.color}`}
+                              >
+                                {completion.text}
+                              </span>
+                            )}
                           </div>
                         </div>
-                        <div className="flex items-center gap-3 flex-shrink-0 ml-3">
-                          {activity.grade !== null && (
-                            <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
-                              {activity.grade_raw}/{activity.grade_max}
-                            </span>
-                          )}
-                          {activity.has_completion && (
-                            <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${completion.bg} ${completion.color}`}>
-                              {completion.text}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    },
+                  )}
                 </div>
               </div>
             </div>
           ) : null}
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setProgressTarget(null); setProgressData(null); }}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setProgressTarget(null);
+                setProgressData(null);
+              }}
+            >
               Tutup
             </Button>
           </DialogFooter>
@@ -706,7 +868,17 @@ export default function CourseDetailPage() {
       </Dialog>
 
       {/* Enroll Dialog */}
-      <Dialog open={isEnrollOpen} onOpenChange={(open) => { setIsEnrollOpen(open); if (!open) { setSearchUser(""); setSelectedUsers([]); setUsers([]); } }}>
+      <Dialog
+        open={isEnrollOpen}
+        onOpenChange={(open) => {
+          setIsEnrollOpen(open);
+          if (!open) {
+            setSearchUser("");
+            setSelectedUsers([]);
+            setUsers([]);
+          }
+        }}
+      >
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Enroll New Learner</DialogTitle>
@@ -725,41 +897,73 @@ export default function CourseDetailPage() {
                   onValueChange={setSearchUser}
                 />
                 <CommandList>
-                  {searchUser.length >= 2 && !searchLoading && users.filter((u) => !selectedUsers.some((s) => s.id === u.id)).length === 0 && (
-                    <CommandEmpty>Tidak ditemukan user</CommandEmpty>
-                  )}
-                  {searchUser.length >= 2 && users.filter((u) => !selectedUsers.some((s) => s.id === u.id)).length > 0 && (
-                    <CommandGroup heading="Hasil Pencarian">
-                      {users.filter((u) => !selectedUsers.some((s) => s.id === u.id)).map((u) => (
-                        <CommandItem
-                          key={u.id}
-                          value={u.id.toString()}
-                          onSelect={() => { setSelectedUsers((prev) => [...prev, u]); setSearchUser(""); setUsers([]); }}
-                          className="cursor-pointer"
-                        >
-                          <div className="flex-1">
-                            <p className="text-sm font-medium">{u.name}</p>
-                            <p className="text-xs text-muted-foreground">{u.email} {u.employee_id ? `| NIP: ${u.employee_id}` : ""}</p>
-                          </div>
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  )}
+                  {searchUser.length >= 2 &&
+                    !searchLoading &&
+                    users.filter(
+                      (u) => !selectedUsers.some((s) => s.id === u.id),
+                    ).length === 0 && (
+                      <CommandEmpty>Tidak ditemukan user</CommandEmpty>
+                    )}
+                  {searchUser.length >= 2 &&
+                    users.filter(
+                      (u) => !selectedUsers.some((s) => s.id === u.id),
+                    ).length > 0 && (
+                      <CommandGroup heading="Hasil Pencarian">
+                        {users
+                          .filter(
+                            (u) => !selectedUsers.some((s) => s.id === u.id),
+                          )
+                          .map((u) => (
+                            <CommandItem
+                              key={u.id}
+                              value={u.id.toString()}
+                              onSelect={() => {
+                                setSelectedUsers((prev) => [...prev, u]);
+                                setSearchUser("");
+                                setUsers([]);
+                              }}
+                              className="cursor-pointer"
+                            >
+                              <div className="flex-1">
+                                <p className="text-sm font-medium">{u.name}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {u.email}{" "}
+                                  {u.employee_id
+                                    ? `| NIP: ${u.employee_id}`
+                                    : ""}
+                                </p>
+                              </div>
+                            </CommandItem>
+                          ))}
+                      </CommandGroup>
+                    )}
                   {searchLoading && (
-                    <div className="py-4 text-center text-sm text-muted-foreground">Mencari...</div>
+                    <div className="py-4 text-center text-sm text-muted-foreground">
+                      Mencari...
+                    </div>
                   )}
                 </CommandList>
               </Command>
               {/* Selected users chips */}
               {selectedUsers.length > 0 && (
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">Dipilih ({selectedUsers.length} user)</Label>
+                  <Label className="text-xs text-muted-foreground">
+                    Dipilih ({selectedUsers.length} user)
+                  </Label>
                   <div className="flex flex-wrap gap-1.5 max-h-[120px] overflow-y-auto p-2 bg-muted/50 rounded-md border">
                     {selectedUsers.map((u) => (
-                      <Badge key={u.id} variant="secondary" className="flex items-center gap-1 py-1 px-2 pr-1">
+                      <Badge
+                        key={u.id}
+                        variant="secondary"
+                        className="flex items-center gap-1 py-1 px-2 pr-1"
+                      >
                         <span className="text-xs">{u.name}</span>
                         <button
-                          onClick={() => setSelectedUsers((prev) => prev.filter((s) => s.id !== u.id))}
+                          onClick={() =>
+                            setSelectedUsers((prev) =>
+                              prev.filter((s) => s.id !== u.id),
+                            )
+                          }
                           className="ml-0.5 rounded-full p-0.5 hover:bg-destructive/20 hover:text-destructive transition-colors"
                         >
                           <TrashIcon className="w-3 h-3" />
@@ -778,8 +982,12 @@ export default function CourseDetailPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="5">Student (Siswa)</SelectItem>
-                  <SelectItem value="3">Editing Teacher (Instruktur Penuh)</SelectItem>
-                  <SelectItem value="4">Non-Editing Teacher (Asisten)</SelectItem>
+                  <SelectItem value="3">
+                    Editing Teacher (Instruktur Penuh)
+                  </SelectItem>
+                  <SelectItem value="4">
+                    Non-Editing Teacher (Asisten)
+                  </SelectItem>
                   <SelectItem value="2">Course Creator (Admin)</SelectItem>
                   <SelectItem value="1">Manager (Super Admin)</SelectItem>
                 </SelectContent>
@@ -794,19 +1002,28 @@ export default function CourseDetailPage() {
               onClick={handleEnroll}
               disabled={enrolling || selectedUsers.length === 0}
             >
-              {enrolling ? "Processing..." : `Enroll ${selectedUsers.length > 0 ? `(${selectedUsers.length})` : ""} Sekarang`}
+              {enrolling
+                ? "Processing..."
+                : `Enroll ${selectedUsers.length > 0 ? `(${selectedUsers.length})` : ""} Sekarang`}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Change Role Dialog */}
-      <Dialog open={!!roleTarget} onOpenChange={(open) => { if (!open) setRoleTarget(null); }}>
+      <Dialog
+        open={!!roleTarget}
+        onOpenChange={(open) => {
+          if (!open) setRoleTarget(null);
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Ubah Role Moodle</DialogTitle>
             <DialogDescription>
-              Ubah role untuk <span className="font-semibold">{roleTarget?.name}</span> di kelas ini.
+              Ubah role untuk{" "}
+              <span className="font-semibold">{roleTarget?.name}</span> di kelas
+              ini.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -818,8 +1035,12 @@ export default function CourseDetailPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="5">Student (Siswa)</SelectItem>
-                  <SelectItem value="3">Editing Teacher (Instruktur Penuh)</SelectItem>
-                  <SelectItem value="4">Non-Editing Teacher (Asisten)</SelectItem>
+                  <SelectItem value="3">
+                    Editing Teacher (Instruktur Penuh)
+                  </SelectItem>
+                  <SelectItem value="4">
+                    Non-Editing Teacher (Asisten)
+                  </SelectItem>
                   <SelectItem value="2">Course Creator (Admin)</SelectItem>
                   <SelectItem value="1">Manager (Super Admin)</SelectItem>
                 </SelectContent>
@@ -830,9 +1051,7 @@ export default function CourseDetailPage() {
             <Button variant="outline" onClick={() => setRoleTarget(null)}>
               Batal
             </Button>
-            <Button onClick={handleChangeRole}>
-              Simpan
-            </Button>
+            <Button onClick={handleChangeRole}>Simpan</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

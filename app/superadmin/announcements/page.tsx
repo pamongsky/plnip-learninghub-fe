@@ -141,7 +141,8 @@ export default function SuperadminAnnouncementsPage() {
     const echo = getEcho();
     if (echo) {
       const channel = echo.channel("announcements");
-      channel.listen(".announcement.created", (data: unknown) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (channel as any).listen(".announcement.created", () => {
         fetchData(); // Refresh data
       });
     }
@@ -159,7 +160,7 @@ export default function SuperadminAnnouncementsPage() {
     if (user && announcements.length > 0) {
       // Re-filter if user arrives late
       const mineFiltered = announcements.filter(
-        (ann: Announcement) => ann.created_by_id === user.id,
+        (ann: Announcement) => String(ann.created_by_id) === String(user.id),
       );
       setMyAnnouncements(mineFiltered);
     }
@@ -182,7 +183,7 @@ export default function SuperadminAnnouncementsPage() {
       // Note: Use created_by_id if available, fallback to role check if needed (but now we have ID)
       if (user) {
         const mineFiltered = allAnnouncements.filter(
-          (ann: Announcement) => ann.created_by_id === user.id,
+          (ann: Announcement) => String(ann.created_by_id) === String(user.id),
         );
         setMyAnnouncements(mineFiltered);
       } else {
@@ -362,65 +363,56 @@ export default function SuperadminAnnouncementsPage() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.05 }}
-          className="grid grid-cols-2 lg:grid-cols-4 gap-3"
+          className="grid grid-cols-2 lg:grid-cols-4 gap-4"
         >
           {/* Total */}
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">
-                  Total
-                </p>
-                <p className="text-2xl font-bold text-blue-700 dark:text-blue-300 mt-1">
+          <div className="relative overflow-hidden bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all group">
+            <div className="relative z-10">
+              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+                Total Pengumuman
+              </p>
+              <div className="flex items-baseline gap-2 mt-2">
+                <span className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
                   {stats.total_announcements}
-                </p>
+                </span>
+                <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                  Semua
+                </span>
               </div>
-              <ChartBarIcon className="w-10 h-10 text-blue-200 dark:text-blue-800" />
             </div>
           </div>
 
-          {/* Active */}
-          <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 border border-green-200 dark:border-green-800 rounded-xl p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-green-600 dark:text-green-400 font-medium">
-                  Aktif
-                </p>
-                <p className="text-2xl font-bold text-green-700 dark:text-green-300 mt-1">
+          {/* Aktif */}
+          <div className="relative overflow-hidden bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all group">
+            <div className="relative z-10">
+              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+                Sedang Aktif
+              </p>
+              <div className="flex items-baseline gap-2 mt-2">
+                <span className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
                   {stats.active_announcements}
-                </p>
+                </span>
+                <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400">
+                  Published
+                </span>
               </div>
-              <MegaphoneIcon className="w-10 h-10 text-green-200 dark:text-green-800" />
-            </div>
-          </div>
-
-          {/* Penting */}
-          <div className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950 dark:to-red-900 border border-red-200 dark:border-red-800 rounded-xl p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-red-600 dark:text-red-400 font-medium">
-                  Penting
-                </p>
-                <p className="text-2xl font-bold text-red-700 dark:text-red-300 mt-1">
-                  {stats.by_priority.high}
-                </p>
-              </div>
-              <BellAlertIcon className="w-10 h-10 text-red-200 dark:text-red-800" />
             </div>
           </div>
 
           {/* My Announcements */}
-          <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 border border-purple-200 dark:border-purple-800 rounded-xl p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-purple-600 dark:text-purple-400 font-medium">
-                  Dibuat Saya
-                </p>
-                <p className="text-2xl font-bold text-purple-700 dark:text-purple-300 mt-1">
+          <div className="relative overflow-hidden bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all group">
+            <div className="relative z-10">
+              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+                Dibuat Saya
+              </p>
+              <div className="flex items-baseline gap-2 mt-2">
+                <span className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
                   {myAnnouncements.length}
-                </p>
+                </span>
+                <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400">
+                  Personal
+                </span>
               </div>
-              <UserGroupIcon className="w-10 h-10 text-purple-200 dark:text-purple-800" />
             </div>
           </div>
         </motion.div>
@@ -879,18 +871,19 @@ export default function SuperadminAnnouncementsPage() {
                           >
                             {config.label}
                           </span>
-                          <span>
-                            {announcement.creator?.name || "Super Admin"} -{" "}
-                            {announcement.creator_role || "Administrator"}
-                          </span>
                         </div>
-                        <h3 className="font-semibold text-slate-800 dark:text-white">
+                        <h3 className="font-semibold text-slate-800 dark:text-white text-lg">
                           {announcement.title}
                         </h3>
                         <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-500 dark:text-slate-400">
                           <span className="flex items-center gap-1">
                             <UserIcon className="w-3 h-3" />
-                            {announcement.created_by}
+                            {announcement.created_by ||
+                              announcement.creator?.name ||
+                              "Super Admin"}
+                            <span className="ml-1 px-1.5 py-0.5 rounded text-[10px] bg-slate-100 dark:bg-slate-700 font-medium">
+                              {announcement.creator_role || "Administrator"}
+                            </span>
                           </span>
                           <span>•</span>
                           <span className="flex items-center gap-1">

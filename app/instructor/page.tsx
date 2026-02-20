@@ -21,6 +21,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/button";
+import MoodleLoginButton from "@/components/MoodleLoginButton";
 
 interface Announcement {
   id: number;
@@ -36,7 +37,6 @@ interface InstructorDashboardData {
     active_classes: number;
     total_participants: number;
     completed_classes: number;
-    average_attendance: number;
   };
   announcements: Announcement[];
   classes: Array<{
@@ -131,7 +131,16 @@ export default function InstructorDashboardPage() {
     fetchQuestionStats();
 
     // Set up real-time listener for question stats
-    const echo = (window as unknown as { Echo?: { channel: (name: string) => { listen: (event: string, callback: (data: unknown) => void) => void } } }).Echo;
+    const echo = (
+      window as unknown as {
+        Echo?: {
+          channel: (name: string) => {
+            listen: (event: string, callback: (data: unknown) => void) => void;
+          };
+          leave: (channel: string) => void;
+        };
+      }
+    ).Echo;
     if (echo) {
       echo
         .channel("instructor-dashboard")
@@ -159,7 +168,6 @@ export default function InstructorDashboardPage() {
           active_classes: 0,
           total_participants: 0,
           completed_classes: 0,
-          average_attendance: 87,
         },
         announcements: [] as Announcement[],
         classes: [],
@@ -173,17 +181,6 @@ export default function InstructorDashboardPage() {
     try {
       const res = await api.get("/instructor/question-stats");
       setQuestionStats(res.data.data?.unanswered || 0);
-    } catch (error) {
-      // error handled silently
-    }
-  };
-
-  const handleMoodleAccess = async () => {
-    try {
-      const response = await api.post("/moodle/login-url");
-      if (response.data?.success && response.data?.login_url) {
-        window.open(response.data.login_url, "_blank");
-      }
     } catch (error) {
       // error handled silently
     }
@@ -256,13 +253,7 @@ export default function InstructorDashboardPage() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3">
-            <Button
-              onClick={handleMoodleAccess}
-              className="bg-white text-pln-primary hover:bg-white/90 font-semibold shadow-lg shadow-pln-900/20"
-            >
-              <AcademicCapIcon className="h-4 w-4 mr-2" />
-              Akses LMS Moodle
-            </Button>
+            <MoodleLoginButton className="bg-white text-pln-primary hover:bg-white/90 font-semibold shadow-lg shadow-pln-900/20" />
           </div>
         </div>
       </motion.div>
@@ -482,46 +473,6 @@ export default function InstructorDashboardPage() {
                 ))}
               </div>
             )}
-          </motion.div>
-
-          {/* Attendance Stats */}
-          <motion.div
-            variants={itemVariants}
-            className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 p-6 text-white"
-          >
-            <div className="absolute top-0 right-0 w-32 h-32 bg-pln-primary/20 rounded-full blur-3xl" />
-            <div className="relative">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 backdrop-blur-sm">
-                  <ChartBarIcon className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-white/60 text-xs font-medium">
-                    Rata-rata Kehadiran
-                  </p>
-                  <p className="text-2xl font-bold">
-                    <AnimatedCounter
-                      value={dashboardData?.stats?.average_attendance || 87}
-                      suffix="%"
-                    />
-                  </p>
-                </div>
-              </div>
-
-              <div className="h-3 bg-white/10 rounded-full overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{
-                    width: `${dashboardData?.stats?.average_attendance || 87}%`,
-                  }}
-                  transition={{ duration: 1, delay: 0.5 }}
-                  className="h-full bg-gradient-to-r from-pln-primary to-pln-light rounded-full"
-                />
-              </div>
-              <p className="text-xs text-white/50 mt-3">
-                Learner attendance rate in all your classes
-              </p>
-            </div>
           </motion.div>
 
           {/* Quick Tip */}

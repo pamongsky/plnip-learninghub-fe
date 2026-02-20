@@ -79,6 +79,7 @@ interface User {
 
 export default function SuperadminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
+  const [departments, setDepartments] = useState<string[]>([]); // Dynamic departments
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
@@ -133,6 +134,7 @@ export default function SuperadminUsersPage() {
     open: false,
     userId: 0,
     userName: "",
+    version: 0, // Force remount on every open
   });
   const [overrideModal, setOverrideModal] = useState({
     open: false,
@@ -159,6 +161,14 @@ export default function SuperadminUsersPage() {
 
       const response = await axios.get(`/superadmin/users?${params}`);
       setUsers(response.data.data || []);
+
+      // Update dynamic departments list if provided
+      if (
+        response.data.departments &&
+        Array.isArray(response.data.departments)
+      ) {
+        setDepartments(response.data.departments);
+      }
     } catch (error) {
       // error handled silently
     } finally {
@@ -259,7 +269,7 @@ export default function SuperadminUsersPage() {
             Kelola Semua User
           </h1>
           <p className="mt-1 text-slate-500 dark:text-slate-400">
-            Kelola user dari seluruh unit dan role
+            Kelola user dari seluruh divisi dan role
           </p>
         </div>
         <div className="flex flex-wrap gap-3">
@@ -305,7 +315,10 @@ export default function SuperadminUsersPage() {
       )}
 
       {/* Role Stats */}
-      <motion.div variants={itemVariants} className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <motion.div
+        variants={itemVariants}
+        className="grid grid-cols-2 md:grid-cols-4 gap-4"
+      >
         {roleStats.map((stat) => (
           <Card key={stat.role} className="border-0 shadow-md">
             <CardContent className="flex items-center gap-4 p-5">
@@ -389,22 +402,23 @@ export default function SuperadminUsersPage() {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Unit</label>
+                  <label className="text-sm font-medium mb-2 block">
+                    Divisi
+                  </label>
                   <Select
                     value={departmentFilter}
                     onValueChange={setDepartmentFilter}
                   >
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Semua Unit" />
+                      <SelectValue placeholder="Semua Divisi" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Semua Unit</SelectItem>
-                      <SelectItem value="Pusat">Pusat</SelectItem>
-                      <SelectItem value="Pembangkitan">Pembangkitan</SelectItem>
-                      <SelectItem value="Transmisi">Transmisi</SelectItem>
-                      <SelectItem value="Distribusi">Distribusi</SelectItem>
-                      <SelectItem value="Corporate">Corporate</SelectItem>
-                      <SelectItem value="IT">IT</SelectItem>
+                      <SelectItem value="all">Semua Divisi</SelectItem>
+                      {departments.map((dept) => (
+                        <SelectItem key={dept} value={dept}>
+                          {dept}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -433,7 +447,7 @@ export default function SuperadminUsersPage() {
                     <TableRow>
                       <TableHead>User</TableHead>
                       <TableHead>Employee ID</TableHead>
-                      <TableHead>Unit</TableHead>
+                      <TableHead>Divisi</TableHead>
                       <TableHead>Role</TableHead>
                       <TableHead>Source</TableHead>
                       <TableHead>Status</TableHead>
@@ -465,12 +479,18 @@ export default function SuperadminUsersPage() {
                         <TableCell className="font-mono text-sm whitespace-nowrap">
                           {user.employee_id || "-"}
                         </TableCell>
-                        <TableCell className="whitespace-nowrap">{user.department || "-"}</TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {user.department || "-"}
+                        </TableCell>
                         <TableCell className="whitespace-nowrap">
                           {getRoleBadge(user.effective_role || "learner")}
                         </TableCell>
-                        <TableCell className="whitespace-nowrap">{getSourceBadge(user.source)}</TableCell>
-                        <TableCell className="whitespace-nowrap">{getStatusBadge(user.is_active)}</TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {getSourceBadge(user.source)}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {getStatusBadge(user.is_active)}
+                        </TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -482,7 +502,10 @@ export default function SuperadminUsersPage() {
                               <DropdownMenuItem
                                 className="gap-2"
                                 onSelect={() =>
-                                  setDetailsModal({ open: true, userId: user.id })
+                                  setDetailsModal({
+                                    open: true,
+                                    userId: user.id,
+                                  })
                                 }
                               >
                                 <EyeIcon className="h-4 w-4" />
@@ -507,6 +530,7 @@ export default function SuperadminUsersPage() {
                                         open: true,
                                         userId: user.id,
                                         userName: user.name,
+                                        version: Date.now(), // New version per open
                                       })
                                     }
                                   >
@@ -564,8 +588,11 @@ export default function SuperadminUsersPage() {
       />
 
       <UserDeleteModal
+        key={deleteModal.version} // Force completely fresh state every time
         open={deleteModal.open}
-        onOpenChange={(open) => setDeleteModal({ ...deleteModal, open })}
+        onOpenChange={(open) =>
+          setDeleteModal({ ...deleteModal, open, version: deleteModal.version })
+        }
         userId={deleteModal.userId}
         userName={deleteModal.userName}
         onSuccess={fetchUsers}

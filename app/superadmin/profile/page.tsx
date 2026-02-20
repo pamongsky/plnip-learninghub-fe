@@ -24,7 +24,9 @@ export default function SuperAdminProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [statusType, setStatusType] = useState<"success" | "error" | null>(null);
+  const [statusType, setStatusType] = useState<"success" | "error" | null>(
+    null,
+  );
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -79,7 +81,8 @@ export default function SuperAdminProfilePage() {
       let errorMessage = "Gagal memperbarui profil.";
       if (err instanceof Error) {
         const error = err as any;
-        errorMessage = error.response?.data?.message || "Gagal memperbarui profil.";
+        errorMessage =
+          error.response?.data?.message || "Gagal memperbarui profil.";
       }
       setStatusMessage(errorMessage);
     } finally {
@@ -117,7 +120,8 @@ export default function SuperAdminProfilePage() {
       let errorMessage = "Gagal mengunggah foto profil.";
       if (err instanceof Error) {
         const error = err as any;
-        errorMessage = error.response?.data?.message || "Gagal mengunggah foto profil.";
+        errorMessage =
+          error.response?.data?.message || "Gagal mengunggah foto profil.";
       }
       setStatusMessage(errorMessage);
     } finally {
@@ -157,7 +161,9 @@ export default function SuperAdminProfilePage() {
     }
     if (!/[@$!%*#?&]/.test(newPassword)) {
       setStatusType("error");
-      setStatusMessage("Password harus mengandung karakter spesial (@$!%*#?&).");
+      setStatusMessage(
+        "Password harus mengandung karakter spesial (@$!%*#?&).",
+      );
       setPasswordLoading(false);
       return;
     }
@@ -185,7 +191,8 @@ export default function SuperAdminProfilePage() {
       let errorMessage = "Gagal memperbarui password.";
       if (err instanceof Error) {
         const error = err as any;
-        errorMessage = error.response?.data?.message || "Gagal memperbarui password.";
+        errorMessage =
+          error.response?.data?.message || "Gagal memperbarui password.";
       }
       setStatusMessage(errorMessage);
     } finally {
@@ -221,17 +228,13 @@ export default function SuperAdminProfilePage() {
         {/* Avatar & Basic Info */}
         <div className="px-6 pb-6 -mt-12 relative">
           <div className="flex flex-col sm:flex-row sm:items-end gap-4">
-            <motion.div
-              className="relative"
-              whileHover={{ scale: 1.05 }}
-              transition={{ type: "spring", stiffness: 300 }}
-            >
+            <motion.div className="relative">
               <div className="group relative">
                 {profileData.avatar ? (
                   <img
                     src={profileData.avatar}
                     alt={profileData.fullName}
-                    className="w-24 h-24 rounded-2xl border-4 border-white dark:border-slate-800 shadow-lg object-cover"
+                    className="w-24 h-24 rounded-2xl border-4 border-white dark:border-slate-800 shadow-lg object-contain bg-slate-50 dark:bg-slate-700"
                   />
                 ) : (
                   <div className="w-24 h-24 rounded-2xl border-4 border-white dark:border-slate-800 shadow-lg bg-gradient-to-br from-pln-primary to-pln-light flex items-center justify-center text-white text-2xl font-bold">
@@ -274,18 +277,22 @@ export default function SuperAdminProfilePage() {
                 <span className="px-2 py-0.5 text-[10px] font-medium bg-pln-100 text-pln-700 dark:bg-pln-primary/20 dark:text-pln-light rounded-full uppercase">
                   super-admin
                 </span>
-                <span className={`px-2 py-0.5 text-[10px] font-medium rounded-full flex items-center gap-1 ${
-                  user?.is_active
-                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400"
-                    : "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400"
-                }`}>
+                <span
+                  className={`px-2 py-0.5 text-[10px] font-medium rounded-full flex items-center gap-1 ${
+                    user?.is_active
+                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400"
+                      : "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400"
+                  }`}
+                >
                   <CheckCircleIcon className="w-3 h-3" />
                   {profileData.status}
                 </span>
               </div>
             </div>
             <motion.button
-              onClick={() => isEditing ? handleSaveProfile() : setIsEditing(true)}
+              onClick={() =>
+                isEditing ? handleSaveProfile() : setIsEditing(true)
+              }
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               disabled={saving}
@@ -359,7 +366,10 @@ export default function SuperAdminProfilePage() {
               className="space-y-6"
             >
               <div className="grid sm:grid-cols-2 gap-4">
-                <motion.div whileHover={{ y: -2 }} transition={{ type: "spring", stiffness: 300 }}>
+                <motion.div
+                  whileHover={{ y: -2 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                >
                   <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">
                     <UserCircleIcon className="w-3 h-3 inline mr-1" />
                     Nama Lengkap
@@ -373,7 +383,10 @@ export default function SuperAdminProfilePage() {
                     placeholder="Masukkan nama lengkap"
                   />
                 </motion.div>
-                <motion.div whileHover={{ y: -2 }} transition={{ type: "spring", stiffness: 300 }}>
+                <motion.div
+                  whileHover={{ y: -2 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                >
                   <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">
                     <EnvelopeIcon className="w-3 h-3 inline mr-1" />
                     Email
@@ -384,9 +397,14 @@ export default function SuperAdminProfilePage() {
                     disabled
                     className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400"
                   />
-                  <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">Dari sistem ERP</p>
+                  <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">
+                    Dari sistem ERP
+                  </p>
                 </motion.div>
-                <motion.div whileHover={{ y: -2 }} transition={{ type: "spring", stiffness: 300 }}>
+                <motion.div
+                  whileHover={{ y: -2 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                >
                   <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">
                     <PhoneIcon className="w-3 h-3 inline mr-1" />
                     No. Telepon
@@ -400,7 +418,10 @@ export default function SuperAdminProfilePage() {
                     placeholder="0812..."
                   />
                 </motion.div>
-                <motion.div whileHover={{ y: -2 }} transition={{ type: "spring", stiffness: 300 }}>
+                <motion.div
+                  whileHover={{ y: -2 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                >
                   <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">
                     <BriefcaseIcon className="w-3 h-3 inline mr-1" />
                     Posisi / Jabatan
@@ -411,9 +432,14 @@ export default function SuperAdminProfilePage() {
                     disabled
                     className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400"
                   />
-                  <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">Dari sistem ERP</p>
+                  <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">
+                    Dari sistem ERP
+                  </p>
                 </motion.div>
-                <motion.div whileHover={{ y: -2 }} transition={{ type: "spring", stiffness: 300 }}>
+                <motion.div
+                  whileHover={{ y: -2 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                >
                   <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">
                     <BuildingOfficeIcon className="w-3 h-3 inline mr-1" />
                     Departemen
@@ -424,9 +450,14 @@ export default function SuperAdminProfilePage() {
                     disabled
                     className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400"
                   />
-                  <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">Dari sistem ERP</p>
+                  <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">
+                    Dari sistem ERP
+                  </p>
                 </motion.div>
-                <motion.div whileHover={{ y: -2 }} transition={{ type: "spring", stiffness: 300 }}>
+                <motion.div
+                  whileHover={{ y: -2 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                >
                   <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">
                     <IdentificationIcon className="w-3 h-3 inline mr-1" />
                     Employee ID
@@ -437,7 +468,9 @@ export default function SuperAdminProfilePage() {
                     disabled
                     className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400"
                   />
-                  <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">Dari sistem ERP</p>
+                  <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">
+                    Dari sistem ERP
+                  </p>
                 </motion.div>
               </div>
             </motion.div>

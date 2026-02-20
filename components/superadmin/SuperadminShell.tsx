@@ -95,11 +95,6 @@ const navGroups = [
     label: "Sistem",
     items: [
       { href: "/superadmin/moodle", label: "Moodle Sync", icon: ArrowPathIcon },
-      {
-        href: "/superadmin/settings",
-        label: "Pengaturan",
-        icon: Cog6ToothIcon,
-      },
     ],
   },
 ];
@@ -339,15 +334,7 @@ export default function SuperadminShell({
                   Profile
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild className="cursor-pointer">
-                <Link
-                  href="/superadmin/settings"
-                  className="flex items-center gap-2"
-                >
-                  <Cog6ToothIcon className="h-4 w-4" />
-                  Settings
-                </Link>
-              </DropdownMenuItem>
+
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={logout}

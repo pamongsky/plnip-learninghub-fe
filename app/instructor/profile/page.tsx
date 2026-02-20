@@ -86,7 +86,8 @@ export default function InstructorProfilePage() {
       let errorMessage = "Gagal memperbarui profil.";
       if (err instanceof Error) {
         const error = err as any;
-        errorMessage = error.response?.data?.message || "Gagal memperbarui profil.";
+        errorMessage =
+          error.response?.data?.message || "Gagal memperbarui profil.";
       }
       setStatusMessage(errorMessage);
     } finally {
@@ -124,7 +125,8 @@ export default function InstructorProfilePage() {
       let errorMessage = "Gagal mengunggah foto profil.";
       if (err instanceof Error) {
         const error = err as any;
-        errorMessage = error.response?.data?.message || "Gagal mengunggah foto profil.";
+        errorMessage =
+          error.response?.data?.message || "Gagal mengunggah foto profil.";
       }
       setStatusMessage(errorMessage);
     } finally {
@@ -164,7 +166,9 @@ export default function InstructorProfilePage() {
     }
     if (!/[@$!%*#?&]/.test(newPassword)) {
       setStatusType("error");
-      setStatusMessage("Password harus mengandung karakter spesial (@$!%*#?&).");
+      setStatusMessage(
+        "Password harus mengandung karakter spesial (@$!%*#?&).",
+      );
       setPasswordLoading(false);
       return;
     }
@@ -192,7 +196,8 @@ export default function InstructorProfilePage() {
       let errorMessage = "Gagal mengubah password.";
       if (err instanceof Error) {
         const error = err as any;
-        errorMessage = error.response?.data?.message || "Gagal mengubah password.";
+        errorMessage =
+          error.response?.data?.message || "Gagal mengubah password.";
       }
       setStatusMessage(errorMessage);
     } finally {
@@ -251,18 +256,14 @@ export default function InstructorProfilePage() {
         {/* Avatar & Basic Info */}
         <div className="px-6 pb-6 -mt-12 relative">
           <div className="flex flex-col sm:flex-row sm:items-end gap-4">
-            <motion.div
-              className="relative"
-              whileHover={{ scale: 1.05 }}
-              transition={{ type: "spring", stiffness: 300 }}
-            >
+            <motion.div className="relative">
               <img
                 src={
                   profileData.avatar ||
                   "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face"
                 }
                 alt={profileData.fullName}
-                className="w-24 h-24 rounded-xl border-4 border-white dark:border-slate-800 shadow-lg object-cover"
+                className="w-24 h-24 rounded-xl border-4 border-white dark:border-slate-800 shadow-lg object-contain bg-slate-50 dark:bg-slate-700"
               />
               <button
                 onClick={handleAvatarClick}
@@ -391,7 +392,9 @@ export default function InstructorProfilePage() {
                     disabled
                     className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400"
                   />
-                  <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">Dari sistem ERP</p>
+                  <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">
+                    Dari sistem ERP
+                  </p>
                 </motion.div>
                 <motion.div
                   whileHover={{ y: -2 }}
@@ -424,7 +427,9 @@ export default function InstructorProfilePage() {
                     disabled
                     className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400"
                   />
-                  <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">Dari sistem ERP</p>
+                  <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">
+                    Dari sistem ERP
+                  </p>
                 </motion.div>
                 <motion.div
                   whileHover={{ y: -2 }}
@@ -440,7 +445,9 @@ export default function InstructorProfilePage() {
                     disabled
                     className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400"
                   />
-                  <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">Dari sistem ERP</p>
+                  <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">
+                    Dari sistem ERP
+                  </p>
                 </motion.div>
                 <motion.div
                   whileHover={{ y: -2 }}

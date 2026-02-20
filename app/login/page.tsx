@@ -28,7 +28,6 @@ interface BackgroundImage {
   title: string;
 }
 
-
 export default function LoginPage() {
   const { login, user, loading: authLoading } = useAuth();
   const [email, setEmail] = useState("");
@@ -38,7 +37,9 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isMounted, setIsMounted] = useState(false);
-  const [backgroundImages, setBackgroundImages] = useState<BackgroundImage[]>([]);
+  const [backgroundImages, setBackgroundImages] = useState<BackgroundImage[]>(
+    [],
+  );
   const [loginContent, setLoginContent] = useState({
     title: "PLN IP",
     subtitle: "Learning Hub",
@@ -71,10 +72,12 @@ export default function LoginPage() {
       // Set login backgrounds if available
       if (data.login_backgrounds && data.login_backgrounds.length > 0) {
         setBackgroundImages(
-          data.login_backgrounds.map((bg: LoginBackground): BackgroundImage => ({
-            url: getImageUrl(bg.image_path),
-            title: bg.title || "Background",
-          })),
+          data.login_backgrounds.map(
+            (bg: LoginBackground): BackgroundImage => ({
+              url: getImageUrl(bg.image_path),
+              title: bg.title || "Background",
+            }),
+          ),
         );
       }
 
@@ -121,7 +124,8 @@ export default function LoginPage() {
       await login(email, password);
       // Success - don't set submitting to false, we're navigating away
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : "Login failed. Please try again.";
+      const errorMessage =
+        err instanceof Error ? err.message : "Login failed. Please try again.";
       setError(errorMessage);
       setSubmitting(false); // Only reset on error
     }
@@ -133,11 +137,11 @@ export default function LoginPage() {
       <AnimatePresence mode="wait">
         <motion.div
           key={currentImageIndex}
-          initial={{ opacity: 0, scale: 1.1 }}
-          animate={{ opacity: 1, scale: 1 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 1.5 }}
-          className="absolute inset-0 bg-cover bg-center"
+          className="absolute inset-0 bg-[length:100%_100%] bg-center bg-no-repeat"
           style={{
             backgroundImage: backgroundImages[currentImageIndex]
               ? `url('${backgroundImages[currentImageIndex].url}')`
@@ -146,36 +150,13 @@ export default function LoginPage() {
         />
       </AnimatePresence>
 
-      {/* Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-pln-primary/70 via-pln-dark/50 to-slate-900/60" />
+      {/* Overlay: Darker for focus on login form */}
+      <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-[2px]" />
+      <div className="absolute inset-0 bg-gradient-to-br from-pln-primary/40 via-transparent to-slate-900/60" />
 
-      {/* Decorative Elements */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,rgba(255,255,255,0.1),transparent_40%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_70%,rgba(0,156,222,0.2),transparent_40%)]" />
-
-      {/* Floating Particles */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {isMounted &&
-          [...Array(6)].map((_, i) => (
-            <motion.div
-              key={i}
-              className="absolute w-2 h-2 bg-white/20 rounded-full"
-              initial={{
-                x: Math.random() * window.innerWidth,
-                y: Math.random() * window.innerHeight,
-              }}
-              animate={{
-                y: [null, -100],
-                opacity: [0, 1, 0],
-              }}
-              transition={{
-                duration: 8 + Math.random() * 4,
-                repeat: Infinity,
-                delay: Math.random() * 5,
-              }}
-            />
-          ))}
-      </div>
+      {/* Decorative Elements: Subtler */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,rgba(255,255,255,0.05),transparent_40%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_70%,rgba(0,156,222,0.1),transparent_40%)]" />
 
       {/* Main Content */}
       <div className="relative z-10 w-full max-w-5xl mx-4 grid lg:grid-cols-2 gap-8 items-center">
@@ -335,7 +316,9 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                   >
                     {showPassword ? (

@@ -41,8 +41,6 @@ interface Partner {
   _dupKey?: string;
 }
 
-
-
 // Counter animation component
 function AnimatedCounter({ value }: { value: string | number }) {
   const stringValue = String(value);
@@ -89,8 +87,19 @@ const navLinks = [
 
 interface CMSData {
   hero_images?: Array<{ image_path: string; title: string }>;
-  leaders?: Array<{ id: number; name: string; title: string; image_path: string | null }>;
-  partners?: Array<{ id: number; name: string; logo_path: string | null; color?: string; abbrev?: string }>;
+  leaders?: Array<{
+    id: number;
+    name: string;
+    title: string;
+    image_path: string | null;
+  }>;
+  partners?: Array<{
+    id: number;
+    name: string;
+    logo_path: string | null;
+    color?: string;
+    abbrev?: string;
+  }>;
   app_logo?: string;
   app_name?: string;
   hero_title?: string;
@@ -111,6 +120,27 @@ interface CMSData {
   s3_label?: string;
   s4_val?: string;
   s4_label?: string;
+  // Partner Stats
+  p1_val?: string;
+  p1_label?: string;
+  p2_val?: string;
+  p2_label?: string;
+  p3_val?: string;
+  p3_label?: string;
+  p4_val?: string;
+  p4_label?: string;
+  // Company Info
+  company_name?: string;
+  company_tagline?: string;
+  company_description?: string;
+  company_email?: string;
+  company_phone?: string;
+  company_address?: string;
+  // Social Media
+  social_instagram?: string;
+  social_linkedin?: string;
+  social_youtube?: string;
+  social_tiktok?: string;
 }
 
 export default function LandingPage() {
@@ -312,7 +342,9 @@ export default function LandingPage() {
               <a
                 key={link.href}
                 href={link.href}
-                {...(link.href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                {...(link.href.startsWith("http")
+                  ? { target: "_blank", rel: "noopener noreferrer" }
+                  : {})}
                 className="group relative px-4 py-2"
               >
                 <span
@@ -397,21 +429,22 @@ export default function LandingPage() {
           <AnimatePresence mode="wait">
             <motion.div
               key={currentImageIndex}
-              initial={{ opacity: 0, scale: 1.1 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               transition={{ duration: 1.5 }}
-              className="absolute inset-0 bg-cover bg-center"
+              className="absolute inset-0 bg-[length:100%_100%] bg-center bg-no-repeat" // Force Full Stretch
               style={{
                 backgroundImage: `url('${heroItems[currentImageIndex]?.url}')`,
               }}
             />
           </AnimatePresence>
-          {/* Overlay ringan agar gambar terlihat jelas */}
-          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/50 via-slate-950/25 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent" />
-          <div className="absolute -top-32 right-0 h-[500px] w-[500px] rounded-full bg-pln-light/20 blur-[150px]" />
-          <div className="absolute -bottom-32 left-0 h-[400px] w-[400px] rounded-full bg-pln-primary/20 blur-[120px]" />
+          {/* Modified Overlays: Minimal interference */}
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/70 via-slate-950/20 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent" />
+          {/* Removed/Reduced Blur Blobs to keep image sharp */}
+          {/* <div className="absolute -top-32 right-0 h-[500px] w-[500px] rounded-full bg-pln-light/10 blur-[150px]" /> */}
+          {/* <div className="absolute -bottom-32 left-0 h-[400px] w-[400px] rounded-full bg-pln-primary/10 blur-[120px]" /> */}
         </div>
 
         {/* Carousel Indicators */}
@@ -655,7 +688,7 @@ export default function LandingPage() {
                     <img
                       src={getImageUrl(leader.image_path)}
                       alt={leader.name}
-                      className="h-full w-full object-cover object-top"
+                      className="h-full w-full object-contain object-top"
                     />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-pln-primary to-pln-light text-2xl font-bold text-white">
@@ -725,10 +758,7 @@ export default function LandingPage() {
               AI-Powered Learning
             </span>
             <h2 className="mt-6 text-3xl font-bold md:text-4xl">
-              Asisten Belajar{" "}
-              <span className="text-pln-light">
-                Cerdas
-              </span>
+              Asisten Belajar <span className="text-pln-light">Cerdas</span>
             </h2>
             <p className="mt-4 text-lg text-slate-400 leading-relaxed">
               Tanyakan materi teknis, dapatkan ringkasan modul, dan rekomendasi
@@ -747,8 +777,13 @@ export default function LandingPage() {
                   <BookOpenIcon className="h-4 w-4 text-pln-light" />
                 </div>
                 <div>
-                  <p className="font-medium text-white text-sm">Ringkas Materi Kursus</p>
-                  <p className="text-sm text-slate-400">Ekstrak dan rangkum konten PDF, modul, dan materi dari Moodle LMS</p>
+                  <p className="font-medium text-white text-sm">
+                    Ringkas Materi Kursus
+                  </p>
+                  <p className="text-sm text-slate-400">
+                    Ekstrak dan rangkum konten PDF, modul, dan materi dari
+                    Moodle LMS
+                  </p>
                 </div>
               </motion.div>
               <motion.div
@@ -762,8 +797,13 @@ export default function LandingPage() {
                   <SparklesIcon className="h-4 w-4 text-pln-light" />
                 </div>
                 <div>
-                  <p className="font-medium text-white text-sm">Asisten Belajar Interaktif</p>
-                  <p className="text-sm text-slate-400">Tanya jawab seputar materi teknis kelistrikan dan pembangkitan</p>
+                  <p className="font-medium text-white text-sm">
+                    Asisten Belajar Interaktif
+                  </p>
+                  <p className="text-sm text-slate-400">
+                    Tanya jawab seputar materi teknis kelistrikan dan
+                    pembangkitan
+                  </p>
                 </div>
               </motion.div>
               <motion.div
@@ -777,8 +817,12 @@ export default function LandingPage() {
                   <ChartBarIcon className="h-4 w-4 text-pln-light" />
                 </div>
                 <div>
-                  <p className="font-medium text-white text-sm">Panduan Platform</p>
-                  <p className="text-sm text-slate-400">Bantuan navigasi fitur dan penggunaan Learning Hub</p>
+                  <p className="font-medium text-white text-sm">
+                    Panduan Platform
+                  </p>
+                  <p className="text-sm text-slate-400">
+                    Bantuan navigasi fitur dan penggunaan Learning Hub
+                  </p>
                 </div>
               </motion.div>
             </div>
@@ -809,7 +853,7 @@ export default function LandingPage() {
             <motion.div
               animate={{
                 y: [0, -8, 0],
-                rotate: [0, 0.5, 0, -0.5, 0]
+                rotate: [0, 0.5, 0, -0.5, 0],
               }}
               transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
               className="rounded-2xl border border-slate-700 bg-slate-800 overflow-hidden shadow-2xl shadow-pln-primary/10"
@@ -820,12 +864,18 @@ export default function LandingPage() {
                   <SparklesIcon className="h-4 w-4 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-white">AI Mentor PLN</p>
+                  <p className="text-sm font-medium text-white">
+                    AI Mentor PLN
+                  </p>
                   <p className="text-xs text-slate-400">Selalu siap membantu</p>
                 </div>
                 <motion.div
                   animate={{ opacity: [1, 0.4, 1] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
                   className="ml-auto h-2 w-2 rounded-full bg-emerald-400"
                 />
               </div>
@@ -915,7 +965,9 @@ export default function LandingPage() {
                       viewport={{ once: true }}
                       transition={{ delay: 2.2 }}
                     >
-                      Gardu Induk (GI) berfungsi sebagai titik transformasi tegangan dalam sistem transmisi tenaga listrik. Fungsi utamanya:
+                      Gardu Induk (GI) berfungsi sebagai titik transformasi
+                      tegangan dalam sistem transmisi tenaga listrik. Fungsi
+                      utamanya:
                     </motion.p>
                     <ol className="mt-2 ml-4 space-y-0.5 list-decimal text-slate-300">
                       <motion.li
@@ -948,10 +1000,22 @@ export default function LandingPage() {
                 className="border-t border-slate-700 px-5 py-3"
               >
                 <div className="flex items-center gap-2 rounded-lg bg-slate-700/50 px-4 py-2.5">
-                  <span className="text-sm text-slate-500">Tanyakan sesuatu...</span>
+                  <span className="text-sm text-slate-500">
+                    Tanyakan sesuatu...
+                  </span>
                   <div className="ml-auto flex h-7 w-7 items-center justify-center rounded-lg bg-pln-primary">
-                    <svg className="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+                    <svg
+                      className="h-3.5 w-3.5 text-white"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={2}
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"
+                      />
                     </svg>
                   </div>
                 </div>
@@ -1110,9 +1174,7 @@ export default function LandingPage() {
             <h2 className="text-3xl font-bold text-white md:text-5xl lg:text-6xl leading-tight">
               Siap Memulai Perjalanan
               <br />
-              <span className="text-pln-100">
-                Belajar Anda?
-              </span>
+              <span className="text-pln-100">Belajar Anda?</span>
             </h2>
 
             <p className="mx-auto mt-6 max-w-2xl text-lg text-white/75 leading-relaxed">
@@ -1155,8 +1217,7 @@ export default function LandingPage() {
               </span>
               <span className="text-white/30">|</span>
               <span>
-                {cmsData?.s3_val || "240+"}{" "}
-                {cmsData?.s3_label || "Mentor Ahli"}
+                {cmsData?.s3_val || "240+"} {cmsData?.s3_label || "Mentor Ahli"}
               </span>
             </div>
           </motion.div>
@@ -1404,14 +1465,6 @@ export default function LandingPage() {
               {cmsData?.company_name || "PT PLN Indonesia Power"}. All rights
               reserved.
             </p>
-            <div className="flex gap-6 text-xs">
-              <a href="#" className="hover:text-white transition">
-                Kebijakan Privasi
-              </a>
-              <a href="#" className="hover:text-white transition">
-                Syarat & Ketentuan
-              </a>
-            </div>
           </motion.div>
         </div>
       </footer>

@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import MoodleLoginButton from "@/components/MoodleLoginButton";
 
 // Animation variants
 const containerVariants = {
@@ -179,15 +180,31 @@ export default function SuperadminDashboardPage() {
 
         // Set admin activities from real data
         setRecentAdmins(
-          admins.slice(0, 4).map((admin: { id: number; name: string; department?: string; last_login_at?: string; is_active: boolean }, idx: number) => ({
-            id: admin.id,
-            name: admin.name,
-            unit: admin.department || "Pusat",
-            last_active: admin.last_login_at
-              ? new Date(admin.last_login_at).toLocaleDateString("id-ID")
-              : "Belum login",
-            status: admin.is_active ? "online" : "offline",
-          })),
+          admins
+            .slice(0, 4)
+            .map(
+              (admin: {
+                id: number;
+                name: string;
+                department?: string;
+                last_login_at?: string;
+                is_active: boolean;
+              }) => ({
+                id: admin.id,
+                name: admin.name,
+                unit: admin.department || "Pusat",
+                last_active: admin.last_login_at
+                  ? new Date(admin.last_login_at).toLocaleDateString("id-ID")
+                  : "Belum login",
+                // Bug #3 fix: online = logged in within last 24 hours
+                status:
+                  admin.last_login_at &&
+                  new Date(admin.last_login_at) >
+                    new Date(Date.now() - 24 * 60 * 60 * 1000)
+                    ? "online"
+                    : "offline",
+              }),
+            ),
         );
 
         setAnnouncements(
@@ -231,70 +248,60 @@ export default function SuperadminDashboardPage() {
     void loadDashboard();
   }, []);
 
-  const handleMoodleAccess = async () => {
-    setSyncLoading(true);
-    try {
-      const response = await api.post("/moodle/login-url", {
-        role_id: 1, // Manager role - full system access
-      });
-      if (response.data?.success && response.data?.login_url) {
-        // Detect if user is on mobile device
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
-        if (isMobile) {
-          // Mobile: redirect in same window to maintain session
-          window.location.href = response.data.login_url;
-        } else {
-          // Desktop: open in new tab
-          window.open(response.data.login_url, "_blank");
-        }
-      } else {
-        showToast({
-          type: "error",
-          message: response.data?.message || "Gagal mendapatkan akses Moodle",
-        });
-      }
-    } catch (error: unknown) {
-      const errorMsg =
-        error && typeof error === 'object' && 'response' in error
-          ? (error as { response?: { data?: { message?: string } } }).response?.data?.message || "Gagal mengakses LMS Moodle"
-          : error instanceof Error ? error.message : "Gagal mengakses LMS Moodle";
-      showToast({
-        type: "error",
-        message: errorMsg,
-      });
-    } finally {
-      setSyncLoading(false);
-    }
-  };
-
   const handleMoodleSync = async () => {
     setSyncLoading(true);
     try {
       const response = await api.post("/moodle/sync/full");
 
-      // Show success notification
       showToast({
         type: "success",
         message: response.data?.message || "Sinkronisasi Moodle berhasil!",
       });
 
-      // Reload Moodle status without page refresh
-      const moodleRes = await api.get("/moodle/sync/status");
-      if (moodleRes.data) {
+      // Reload BOTH stats and moodle status after sync (Bug #1 & #2 fix)
+      const [statsRes, moodleRes] = await Promise.all([
+        api.get("/dashboard/stats").catch(() => ({ data: { data: {} } })),
+        api.get("/moodle/sync/status").catch(() => ({ data: null })),
+      ]);
+
+      const statsData = statsRes?.data?.data || statsRes?.data || {};
+      if (statsData.total_users !== undefined) {
+        setStats((prev) => ({
+          ...prev,
+          total_users: statsData.total_users ?? prev.total_users,
+          total_courses: statsData.total_courses ?? prev.total_courses,
+          total_announcements:
+            statsData.total_announcements ?? prev.total_announcements,
+        }));
+      }
+
+      const moodleData = moodleRes?.data || null;
+      if (moodleData) {
+        // Bug #2 fix: use connection.status === 'connected', not connection.connected
+        const isConnected = moodleData.connection?.status === "connected";
         setMoodleStatus({
-          connected: moodleRes.data.connection?.connected || false,
-          last_sync: moodleRes.data.last_sync || new Date().toISOString(),
-          users_synced: moodleRes.data.stats?.synced_users || 0,
-          courses_synced: moodleRes.data.stats?.synced_courses || 0,
-          pending_sync: moodleRes.data.stats?.pending_sync || 0,
+          connected: isConnected,
+          last_sync:
+            moodleData.last_sync?.started_at ||
+            moodleData.last_sync?.completed_at ||
+            new Date().toISOString(),
+          users_synced: moodleData.stats?.synced_users || 0,
+          courses_synced: moodleData.stats?.synced_courses || 0,
+          pending_sync: Math.max(
+            0,
+            (moodleData.connection?.total_users || 0) -
+              (moodleData.stats?.synced_users || 0),
+          ),
         });
       }
     } catch (error: unknown) {
       const errorMsg =
-        error && typeof error === 'object' && 'response' in error
-          ? (error as { response?: { data?: { message?: string } } }).response?.data?.message || "Gagal melakukan sinkronisasi"
-          : error instanceof Error ? error.message : "Gagal melakukan sinkronisasi";
+        error && typeof error === "object" && "response" in error
+          ? (error as { response?: { data?: { message?: string } } }).response
+              ?.data?.message || "Gagal melakukan sinkronisasi"
+          : error instanceof Error
+            ? error.message
+            : "Gagal melakukan sinkronisasi";
       showToast({
         type: "error",
         message: errorMsg,
@@ -454,26 +461,21 @@ export default function SuperadminDashboardPage() {
 
             <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
               <div>
-                <p className="text-white/80 text-sm mb-2">
-                  {getGreeting()}
-                </p>
+                <p className="text-white/80 text-sm mb-2">{getGreeting()}</p>
                 <h1 className="text-2xl lg:text-3xl font-bold mb-2">
                   {user?.name || "Super Admin"}
                 </h1>
                 <p className="text-white/70 text-sm mb-4">
-                  Kelola seluruh sistem PLN IP Learning Hub. Pantau aktivitas platform, kelola admin, dan pastikan sistem berjalan optimal.
+                  Kelola seluruh sistem PLN IP Learning Hub. Pantau aktivitas
+                  platform, kelola admin, dan pastikan sistem berjalan optimal.
                 </p>
               </div>
 
               <div className="flex flex-col gap-3">
-                <Button
-                  onClick={handleMoodleAccess}
-                  disabled={syncLoading}
+                <MoodleLoginButton
+                  roleId={1}
                   className="w-full bg-white text-pln-primary hover:bg-white/90 font-semibold"
-                >
-                  <AcademicCapIcon className="h-4 w-4 mr-2" />
-                  {syncLoading ? "Memproses..." : "Akses LMS Moodle"}
-                </Button>
+                />
               </div>
             </div>
           </div>
@@ -573,16 +575,46 @@ export default function SuperadminDashboardPage() {
                   </Link>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 mb-4">
+                  <div
+                    className={`flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 rounded-xl mb-4 ${
+                      moodleStatus.connected
+                        ? "bg-emerald-50 dark:bg-emerald-900/20"
+                        : "bg-red-50 dark:bg-red-900/20"
+                    }`}
+                  >
                     <div className="flex items-center gap-3">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500 text-white">
-                        <CheckCircleIcon className="h-6 w-6" />
+                      <div
+                        className={`flex h-12 w-12 items-center justify-center rounded-full text-white ${
+                          moodleStatus.connected
+                            ? "bg-emerald-500"
+                            : "bg-red-500"
+                        }`}
+                      >
+                        {moodleStatus.connected ? (
+                          <CheckCircleIcon className="h-6 w-6" />
+                        ) : (
+                          <ExclamationTriangleIcon className="h-6 w-6" />
+                        )}
                       </div>
                       <div>
-                        <p className="font-semibold text-emerald-700 dark:text-emerald-400">
-                          Terhubung & Aktif
+                        <p
+                          className={`font-semibold ${
+                            moodleStatus.connected
+                              ? "text-emerald-700 dark:text-emerald-400"
+                              : "text-red-700 dark:text-red-400"
+                          }`}
+                        >
+                          {moodleStatus.connected
+                            ? "Terhubung & Aktif"
+                            : "Tidak Terhubung"}
                         </p>
-                        <p className="text-sm text-emerald-600 dark:text-emerald-500">
+                        <p
+                          className={`text-sm ${
+                            moodleStatus.connected
+                              ? "text-emerald-600 dark:text-emerald-500"
+                              : "text-red-600 dark:text-red-500"
+                          }`}
+                        >
                           Last sync:{" "}
                           {new Date(moodleStatus.last_sync).toLocaleDateString(
                             "id-ID",
@@ -692,38 +724,42 @@ export default function SuperadminDashboardPage() {
                           initial={{ opacity: 0, x: -10 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: idx * 0.05 }}
-                          className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                         >
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/30">
-                              <GlobeAltIcon className="h-5 w-5 text-amber-600" />
-                            </div>
-                            <div>
-                              <p className="font-medium text-slate-900 dark:text-white line-clamp-1">
-                                {announcement.title}
-                              </p>
-                              <div className="flex items-center gap-2 mt-0.5">
-                                <Badge className="bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 text-xs">
-                                  Global
-                                </Badge>
-                                <span className="text-xs text-slate-500">
-                                  {announcement.views?.toLocaleString() || 0}{" "}
-                                  views
-                                </span>
+                          <Link
+                            href="/superadmin/announcements"
+                            className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/30 group-hover:scale-105 transition-transform">
+                                <GlobeAltIcon className="h-5 w-5 text-amber-600" />
+                              </div>
+                              <div>
+                                <p className="font-medium text-slate-900 dark:text-white line-clamp-1">
+                                  {announcement.title}
+                                </p>
+                                <p className="text-xs text-slate-500 mt-0.5">
+                                  {new Date(
+                                    announcement.created_at,
+                                  ).toLocaleDateString("id-ID", {
+                                    day: "numeric",
+                                    month: "long",
+                                    year: "numeric",
+                                  })}
+                                </p>
                               </div>
                             </div>
-                          </div>
-                          <Badge
-                            className={
-                              announcement.status === "published"
-                                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                                : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
-                            }
-                          >
-                            {announcement.status === "published"
-                              ? "Published"
-                              : "Draft"}
-                          </Badge>
+                            <Badge
+                              className={
+                                announcement.status === "published"
+                                  ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 shadow-none border-0"
+                                  : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 shadow-none border-0"
+                              }
+                            >
+                              {announcement.status === "published"
+                                ? "Published"
+                                : "Draft"}
+                            </Badge>
+                          </Link>
                         </motion.div>
                       ))}
                     </div>

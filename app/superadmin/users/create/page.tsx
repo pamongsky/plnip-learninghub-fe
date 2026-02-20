@@ -39,6 +39,7 @@ export default function CreateUserPage() {
   const router = useRouter();
   const { toast, showToast, clearToast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -63,14 +64,22 @@ export default function CreateUserPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validation
-    if (!formData.name || !formData.email || !formData.role) {
+    // Validate & show per-field errors
+    const errors: Record<string, string> = {};
+    if (!formData.name.trim()) errors.name = "Nama lengkap wajib diisi";
+    if (!formData.email.trim()) errors.email = "Email wajib diisi";
+    if (!formData.role) errors.role = "Role wajib dipilih";
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
       showToast({
         type: "error",
-        message: "Nama, email, dan role harus diisi",
+        message: "Harap lengkapi field yang wajib diisi",
       });
       return;
     }
+
+    setFieldErrors({});
 
     setLoading(true);
     try {
@@ -137,7 +146,10 @@ export default function CreateUserPage() {
         className="space-y-8"
       >
         {/* Header */}
-        <motion.div variants={itemVariants} className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <motion.div
+          variants={itemVariants}
+          className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+        >
           <div className="flex items-center gap-4 min-w-0">
             <button
               onClick={() => router.back()}
@@ -158,8 +170,18 @@ export default function CreateUserPage() {
             onClick={() => router.push("/superadmin/users/create-bulk")}
             className="px-4 py-2 bg-gradient-to-r from-pln-primary to-pln-light hover:shadow-lg text-white text-sm font-semibold rounded-lg transition-all flex items-center gap-2 flex-shrink-0 whitespace-nowrap"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+              />
             </svg>
             Buat Banyak User
           </button>
@@ -203,10 +225,19 @@ export default function CreateUserPage() {
                     <Input
                       name="name"
                       value={formData.name}
-                      onChange={handleChange}
+                      onChange={(e) => {
+                        handleChange(e);
+                        setFieldErrors((p) => ({ ...p, name: "" }));
+                      }}
                       placeholder="Contoh: Ahmad Fauzi"
                       required
+                      className={fieldErrors.name ? "border-red-500" : ""}
                     />
+                    {fieldErrors.name && (
+                      <p className="text-xs text-red-500 mt-1">
+                        {fieldErrors.name}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label className="text-sm font-medium block mb-2">
@@ -216,10 +247,19 @@ export default function CreateUserPage() {
                       name="email"
                       type="email"
                       value={formData.email}
-                      onChange={handleChange}
+                      onChange={(e) => {
+                        handleChange(e);
+                        setFieldErrors((p) => ({ ...p, email: "" }));
+                      }}
                       placeholder="ahmad.fauzi@plnip.co.id"
                       required
+                      className={fieldErrors.email ? "border-red-500" : ""}
                     />
+                    {fieldErrors.email && (
+                      <p className="text-xs text-red-500 mt-1">
+                        {fieldErrors.email}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -227,13 +267,13 @@ export default function CreateUserPage() {
                 <div className="grid md:grid-cols-2 gap-6">
                   <div>
                     <label className="text-sm font-medium block mb-2">
-                      Employee ID
+                     NIP
                     </label>
                     <Input
                       name="employee_id"
                       value={formData.employee_id}
                       onChange={handleChange}
-                      placeholder="PLN-2024-001 (opsional)"
+                      placeholder="Contoh:12348"
                     />
                   </div>
                   <div>
@@ -253,28 +293,19 @@ export default function CreateUserPage() {
                 <div className="grid md:grid-cols-2 gap-6">
                   <div>
                     <label className="text-sm font-medium block mb-2">
-                      Unit/Departemen
+                      Divisi
                     </label>
-                    <Select
+                    <Input
+                      name="department"
                       value={formData.department}
-                      onValueChange={(value) =>
-                        setFormData((prev) => ({ ...prev, department: value }))
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          department: e.target.value,
+                        }))
                       }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Pilih unit..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Pusat">Pusat</SelectItem>
-                        <SelectItem value="Pembangkitan">
-                          Pembangkitan
-                        </SelectItem>
-                        <SelectItem value="Transmisi">Transmisi</SelectItem>
-                        <SelectItem value="Distribusi">Distribusi</SelectItem>
-                        <SelectItem value="Corporate">Corporate</SelectItem>
-                        <SelectItem value="IT">IT</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      placeholder="Contoh: Divisi Keuangan"
+                    />
                   </div>
                   <div>
                     <label className="text-sm font-medium block mb-2">
@@ -296,9 +327,14 @@ export default function CreateUserPage() {
                   </label>
                   <Select
                     value={formData.role}
-                    onValueChange={handleRoleChange}
+                    onValueChange={(v) => {
+                      handleRoleChange(v);
+                      setFieldErrors((p) => ({ ...p, role: "" }));
+                    }}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger
+                      className={fieldErrors.role ? "border-red-500" : ""}
+                    >
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -316,6 +352,11 @@ export default function CreateUserPage() {
                       </SelectItem>
                     </SelectContent>
                   </Select>
+                  {fieldErrors.role && (
+                    <p className="text-xs text-red-500 mt-1">
+                      {fieldErrors.role}
+                    </p>
+                  )}
                   <p className="text-xs text-slate-500 mt-2">
                     Role menentukan hak akses user terhadap fitur platform
                   </p>
@@ -325,8 +366,8 @@ export default function CreateUserPage() {
                 <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                   <p className="text-sm text-blue-800 dark:text-blue-300">
                     ℹ️ <strong>Password otomatis:</strong> Sistem akan generate
-                    password aman secara otomatis. Setelah user dibuat, PDF berisi
-                    credentials akan otomatis terdownload.
+                    password aman secara otomatis. Setelah user dibuat, PDF
+                    berisi credentials akan otomatis terdownload.
                   </p>
                 </div>
 

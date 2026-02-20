@@ -11,7 +11,9 @@ export interface Course {
   is_active: boolean;
   instructor_id: number | null;
   image: string | null;
+  category_id?: number | null; // Added
   enrollments_count?: number;
+  enrollments?: Array<any>; // Added for detail view
   instructor?: {
     id: number;
     name: string;
@@ -62,7 +64,10 @@ export const coursesApi = {
     const response = await axios.get(`/courses/${id}`);
     return response.data;
   },
-  update: async (id: number | string, data: CourseUpdateData): Promise<Course> => {
+  update: async (
+    id: number | string,
+    data: CourseUpdateData,
+  ): Promise<Course> => {
     const response = await axios.put(`/courses/${id}`, data);
     return response.data;
   },
@@ -83,7 +88,11 @@ export const coursesApi = {
     );
     return response.data;
   },
-  updateEnrollmentRole: async (courseId: number | string, userId: number, roleId: number) => {
+  updateEnrollmentRole: async (
+    courseId: number | string,
+    userId: number,
+    roleId: number,
+  ) => {
     const response = await axios.patch(
       `/courses/${courseId}/enroll/${userId}/role`,
       { role_id: roleId },
@@ -91,9 +100,7 @@ export const coursesApi = {
     return response.data;
   },
   getUserProgress: async (courseId: number | string, userId: number) => {
-    const response = await axios.get(
-      `/courses/${courseId}/progress/${userId}`,
-    );
+    const response = await axios.get(`/courses/${courseId}/progress/${userId}`);
     return response.data;
   },
 };

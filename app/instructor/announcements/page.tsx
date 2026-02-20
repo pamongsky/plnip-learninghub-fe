@@ -67,10 +67,11 @@ interface Announcement {
   created_by: number;
   published_at?: string;
   date?: string; // Optional if used in UI
-  target_classes: string[] | string; // API might return JSON string or array
+  target_classes: string[]; // API returns array
   views_count: number;
   author_name?: string;
   creator_role?: string;
+  expires_at?: string;
   creator?: {
     id: number;
     name: string;
@@ -120,11 +121,19 @@ export default function InstructorAnnouncementsPage() {
     try {
       const [announcementsRes, coursesRes] = await Promise.all([
         api.get("/instructor/announcements"),
-        api.get("/courses/my"),
+        api.get("/courses/teaching"),
       ]);
 
       if (announcementsRes.data.success) {
-        setAnnouncements(announcementsRes.data.data.all || []);
+        const all = announcementsRes.data.data.all || [];
+        const mine = announcementsRes.data.data.mine || [];
+
+        // Merge and deduplicate
+        const uniqueMap = new Map();
+        all.forEach((a: Announcement) => uniqueMap.set(a.id, a));
+        mine.forEach((a: Announcement) => uniqueMap.set(a.id, a));
+
+        setAnnouncements(Array.from(uniqueMap.values()));
       }
 
       if (coursesRes.data.data) {
@@ -157,8 +166,7 @@ export default function InstructorAnnouncementsPage() {
         a.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (a.content || "").toLowerCase().includes(searchQuery.toLowerCase());
 
-      const matchesTab =
-        activeTab === "all" || String(a.created_by) === String(user?.id);
+      const matchesTab = activeTab === "all" || a.created_by == user?.id;
 
       if (activePriority === "all") return matchesSearch && matchesTab;
 
@@ -215,7 +223,11 @@ export default function InstructorAnnouncementsPage() {
     setNewAnnouncement({
       title: announcement.title,
       content: announcement.content,
-      targetClasses: announcement.target_classes || [],
+      targetClasses: Array.isArray(announcement.target_classes)
+        ? announcement.target_classes
+        : typeof announcement.target_classes === "string"
+          ? JSON.parse(announcement.target_classes)
+          : [],
       priority: getMappedPriority(announcement.priority),
       published_at: announcement.published_at || "",
       expires_at: announcement.expires_at || "",
@@ -308,11 +320,7 @@ export default function InstructorAnnouncementsPage() {
             >
               Dibuat Saya
               <span className="ml-2 px-1.5 py-0.5 text-xs rounded-full bg-slate-200 dark:bg-slate-600">
-                {
-                  announcements.filter(
-                    (a) => String(a.created_by) === String(user?.id),
-                  ).length
-                }
+                {announcements.filter((a) => a.created_by == user?.id).length}
               </span>
             </button>
           </div>
@@ -429,7 +437,7 @@ export default function InstructorAnnouncementsPage() {
               const config = getPriorityConfig(mappedPriority);
               const PriorityIcon = config.icon;
               const isMyAnnouncement =
-                String(announcement.created_by) === String(user?.id);
+                String(announcement.created_by) == String(user?.id);
 
               return (
                 <motion.div
@@ -879,7 +887,8 @@ export default function InstructorAnnouncementsPage() {
                   Hapus Pengumuman?
                 </h3>
                 <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-6">
-                  Pengumuman yang dihapus tidak dapat dikembalikan. Learners won't be able to see this announcement anymore.
+                  Pengumuman yang dihapus tidak dapat dikembalikan. Learners
+                  won't be able to see this announcement anymore.
                 </p>
                 <div className="flex gap-3">
                   <button

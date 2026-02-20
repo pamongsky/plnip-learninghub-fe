@@ -232,24 +232,6 @@ export default function InstructorClassesPage() {
                         {cls.schedule}
                       </span>
                     </div>
-
-                    {/* Progress bar for active classes */}
-                    {cls.status === "active" && (
-                      <div className="mt-3">
-                        <div className="flex items-center justify-between text-xs mb-1">
-                          <span className="text-slate-400">Progress Kelas</span>
-                          <span className="font-medium text-slate-600 dark:text-slate-300">
-                            {cls.progress}%
-                          </span>
-                        </div>
-                        <div className="h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-pln-primary to-pln-light rounded-full transition-all"
-                            style={{ width: `${cls.progress}%` }}
-                          />
-                        </div>
-                      </div>
-                    )}
                   </div>
 
                   {/* Action */}
